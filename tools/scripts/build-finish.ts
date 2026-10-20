@@ -42,13 +42,25 @@ function copyAngularDist() {
       // buildNativeSrc();
       finishPreparation();
     })
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+    });
 }
 
 function finishPreparation() {
+  // ng-packagr excludes nested manifests by default, but our Angular adapter
+  // ships as a subpath of the main package and needs its entry-point metadata.
+  const angularIgnore = path.join('dist', 'packages', packageName, 'angular', '.npmignore');
+  if (fs.existsSync(angularIgnore) && !fs.readFileSync(angularIgnore, 'utf8').includes('!package.json')) {
+    fs.appendFileSync(angularIgnore, '\n!package.json\n');
+  }
   fs.copy(path.join('tools', 'assets', 'publishing'), path.join('dist', 'packages', packageName))
     .then(() => console.log(`${npmPackageName} ready to publish.`))
-    .catch((err) => console.error(err));
+    .catch((err) => {
+      console.error(err);
+      process.exitCode = 1;
+    });
 }
 
 if (!skipAngular && fs.existsSync(path.join(rootDir, 'packages', packageName, 'angular'))) {
