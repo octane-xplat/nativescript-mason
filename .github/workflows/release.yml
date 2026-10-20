@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the manifest version to npm (otherwise validate only)
+        type: boolean
+        default: false
+      tag:
+        description: npm distribution tag
+        type: choice
+        options: [next, latest]
+        default: next
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.repository == 'octane-xplat/nativescript-mason'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.metadata.outputs.tag }}
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      NX_DAEMON: 'false'
+      NX_ISOLATE_PLUGINS: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Validate release version and npm tag
+        id: metadata
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, appendFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const { version } = JSON.parse(readFileSync('packages/nativescript-masonkit/package.json'));
+          const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH));
+          const release = process.env.GITHUB_EVENT_NAME === 'release';
+          const prerelease = version.includes('-');
+          const tag = release ? (prerelease ? 'next' : 'latest') : event.inputs.tag;
+          assert(['next', 'latest'].includes(tag), 'Invalid npm tag');
+          assert(!(prerelease && tag === 'latest'), 'Prerelease versions must use next');
+          if (release) {
+            assert.equal(event.release.tag_name, `v${version}`, 'GitHub tag must match package version');
+            assert.equal(event.release.prerelease, prerelease, 'GitHub prerelease flag must match version');
+          }
+          appendFileSync(process.env.GITHUB_OUTPUT, `tag=${tag}\n`);
+          NODE
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec ts-patch install
+      - run: pnpm test:keys && pnpm test:jsx-types
+      - run: pnpm exec tsc -p packages/nativescript-masonkit/tsconfig.json --noEmit
+      - run: pnpm test --maxWorkers=2
+      # Native binaries are checked in. Changes to Rust/Swift/Kotlin/C++ require
+      # refreshing the corresponding artifacts before releasing this commit.
+      - run: pnpm exec nx run nativescript-masonkit:build.all
+      - name: Pack
+        working-directory: dist/packages/nativescript-masonkit
+        run: pnpm pack --pack-destination "$GITHUB_WORKSPACE/release-artifacts"
+      - run: node tools/scripts/verify-release.mjs release-artifacts/*.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: release-artifacts/*.tgz
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: github.event_name == 'release' || inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: release-artifacts
+      - name: Publish through npm trusted publishing
+        env:
+          NPM_TAG: ${{ needs.build.outputs.tag }}
+        run: npm publish release-artifacts/*.tgz --access public --tag "$NPM_TAG" --provenance --ignore-scripts

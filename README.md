@@ -1,8 +1,8 @@
 # @octane-xplat/\* plugins
 
 ```
-npm run setup
-npm start
+pnpm install --frozen-lockfile
+pnpm start
 ```
 
 - [@octane-xplat/nativescript-masonkit](packages/nativescript-masonkit/README.md)
@@ -105,14 +105,15 @@ npm start
 
 Note: _good to always clean the demo you plan to run after focusing. (You can clean any demo from `npm start` as well)_
 
-## How to publish packages?
+## Releases
 
-```
-npm run publish-packages
+Validate the package through GitHub Actions without publishing:
+
+```sh
+gh workflow run release.yml --repo octane-xplat/nativescript-mason
 ```
 
-- You will be prompted for the package names to publish. Leaving blank and hitting enter will publish them all.
-- You will then be prompted for the version to use. Leaving blank will auto bump the patch version (it also handles prerelease types like alpha, beta, rc, etc. - It even auto tags the corresponding prelease type on npm).
-- You will then be given a brief sanity check 🧠😊
+See [Release MasonKit](RELEASING.md) for publishing through npm trusted publishing,
+version tags, and the one-time npm bootstrap.
 
 <h3 align="center">Made with ❤️</h3>

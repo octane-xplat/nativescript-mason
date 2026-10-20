@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "postinstall": "husky install && npx ts-patch install",
+    "postinstall": "husky install && ts-patch install",
     "test": "vitest run --config tools/testing/vitest.config.ts",
     "test:watch": "vitest --config tools/testing/vitest.config.ts",
     "gen:style-keys": "node tools/scripts/style-keys/generate.mjs",
@@ -26,6 +26,7 @@
     "clean": "npx rimraf node_modules package-lock.json dist tmp yarn.lock"
   },
   "private": true,
+  "packageManager": "pnpm@10.34.7",
   "devDependencies": {
     "@angular-devkit/build-angular": "^21.0.0",
     "@angular/animations": "^21.0.0",
@@ -43,13 +44,17 @@
     "@nativescript/types": "~9.1.2",
     "@nativescript/webpack": "~5.0.38",
     "@ngtools/webpack": "^21.0.0",
+    "@nx/js": "20.8.4",
     "cheerio": "^1.0.0-rc.12",
+    "fs-extra": "11.4.1",
     "husky": "~9.0.0",
     "nativescript-vue": "^3.0.2",
     "ng-packagr": "^21.0.0",
+    "nx": "20.8.4",
     "playwright": "^1.62.1",
     "rxjs": "~7.8.0",
     "sass": "1.53.0",
+    "ts-patch": "3.3.0",
     "typescript": "~5.9.0",
     "vitest": "^4.1.11",
     "zone.js": "~0.16.0"

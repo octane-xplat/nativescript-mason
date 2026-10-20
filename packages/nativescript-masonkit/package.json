@@ -13,7 +13,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/octane-xplat/nativescript-mason.git"
+    "url": "https://github.com/octane-xplat/nativescript-mason",
+    "directory": "packages/nativescript-masonkit"
   },
   "keywords": [
     "NativeScript",
