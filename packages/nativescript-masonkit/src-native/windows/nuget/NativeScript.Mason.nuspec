@@ -12,7 +12,7 @@
     <repository type="git" url="https://github.com/triniwiz/nativescript-mason.git" />
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>
-      Native C++/WinRT Windows Runtime Component backing @triniwiz/nativescript-masonkit: a
+      Native C++/WinRT Windows Runtime Component backing @octane-xplat/nativescript-masonkit: a
       web-inspired (flexbox / CSS grid / block / inline) layout engine built on the Rust Taffy core
       (mason-c). Consume from another C++/WinRT project via PackageReference to call the Mason / Node
       / Style / Layout types and to register its activatable classes in the app's

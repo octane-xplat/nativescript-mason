@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 const registered = vi.hoisted(() => [] as any[]);
 
-vi.mock('@triniwiz/nativescript-masonkit', () => ({
+vi.mock('@octane-xplat/nativescript-masonkit', () => ({
   frameworkRegistry: { register: (adapter: unknown) => registered.push(adapter) },
   readLinkedList: () => [],
 }));

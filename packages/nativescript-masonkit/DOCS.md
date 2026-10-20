@@ -1,4 +1,4 @@
-# @triniwiz/nativescript-masonkit
+# @octane-xplat/nativescript-masonkit
 
 **Web-Inspired Layout System for NativeScript**
 
@@ -44,7 +44,7 @@ A layout engine that brings familiar web layout paradigms (Flexbox, CSS Grid) an
 ## Installation
 
 ```bash
-ns plugin add @triniwiz/nativescript-masonkit
+ns plugin add @octane-xplat/nativescript-masonkit
 ```
 
 ---
@@ -54,7 +54,7 @@ ns plugin add @triniwiz/nativescript-masonkit
 ### XML (NativeScript Core)
 
 ```xml
-<Page xmlns:mason="@triniwiz/nativescript-masonkit">
+<Page xmlns:mason="@octane-xplat/nativescript-masonkit">
   <mason:View display="flex" flexDirection="column" padding="16" gap="8">
     <mason:Text textContent="Hello MasonKit!" fontSize="24" fontWeight="bold" />
     <mason:View display="grid" gridTemplateColumns="1fr 1fr" gap="12">
@@ -72,7 +72,7 @@ ns plugin add @triniwiz/nativescript-masonkit
 ### Using Semantic HTML Components
 
 ```xml
-<Page xmlns:mason="@triniwiz/nativescript-masonkit">
+<Page xmlns:mason="@octane-xplat/nativescript-masonkit">
   <mason:Div display="flex" flexDirection="column">
     <mason:Header padding="16" background="#333">
       <mason:H1 textContent="My App" color="#fff" />
@@ -104,7 +104,7 @@ ns plugin add @triniwiz/nativescript-masonkit
 The base container component. Use it as a general-purpose layout wrapper, similar to a `<div>` without built-in scrolling.
 
 ```typescript
-import { View } from '@triniwiz/nativescript-masonkit';
+import { View } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -135,7 +135,7 @@ import { View } from '@triniwiz/nativescript-masonkit';
 A text display component. Renders styled text content.
 
 ```typescript
-import { Text } from '@triniwiz/nativescript-masonkit';
+import { Text } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -157,7 +157,7 @@ Inherits all layout and styling properties from [View](#view).
 An image component for displaying images from local or remote sources.
 
 ```typescript
-import { Img } from '@triniwiz/nativescript-masonkit';
+import { Img } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -178,7 +178,7 @@ import { Img } from '@triniwiz/nativescript-masonkit';
 A scrollable container. Wraps children in a scrollable region.
 
 ```typescript
-import { Scroll } from '@triniwiz/nativescript-masonkit';
+import { Scroll } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -194,7 +194,7 @@ import { Scroll } from '@triniwiz/nativescript-masonkit';
 A clickable button with text content.
 
 ```typescript
-import { Button } from '@triniwiz/nativescript-masonkit';
+import { Button } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -214,7 +214,7 @@ import { Button } from '@triniwiz/nativescript-masonkit';
 A form input component supporting various input types.
 
 ```typescript
-import { Input } from '@triniwiz/nativescript-masonkit';
+import { Input } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -245,7 +245,7 @@ import { Input } from '@triniwiz/nativescript-masonkit';
 A line break element for use inside text components.
 
 ```typescript
-import { Br } from '@triniwiz/nativescript-masonkit';
+import { Br } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ```xml
@@ -263,7 +263,7 @@ import { Br } from '@triniwiz/nativescript-masonkit';
 A low-level text node for programmatic text manipulation.
 
 ```typescript
-import { TextNode } from '@triniwiz/nativescript-masonkit';
+import { TextNode } from '@octane-xplat/nativescript-masonkit';
 ```
 
 **Properties:**
@@ -291,7 +291,7 @@ MasonKit provides web-inspired semantic components that map directly to familiar
 ```typescript
 import { Div, Section, Header, Footer, Article, Main, Nav, Aside,
          Span, Code, H1, H2, H3, H4, H5, H6, P, B, Strong,
-         A, Blockquote, Li, Ul } from '@triniwiz/nativescript-masonkit';
+         A, Blockquote, Li, Ul } from '@octane-xplat/nativescript-masonkit';
 ```
 
 ### Container Components
@@ -420,7 +420,7 @@ Notes:
 XML example (NativeScript Core):
 
 ```xml
-<Page xmlns:mason="@triniwiz/nativescript-masonkit">
+<Page xmlns:mason="@octane-xplat/nativescript-masonkit">
   <mason:View padding="16">
     <mason:View width="120" height="120" background="#2196F3"
                  transform="translate(10px, 20px) rotate(15deg) scale(1.05)">
@@ -433,7 +433,7 @@ XML example (NativeScript Core):
 Programmatic example (TypeScript):
 
 ```ts
-import { View } from '@triniwiz/nativescript-masonkit';
+import { View } from '@octane-xplat/nativescript-masonkit';
 
 const v = new View();
 v.width = 120;
@@ -966,7 +966,7 @@ Install the integration in the app entry file, before starting Vue:
 ```ts
 // app.ts
 import { createApp } from 'nativescript-vue';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/vue';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/vue';
 import App from './App.vue';
 
 installMasonKit();
@@ -995,7 +995,7 @@ Install the integration in the app entry file, before starting Svelte Native:
 ```ts
 // app.ts
 import { svelteNative } from '@nativescript-community/svelte-native';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/svelte';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/svelte';
 import App from './App.svelte';
 
 installMasonKit();
@@ -1012,7 +1012,7 @@ Call `installMasonKit()` in `main.ts` before the bootstrap:
 ```ts
 // main.ts
 import { bootstrapApplication, runNativeScriptAngularApp } from '@nativescript/angular';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/angular';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/angular';
 
 installMasonKit();
 

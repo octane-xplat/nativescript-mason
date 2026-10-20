@@ -2,8 +2,8 @@ import { render } from '@nativescript-community/solid-js';
 import { Application } from '@nativescript/core';
 import { document, makeView, registerElement, scope } from 'dominative';
 import { App } from './app';
-import { View } from '@triniwiz/nativescript-masonkit';
-import { getMasonKitElements } from '@triniwiz/nativescript-masonkit/elements';
+import { View } from '@octane-xplat/nativescript-masonkit';
+import { getMasonKitElements } from '@octane-xplat/nativescript-masonkit/elements';
 
 // Off by default: preflight is Tailwind-style normalization, and it zeroes the UA margins
 // the WebSpec fixtures expect (they come from Chromium, UA stylesheet included).
@@ -117,7 +117,7 @@ function safeRegister(key: string, maker: () => any) {
 }
 
 // Register every tag MasonKit can back, from the single canonical list
-// (`@triniwiz/nativescript-masonkit/elements`) shared with the Angular
+// (`@octane-xplat/nativescript-masonkit/elements`) shared with the Angular
 // integration — so this demo can't silently drift out of parity with it.
 // Container elements (View, Div, headings, inline formatting, ...) get the
 // dominative-aware `makeMasonElement` wrapper; leaf/void widgets (Img, Br,

@@ -1,5 +1,5 @@
 import type { NSVElement, NSVViewMeta } from 'nativescript-vue';
-import { frameworkRegistry, readChildNodes } from '@triniwiz/nativescript-masonkit';
+import { frameworkRegistry, readChildNodes } from '@octane-xplat/nativescript-masonkit';
 
 interface MasonChildOps {
   _children?: unknown[];

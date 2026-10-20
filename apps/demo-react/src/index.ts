@@ -1,8 +1,8 @@
 import { document, makeView, registerElement, scope } from 'dominative';
 import { startNativeScriptApp } from '@tanstack/react-nativescript-router';
 import { router } from './app';
-import { View } from '@triniwiz/nativescript-masonkit';
-import { getMasonKitElements } from '@triniwiz/nativescript-masonkit/elements';
+import { View } from '@octane-xplat/nativescript-masonkit';
+import { getMasonKitElements } from '@octane-xplat/nativescript-masonkit/elements';
 
 // Enable CSS preflight — browser-style normalization (box-sizing: border-box, margin: 0, etc.)
 View.preflight = true;
@@ -75,7 +75,7 @@ function safeRegister(key: string, maker: () => any) {
 }
 
 // Register every tag MasonKit can back, from the single canonical list
-// (`@triniwiz/nativescript-masonkit/elements`) shared with demo-solid and the
+// (`@octane-xplat/nativescript-masonkit/elements`) shared with demo-solid and the
 // Angular integration — so this demo can't silently drift out of parity
 // with them (previously only div/scroll/span/button were wired up here).
 for (const { tag, ctor, isContainer } of getMasonKitElements()) {

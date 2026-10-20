@@ -22,7 +22,7 @@ export interface InstallMasonKitOptions extends RegisterElementsOptions {
  * Call this in `main.ts` **before** `runNativeScriptAngularApp()`:
  *
  * ```ts
- * import { installMasonKit } from '@triniwiz/nativescript-masonkit/angular';
+ * import { installMasonKit } from '@octane-xplat/nativescript-masonkit/angular';
  *
  * installMasonKit();
  *

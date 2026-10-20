@@ -1,4 +1,4 @@
-# @triniwiz/nativescript-masonkit/angular
+# @octane-xplat/nativescript-masonkit/angular
 
 Angular support for MasonKit. Registers every MasonKit element with
 `@nativescript/angular`, and makes your Angular components lay out like they do
@@ -12,7 +12,7 @@ MasonKit ships this entry point, so there is nothing extra to install. Call
 ```ts
 // main.ts
 import { bootstrapApplication, provideNativeScriptRouter, runNativeScriptAngularApp } from '@nativescript/angular';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/angular';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/angular';
 
 import { AppComponent } from './app.component';
 import { routes } from './app.routes';
@@ -70,8 +70,8 @@ export class StoryComponent {}
 
 | From                                  | Elements                                                                                                                                              |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@triniwiz/nativescript-masonkit`     | `View`, `Text`, `Scroll`, `Img`, `Button`, `Input`, `TextArea`, `Br`, `Ul`, `Ol`, `Li`                                                                |
-| `@triniwiz/nativescript-masonkit/web` | `div`, `section`, `header`, `footer`, `article`, `main`, `nav`, `aside`, `span`, `code`, `h1`-`h6`, `p`, `ul`, `li`, `blockquote`, `b`, `strong`, `a` |
+| `@octane-xplat/nativescript-masonkit`     | `View`, `Text`, `Scroll`, `Img`, `Button`, `Input`, `TextArea`, `Br`, `Ul`, `Ol`, `Li`                                                                |
+| `@octane-xplat/nativescript-masonkit/web` | `div`, `section`, `header`, `footer`, `article`, `main`, `nav`, `aside`, `span`, `code`, `h1`-`h6`, `p`, `ul`, `li`, `blockquote`, `b`, `strong`, `a` |
 
 Each name works in its original, lowercase and kebab-case spelling, so `<View>`,
 `<view>` and `<text-area>` all resolve.
@@ -170,7 +170,7 @@ Registering your own MasonKit subclass:
 
 ```ts
 import { registerElement } from '@nativescript/angular';
-import { masonMeta } from '@triniwiz/nativescript-masonkit/angular';
+import { masonMeta } from '@octane-xplat/nativescript-masonkit/angular';
 
 registerElement('MyBox', () => MyBox, masonMeta);
 ```

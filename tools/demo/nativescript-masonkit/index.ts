@@ -1,5 +1,5 @@
 import { DemoSharedBase } from '../utils';
-import {} from '@triniwiz/nativescript-masonkit';
+import {} from '@octane-xplat/nativescript-masonkit';
 
 export class DemoSharedNativescriptMasonkit extends DemoSharedBase {
   testIt() {

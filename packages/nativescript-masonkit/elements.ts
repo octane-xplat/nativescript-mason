@@ -13,7 +13,7 @@ export interface GetMasonKitElementsOptions {
    */
   mason?: boolean;
   /**
-   * Include the HTML-shaped elements from `@triniwiz/nativescript-masonkit/web`
+   * Include the HTML-shaped elements from `@octane-xplat/nativescript-masonkit/web`
    * (`div`, `section`, `p`, `span`, `h1`-`h6`, `blockquote`, `code`, `em`, `i`,
    * `pre`, `a`, ...).
    *

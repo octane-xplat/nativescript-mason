@@ -1,6 +1,6 @@
 import { svelteNative } from '@nativescript-community/svelte-native';
-import { View } from '@triniwiz/nativescript-masonkit';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/svelte';
+import { View } from '@octane-xplat/nativescript-masonkit';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/svelte';
 import App from './App.svelte';
 
 View.preflight = true;

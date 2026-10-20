@@ -1,5 +1,5 @@
 import { CommentNode, TextNode, type ViewClassMeta } from '@nativescript/angular';
-import { frameworkRegistry, readLinkedList } from '@triniwiz/nativescript-masonkit';
+import { frameworkRegistry, readLinkedList } from '@octane-xplat/nativescript-masonkit';
 
 /**
  * The subset of MasonKit's `ViewBase` child API this meta drives.

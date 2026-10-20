@@ -1,7 +1,7 @@
-# @triniwiz/nativescript-masonkit
+# @octane-xplat/nativescript-masonkit
 
 ```javascript
-ns plugin add @triniwiz/nativescript-masonkit
+ns plugin add @octane-xplat/nativescript-masonkit
 ```
 
 ## Usage
@@ -12,13 +12,13 @@ The main package works with any NativeScript flavour. For Angular, Vue 3 and
 Svelte Native, dedicated entry points register every MasonKit element for you — including the
 HTML-shaped elements from `/web` — and wire up child-order bookkeeping:
 
-- **Angular** — `@triniwiz/nativescript-masonkit/angular`:
+- **Angular** — `@octane-xplat/nativescript-masonkit/angular`:
   call `installMasonKit()` in `main.ts` before bootstrap. See
   [angular/README.md](angular/README.md).
-- **Vue 3** — `@triniwiz/nativescript-masonkit/vue`:
+- **Vue 3** — `@octane-xplat/nativescript-masonkit/vue`:
   call `installMasonKit()` in the app entry before `createApp(App).start()`.
   See [vue/README.md](vue/README.md).
-- **Svelte Native** — `@triniwiz/nativescript-masonkit/svelte`:
+- **Svelte Native** — `@octane-xplat/nativescript-masonkit/svelte`:
   call `installMasonKit()` in the app entry before `svelteNative(App)`.
   See [svelte/README.md](svelte/README.md).
 

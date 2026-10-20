@@ -1,5 +1,5 @@
 import { registerElement } from '@nativescript/angular';
-import { getMasonKitElements, type GetMasonKitElementsOptions } from '@triniwiz/nativescript-masonkit/elements';
+import { getMasonKitElements, type GetMasonKitElementsOptions } from '@octane-xplat/nativescript-masonkit/elements';
 
 import { masonMeta } from './mason-meta';
 

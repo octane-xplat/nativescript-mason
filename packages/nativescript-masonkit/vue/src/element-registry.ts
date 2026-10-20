@@ -1,5 +1,5 @@
 import { getViewClass, getViewMeta, isKnownView, normalizeElementName, registerElement } from 'nativescript-vue';
-import { getMasonKitElements, type ElementClass, type GetMasonKitElementsOptions } from '@triniwiz/nativescript-masonkit/elements';
+import { getMasonKitElements, type ElementClass, type GetMasonKitElementsOptions } from '@octane-xplat/nativescript-masonkit/elements';
 
 import { masonMeta } from './mason-meta';
 import { MODEL_PROP, modelMeta, withVueModel } from './v-model';

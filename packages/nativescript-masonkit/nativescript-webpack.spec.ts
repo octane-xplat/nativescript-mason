@@ -31,12 +31,12 @@ describe('nativescript.webpack.js', () => {
   // app-css-loader imports app.css at the top of the app entry, so MasonKit's
   // shorthand converters have to be registered by an earlier entry module.
   it('loads MasonKit right before the app entry', () => {
-    expect(bundleAfterConfig(['@nativescript/core/globals/index', '@nativescript/core/bundle-entry-points', APP_ENTRY, '@nativescript/core/ui/frame'])).toEqual(['@nativescript/core/globals/index', '@nativescript/core/bundle-entry-points', '@triniwiz/nativescript-masonkit', APP_ENTRY, '@nativescript/core/ui/frame']);
+    expect(bundleAfterConfig(['@nativescript/core/globals/index', '@nativescript/core/bundle-entry-points', APP_ENTRY, '@nativescript/core/ui/frame'])).toEqual(['@nativescript/core/globals/index', '@nativescript/core/bundle-entry-points', '@octane-xplat/nativescript-masonkit', APP_ENTRY, '@nativescript/core/ui/frame']);
   });
 
   it('leaves an entry without the app entry, or already loading MasonKit, alone', () => {
     expect(bundleAfterConfig(['@nativescript/core/globals/index'])).toEqual(['@nativescript/core/globals/index']);
-    const already = ['@triniwiz/nativescript-masonkit', APP_ENTRY];
+    const already = ['@octane-xplat/nativescript-masonkit', APP_ENTRY];
     expect(bundleAfterConfig(already)).toEqual(already);
   });
 });

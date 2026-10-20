@@ -1,7 +1,7 @@
 {
-  "name": "@triniwiz/nativescript-masonkit-svelte",
+  "name": "@octane-xplat/nativescript-masonkit-svelte",
   "version": "1.0.0-beta.95",
-  "description": "Svelte Native integration for @triniwiz/nativescript-masonkit: registers MasonKit's web-standards layout elements and keeps keyed child order.",
+  "description": "Svelte Native integration for @octane-xplat/nativescript-masonkit: registers MasonKit's web-standards layout elements and keeps keyed child order.",
   "main": "index.js",
   "module": "index.js",
   "types": "index.d.ts",
@@ -15,7 +15,7 @@
   "sideEffects": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/triniwiz/nativescript-mason.git"
+    "url": "https://github.com/octane-xplat/nativescript-mason.git"
   },
   "keywords": [
     "NativeScript",
@@ -31,9 +31,9 @@
     "email": "fortune.osei@yahoo.com"
   },
   "license": "Apache-2.0",
-  "homepage": "https://github.com/triniwiz/nativescript-mason",
+  "homepage": "https://github.com/octane-xplat/nativescript-mason",
   "peerDependencies": {
-    "@triniwiz/nativescript-masonkit": ">=1.0.0-beta.95",
+    "@octane-xplat/nativescript-masonkit": ">=1.0.0-beta.95",
     "@nativescript-community/svelte-native": ">=1.0.0",
     "svelte": "^4.0.0"
   }

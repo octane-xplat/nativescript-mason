@@ -1,5 +1,5 @@
 import { bootstrapApplication, provideNativeScriptRouter, runNativeScriptAngularApp } from '@nativescript/angular';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/angular';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/angular';
 
 import { AppComponent } from './app.component';
 import { routes } from './app.routes';

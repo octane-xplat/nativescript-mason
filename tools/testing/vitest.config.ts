@@ -13,7 +13,7 @@ const masonkitInternalResolver = () => ({
   name: 'masonkit-internal-resolver',
   enforce: 'pre' as const,
   resolveId(source: string) {
-    if (source === '@triniwiz/nativescript-masonkit') {
+    if (source === '@octane-xplat/nativescript-masonkit') {
       return resolve(root, 'packages/nativescript-masonkit/index.android.ts');
     }
     return null;

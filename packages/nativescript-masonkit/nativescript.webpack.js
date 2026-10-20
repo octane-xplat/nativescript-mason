@@ -20,10 +20,10 @@ module.exports = (webpack) => {
     const bundle = config.entry('bundle');
     const entries = bundle.values();
     const appEntry = entries.lastIndexOf(webpack.Utils.platform.getEntryPath());
-    if (appEntry === -1 || entries.includes('@triniwiz/nativescript-masonkit')) {
+    if (appEntry === -1 || entries.includes('@octane-xplat/nativescript-masonkit')) {
       return;
     }
-    entries.splice(appEntry, 0, '@triniwiz/nativescript-masonkit');
+    entries.splice(appEntry, 0, '@octane-xplat/nativescript-masonkit');
     bundle.clear();
     entries.forEach((entry) => bundle.add(entry));
   });

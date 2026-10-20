@@ -1,4 +1,4 @@
-# @triniwiz/nativescript-masonkit/vue
+# @octane-xplat/nativescript-masonkit/vue
 
 Vue 3 support for MasonKit and `nativescript-vue`.
 
@@ -9,7 +9,7 @@ the app entry file before starting Vue:
 
 ```ts
 import { createApp } from 'nativescript-vue';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/vue';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/vue';
 import App from './App.vue';
 
 installMasonKit();
@@ -17,7 +17,7 @@ createApp(App).start();
 ```
 
 The call registers MasonKit's native elements and all HTML-shaped elements from
-`@triniwiz/nativescript-masonkit/web`. It is safe to call repeatedly during HMR.
+`@octane-xplat/nativescript-masonkit/web`. It is safe to call repeatedly during HMR.
 
 ```vue
 <template>
@@ -60,7 +60,7 @@ Vue insertions and removals use MasonKit's child bookkeeping:
 
 ```ts
 import { registerElement } from 'nativescript-vue';
-import { masonMeta } from '@triniwiz/nativescript-masonkit/vue';
+import { masonMeta } from '@octane-xplat/nativescript-masonkit/vue';
 
 registerElement('MyBox', () => MyBox, masonMeta);
 ```

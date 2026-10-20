@@ -1,6 +1,6 @@
 import { Observable, EventData, Page } from '@nativescript/core';
 import { DemoSharedNativescriptMasonkit } from '@demo/shared';
-import { Text, TextNode } from '@triniwiz/nativescript-masonkit';
+import { Text, TextNode } from '@octane-xplat/nativescript-masonkit';
 
 let demoShared: DemoSharedNativescriptMasonkit;
 export function navigatingTo(args: EventData) {

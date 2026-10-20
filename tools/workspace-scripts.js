@@ -75,17 +75,17 @@ module.exports = {
     },
 
     '⚙️': {
-      script: `npx cowsay "@triniwiz/* packages will keep your ⚙️ cranking"`,
-      description: '_____________  @triniwiz/*  _____________',
+      script: `npx cowsay "@octane-xplat/* packages will keep your ⚙️ cranking"`,
+      description: '_____________  @octane-xplat/*  _____________',
     },
     // packages
     // build output is always in dist/packages
-    '@triniwiz': {
-      // @triniwiz/nativescript-masonkit
+    '@octane-xplat': {
+      // @octane-xplat/nativescript-masonkit
       'nativescript-masonkit': {
         build: {
           script: 'nx run nativescript-masonkit:build.all',
-          description: '@triniwiz/nativescript-masonkit: Build',
+          description: '@octane-xplat/nativescript-masonkit: Build',
         },
       },
       'build-all': {
@@ -100,7 +100,7 @@ module.exports = {
     focus: {
       'nativescript-masonkit': {
         script: 'nx run nativescript-masonkit:focus',
-        description: 'Focus on @triniwiz/nativescript-masonkit',
+        description: 'Focus on @octane-xplat/nativescript-masonkit',
       },
       reset: {
         script: 'nx g @nativescript/plugin-tools:focus-packages',

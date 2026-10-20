@@ -5,8 +5,8 @@
  *
  * Adapters live in three places:
  *   1. The built-in defaults in this module (DOM-shim and NativeScript Core).
- *   2. Framework subpackages such as `@triniwiz/nativescript-masonkit-angular`
- *      and `@triniwiz/nativescript-masonkit-vue`, which register adapters for
+ *   2. Framework subpackages such as `@octane-xplat/nativescript-masonkit-angular`
+ *      and `@octane-xplat/nativescript-masonkit-vue`, which register adapters for
  *      non-standard node shapes.
  *   3. App code, for custom renderers.
  */

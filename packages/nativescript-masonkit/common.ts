@@ -603,7 +603,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
    *
    * @example
    * ```ts
-   * import { ViewBase } from '@triniwiz/nativescript-masonkit';
+   * import { ViewBase } from '@octane-xplat/nativescript-masonkit';
    * ViewBase.preflight = true; // enable at app startup
    * ```
    */

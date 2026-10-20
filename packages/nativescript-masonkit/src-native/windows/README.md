@@ -1,6 +1,6 @@
 # Mason — Windows native (C++/WinRT)
 
-`NativeScript.Mason` is the Windows-native backing for `@triniwiz/nativescript-masonkit`. It is a
+`NativeScript.Mason` is the Windows-native backing for `@octane-xplat/nativescript-masonkit`. It is a
 C++/WinRT **Windows Runtime Component** that wraps the Rust Taffy core (`mason-c`) and exposes it
 to the NativeScript Windows runtime as activatable WinRT classes — the Windows equivalent of the
 iOS Swift `Mason` framework and the Android `masonkit` AAR.

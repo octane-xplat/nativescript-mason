@@ -1,4 +1,4 @@
-# @triniwiz/nativescript-masonkit/svelte
+# @octane-xplat/nativescript-masonkit/svelte
 
 Svelte Native support for MasonKit.
 
@@ -9,7 +9,7 @@ elements in the app entry file before starting Svelte Native:
 
 ```ts
 import { svelteNative } from '@nativescript-community/svelte-native';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/svelte';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/svelte';
 import App from './App.svelte';
 
 installMasonKit();
@@ -22,7 +22,7 @@ other, so that both load the same module: MasonKit registers its elements in
 that module's element registry.
 
 The call registers MasonKit's native elements and all HTML-shaped elements from
-`@triniwiz/nativescript-masonkit/web`. It is safe to call repeatedly during HMR.
+`@octane-xplat/nativescript-masonkit/web`. It is safe to call repeatedly during HMR.
 
 ```svelte
 <page>

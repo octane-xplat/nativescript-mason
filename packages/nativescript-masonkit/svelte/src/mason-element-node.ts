@@ -1,5 +1,5 @@
 import { NativeViewElementNode } from '@nativescript-community/svelte-native/dom';
-import { hasTextRun } from '@triniwiz/nativescript-masonkit';
+import { hasTextRun } from '@octane-xplat/nativescript-masonkit';
 import { dropStaleDuplicate, rawChildIndex, type SvelteDomNode } from './raw-index';
 
 interface MasonParentView {

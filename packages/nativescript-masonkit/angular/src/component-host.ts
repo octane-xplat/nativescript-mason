@@ -1,6 +1,6 @@
 import { ActionBar, Frame, Page, ProxyViewContainer, View as NSView } from '@nativescript/core';
 import { EmulatedRenderer, PageRouterOutlet, isKnownView, registerElement, ɵViewUtil } from '@nativescript/angular';
-import { View } from '@triniwiz/nativescript-masonkit';
+import { View } from '@octane-xplat/nativescript-masonkit';
 
 import { masonMeta } from './mason-meta';
 

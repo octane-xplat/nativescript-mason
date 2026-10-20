@@ -3,9 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@triniwiz/nativescript-masonkit": ["../../../dist/packages/nativescript-masonkit"],
-      "@triniwiz/nativescript-masonkit/elements": ["../../../dist/packages/nativescript-masonkit/elements"],
-      "@triniwiz/nativescript-masonkit/web": ["../../../dist/packages/nativescript-masonkit/web"]
+      "@octane-xplat/nativescript-masonkit": ["../../../dist/packages/nativescript-masonkit"],
+      "@octane-xplat/nativescript-masonkit/elements": ["../../../dist/packages/nativescript-masonkit/elements"],
+      "@octane-xplat/nativescript-masonkit/web": ["../../../dist/packages/nativescript-masonkit/web"]
     },
     "outDir": "../../../dist/packages/nativescript-masonkit/svelte",
     "rootDir": ".",

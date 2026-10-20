@@ -1,7 +1,7 @@
 import { createApp } from 'nativescript-vue';
 import { isAndroid } from '@nativescript/core';
-import { View } from '@triniwiz/nativescript-masonkit';
-import { installMasonKit } from '@triniwiz/nativescript-masonkit/vue';
+import { View } from '@octane-xplat/nativescript-masonkit';
+import { installMasonKit } from '@octane-xplat/nativescript-masonkit/vue';
 import Home from './components/Home.vue';
 
 // Enable MasonKit's native web-normalised defaults (border-box, margin:0, etc.)

@@ -1,11 +1,11 @@
-# @triniwiz/\* plugins
+# @octane-xplat/\* plugins
 
 ```
 npm run setup
 npm start
 ```
 
-- [@triniwiz/nativescript-masonkit](packages/nativescript-masonkit/README.md)
+- [@octane-xplat/nativescript-masonkit](packages/nativescript-masonkit/README.md)
 
 # How to use?
 

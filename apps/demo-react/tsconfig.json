@@ -13,8 +13,8 @@
       "~/*": ["src/*"],
       "@/*": ["src/*"],
       "@demo/shared": ["../../tools/demo/index.ts"],
-      "@triniwiz/nativescript-masonkit": ["../../packages/nativescript-masonkit/index.d.ts", "../../packages/nativescript-masonkit/typings/android.d.ts", "../../packages/nativescript-masonkit/typings/objc!Mason.d.ts", "../../packages/nativescript-masonkit/typings/objc!ObjectiveC.d.ts"],
-      "@triniwiz/*": ["../../packages/*"]
+      "@octane-xplat/nativescript-masonkit": ["../../packages/nativescript-masonkit/index.d.ts", "../../packages/nativescript-masonkit/typings/android.d.ts", "../../packages/nativescript-masonkit/typings/objc!Mason.d.ts", "../../packages/nativescript-masonkit/typings/objc!ObjectiveC.d.ts"],
+      "@octane-xplat/*": ["../../packages/*"]
     },
     "noEmit": true,
     "allowJs": true,

@@ -58,7 +58,7 @@
           </section>
 
           <footer class="foot">
-            <span class="muted">@triniwiz/nativescript-masonkit</span>
+            <span class="muted">@octane-xplat/nativescript-masonkit</span>
           </footer>
         </main>
       </Scroll>

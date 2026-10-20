@@ -4,7 +4,7 @@
   "dependencies": {
     "@nativescript/core": "~9.1.2",
     "@nativescript-community/svelte-native": "^1.0.32",
-    "@triniwiz/nativescript-masonkit": "file:../../dist/packages/nativescript-masonkit"
+    "@octane-xplat/nativescript-masonkit": "file:../../dist/packages/nativescript-masonkit"
   },
   "devDependencies": {
     "@nativescript/android": "~9.1.1",

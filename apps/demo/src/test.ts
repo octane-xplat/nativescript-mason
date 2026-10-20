@@ -1,4 +1,4 @@
-import { View } from '@triniwiz/nativescript-masonkit';
+import { View } from '@octane-xplat/nativescript-masonkit';
 import { Frame, View as NSView, Utils } from '@nativescript/core';
 export function run() {
   console.info('Running style property tests...');

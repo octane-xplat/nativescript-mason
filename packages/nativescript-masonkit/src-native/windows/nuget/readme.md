@@ -1,6 +1,6 @@
 # NativeScript.Mason (C++/WinRT)
 
-Native Windows Runtime Component backing [`@triniwiz/nativescript-masonkit`](https://github.com/triniwiz/nativescript-mason)
+Native Windows Runtime Component backing [`@octane-xplat/nativescript-masonkit`](https://github.com/triniwiz/nativescript-mason)
 on the NativeScript Windows runtime.
 
 It exposes the Mason layout engine — a web-inspired (flexbox / CSS grid / block / inline) layout

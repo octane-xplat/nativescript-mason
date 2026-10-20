@@ -1,6 +1,6 @@
 import { Application, FlexboxLayout, GridLayout, ScrollView, StackLayout } from '@nativescript/core';
-import { ViewBase } from '@triniwiz/nativescript-masonkit/common';
-import { Div } from '@triniwiz/nativescript-masonkit/web';
+import { ViewBase } from '@octane-xplat/nativescript-masonkit/common';
+import { Div } from '@octane-xplat/nativescript-masonkit/web';
 /*
 if (__ANDROID__) {
   Application.android.on(Application.AndroidApplication.activityCreatedEvent, (args) => {

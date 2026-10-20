@@ -1,13 +1,13 @@
 <Page xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo"
-  xmlns:ui="@triniwiz/nativescript-masonkit/view"
-  xmlns:text="@triniwiz/nativescript-masonkit/text"
-  xmlns:scroll="@triniwiz/nativescript-masonkit/scroll"
-  xmlns:web="@triniwiz/nativescript-masonkit/web"
-  xmlns:br="@triniwiz/nativescript-masonkit/br"
-  xmlns:button="@triniwiz/nativescript-masonkit/button"
-  xmlns:list="@triniwiz/nativescript-masonkit/list"
-  xmlns:li="@triniwiz/nativescript-masonkit/li"
-  xmlns:img="@triniwiz/nativescript-masonkit/img"
+  xmlns:ui="@octane-xplat/nativescript-masonkit/view"
+  xmlns:text="@octane-xplat/nativescript-masonkit/text"
+  xmlns:scroll="@octane-xplat/nativescript-masonkit/scroll"
+  xmlns:web="@octane-xplat/nativescript-masonkit/web"
+  xmlns:br="@octane-xplat/nativescript-masonkit/br"
+  xmlns:button="@octane-xplat/nativescript-masonkit/button"
+  xmlns:list="@octane-xplat/nativescript-masonkit/list"
+  xmlns:li="@octane-xplat/nativescript-masonkit/li"
+  xmlns:img="@octane-xplat/nativescript-masonkit/img"
   >
 
   <!-- <Page.actionBar>

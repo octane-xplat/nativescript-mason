@@ -404,7 +404,7 @@ class VBase extends ViewBase implements IViewBase {
    *
    * @example
    * ```ts
-   * import { View } from '@triniwiz/nativescript-masonkit';
+   * import { View } from '@octane-xplat/nativescript-masonkit';
    * View.preflight = true; // enable at app startup
    * ```
    */
