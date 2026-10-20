@@ -13,16 +13,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm exec ts-patch install
+      - run: pnpm exec playwright install --with-deps chromium
       # Regenerates in memory and fails if it differs from the committed
       # baseline, so a Chromium behaviour change surfaces as a failure rather
       # than silently rewriting the expected values.
-      - run: npm run gen:webspec -- --check
+      - run: pnpm gen:webspec --check
 
   kotlin-unit:
     name: Kotlin unit tests
