@@ -1376,6 +1376,13 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (__APPLE__) markClimbed(this);
   }
 
+  /** Core clears its flag only in its own layout pass, which natively placed views skip. */
+  // @ts-expect-error core's types declare isLayoutValid as a field; the runtime member is an accessor.
+  get isLayoutValid(): boolean {
+    if (this._masonPlacedNatively) return !!this.nativeViewProtected && !!nativeViewFor(this)?.node?.isLayoutValid;
+    return Reflect.get(Object.getPrototypeOf(ViewBase.prototype), 'isLayoutValid', this) ?? false;
+  }
+
   _parentChanged(oldParent: any): void {
     climbedRoots?.delete(this);
     this._masonClimbTurn = null;
