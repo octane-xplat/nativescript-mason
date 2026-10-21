@@ -98,4 +98,4 @@ jobs:
       - name: Publish through npm trusted publishing
         env:
           NPM_TAG: ${{ needs.build.outputs.tag }}
-        run: npm publish release-artifacts/*.tgz --access public --tag "$NPM_TAG" --provenance --ignore-scripts
+        run: npm publish ./release-artifacts/*.tgz --access public --tag "$NPM_TAG" --provenance --ignore-scripts
