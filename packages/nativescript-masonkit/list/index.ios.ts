@@ -9,7 +9,9 @@ const ITEMLOADING = ListBase.itemLoadingEvent;
 
 @NativeClass()
 class ListDelegateImpl extends NSObject implements MasonListDelegate {
-  static ObjCProtocols = [MasonListDelegate];
+  // Read the Swift protocol defensively: when an app's generated metadata lacks
+  // it, a bare module-scope read throws and the whole package fails to import.
+  static ObjCProtocols = typeof MasonListDelegate !== 'undefined' ? [MasonListDelegate] : [];
 
   _owner: WeakRef<List>;
 
