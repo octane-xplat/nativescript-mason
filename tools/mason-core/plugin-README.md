@@ -64,8 +64,9 @@ The isolated apps pass bridge, native geometry and ownership assertions on an
 arm64 iOS simulator and an API 36 Android phone. They install only core and
 NativeScript core as runtime dependencies. The iOS app declares the scene
 lifecycle required by the current SDK; NativeScript provides its default scene
-delegate. These checks do not qualify the Xplat renderer or touch input. Do not
-switch production consumers or publish this artifact.
+delegate. Plain-app assertions and renderer assertions are qualified separately;
+touch input remains unverified. Do not switch production consumers or publish
+this artifact.
 
 iOS retains embedded FontManager and SDWebImage code, dependency module headers,
 licenses and the SDWebImage resource/privacy bundle. Android declares the same
@@ -76,3 +77,49 @@ Use core and full MasonKit in separate apps. Native Objective-C/JNI class names
 are deliberately preserved, so coinstallation is unsupported. The package's
 `artifact-inventory.json` records every shipped file's SHA-256 hash. Platform
 manifests preserve native build provenance.
+
+## Qualify the Xplat renderer separately
+
+The renderer scenario reads the selected Xplat checkout's catalog pins and
+canonical Octane, NativeScript core and renderer patches. It changes only the
+renderer patch's two Mason package imports to point at core. It records patch
+hashes and the Xplat commit, verifies shared runtime resolution, and rejects
+full MasonKit anywhere in the installed production graph.
+
+```sh
+MASON_CORE_XPLAT_REPOSITORY=/path/to/octane-xplat \
+  pnpm exec nx run nativescript-mason-core:prepare.consumer.renderer
+cd tmp/mason-core-nativescript-consumer
+pnpm install --force
+```
+
+Return to the repository root and use the same build and consumer test targets
+shown above. The scenario checks driver geometry updates, reparenting and
+disposal, followed by a real Octane component mount/update/unmount. Its checks
+are a separate qualification from the plain application's bridge assertions;
+a successful build does not establish a renderer runtime pass.
+
+The renderer scenario passes on an arm64 iOS 27 simulator and API 35 arm64
+Android emulator with Octane 0.14.0, renderer 0.2.5 and NativeScript core 9.1.3.
+It includes native geometry after prop updates, reparenting/disposal and an
+Octane component mount/update/unmount without recreating its foreign label.
+The same-dependency plain controls pass on both targets. These results do not
+qualify compiled TSRX components, hook subscriptions, OS input or a physical
+Android renderer run. The earlier plain-app phone result remains separate.
+
+The `prepare.consumer.renderer.control` target uses the same dependency pins
+and patches with the plain NativeScript entry instead. It isolates SDK changes
+from renderer operations. Reinstall and rebuild after changing scenarios. The
+builder regenerates only its owned platform directory when native dependency
+inputs change, avoiding stale Xcode references to previous pnpm peer paths.
+
+When no phone is connected, reserve the dedicated `android:mason-core-extraction`
+AVD and one resident-device slot, then run:
+
+```sh
+pnpm exec nx run nativescript-mason-core:test.consumer.android.emulator
+```
+
+The emulator runner boots and shuts down only that owned AVD. Emulator results
+remain distinct from physical-device results. These checks do not exercise OS
+touch input or establish release-size savings.

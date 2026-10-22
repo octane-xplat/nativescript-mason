@@ -7,7 +7,7 @@ function check(condition, message) {
 }
 
 function report(result) {
-  const text = JSON.stringify(result);
+  const text = JSON.stringify({ ...result, scenario: 'nativescript' });
   knownFolders.documents().getFile('mason-core-result.json').writeTextSync(text);
   console.log(`MASON_CORE_RESULT ${text}`);
 }

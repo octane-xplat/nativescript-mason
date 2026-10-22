@@ -12,8 +12,9 @@ const emulator = resolve(sdk, 'emulator/emulator');
 const avd = 'mason-core-extraction';
 const image = 'system-images;android-35;google_apis;arm64-v8a';
 const ownershipFile = resolve(workspaceRoot, 'tmp/mason-core-android-avd.json');
-const apk = resolve(workspaceRoot, 'dist/native/mason-core/android-host/tests/MasonCore-tests.apk');
-if (!existsSync(apk)) throw new Error('Build nativescript-mason-core:build.tests.android first.');
+const consumer = process.argv.includes('--consumer');
+const apk = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-consumer/platforms/android/app/build/outputs/apk/debug/app-debug.apk' : 'dist/native/mason-core/android-host/tests/MasonCore-tests.apk');
+if (!existsSync(apk)) throw new Error(consumer ? 'Build nativescript-mason-core:build.consumer.android first.' : 'Build nativescript-mason-core:build.tests.android first.');
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { encoding: 'utf8', timeout: 30000, maxBuffer: 16 * 1024 * 1024, ...options });
@@ -51,7 +52,7 @@ for (let candidate = 5554; candidate <= 5584; candidate += 2) {
 }
 assert.ok(port, 'No free Android emulator port pair.');
 const serial = `emulator-${port}`;
-const results = resolve(workspaceRoot, 'tmp/mason-core-android-tests', String(Date.now()));
+const results = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-android-emulator-tests' : 'tmp/mason-core-android-tests', String(Date.now()));
 mkdirSync(results, { recursive: true });
 const descriptor = openSync(resolve(results, 'emulator.log'), 'w');
 const child = spawn(emulator, ['-avd', avd, '-port', String(port), '-no-window', '-no-audio', '-no-boot-anim', '-no-snapshot', '-gpu', 'swiftshader_indirect'], { stdio: ['ignore', descriptor, descriptor] });
@@ -71,14 +72,25 @@ try {
   assert.ok(booted, `Dedicated Android emulator did not boot. See ${results}/emulator.log.`);
   const reportedName = run(adb, ['-s', serial, 'emu', 'avd', 'name']);
   assert.ok(reportedName.split(/\r?\n/).includes(avd), `Unexpected AVD name response: ${JSON.stringify(reportedName)}`);
-  run(adb, ['-s', serial, 'install', '-r', '-t', apk], { timeout: 120000 });
-  const output = run(adb, ['-s', serial, 'shell', 'am', 'instrument', '-w', 'org.nativescript.mason.masonkit.test/androidx.test.runner.AndroidJUnitRunner'], { timeout: 240000 });
-  writeFileSync(resolve(results, 'instrumentation.log'), output);
-  console.log(output);
-  assert.match(output, /OK \(17 tests\)/);
-  assert.doesNotMatch(output, /FAILURES!!!|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS_CODE: -[34]\b/);
-  writeFileSync(resolve(results, 'summary.json'), JSON.stringify({ avd, serial, total: 17, passed: 17, failed: 0, skipped: 0, evidence: 'Android native instrumentation; no NativeScript runtime or OS-input qualification.' }, null, 2) + '\n');
-  console.log('All 17 native Android core tests passed with no skips.');
+  if (consumer) {
+    const result = spawnSync(process.execPath, [resolve(workspaceRoot, 'tools/mason-core/run-android-consumer.mjs')], {
+      encoding: 'utf8', timeout: 180000, maxBuffer: 16 * 1024 * 1024,
+      env: { ...process.env, MASON_CORE_ANDROID_EMULATOR_SERIAL: serial },
+    });
+    writeFileSync(resolve(results, 'consumer.log'), `${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+    if (result.error) throw result.error;
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+    console.log(result.stdout.trim());
+  } else {
+    run(adb, ['-s', serial, 'install', '-r', '-t', apk], { timeout: 120000 });
+    const output = run(adb, ['-s', serial, 'shell', 'am', 'instrument', '-w', 'org.nativescript.mason.masonkit.test/androidx.test.runner.AndroidJUnitRunner'], { timeout: 240000 });
+    writeFileSync(resolve(results, 'instrumentation.log'), output);
+    console.log(output);
+    assert.match(output, /OK \(17 tests\)/);
+    assert.doesNotMatch(output, /FAILURES!!!|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS_CODE: -[34]\b/);
+    writeFileSync(resolve(results, 'summary.json'), JSON.stringify({ avd, serial, total: 17, passed: 17, failed: 0, skipped: 0, evidence: 'Android native instrumentation; no NativeScript runtime or OS-input qualification.' }, null, 2) + '\n');
+    console.log('All 17 native Android core tests passed with no skips.');
+  }
 } catch (error) {
   const logs = spawnSync(adb, ['-s', serial, 'logcat', '-d', '-s', 'AndroidRuntime', 'masonnative'], { encoding: 'utf8', timeout: 15000 });
   writeFileSync(resolve(results, 'failure.log'), `${error.stack}\n${logs.stdout ?? ''}\n${logs.stderr ?? ''}`);

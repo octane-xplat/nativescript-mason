@@ -60,6 +60,18 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-consumer.mjs ios" }
     },
+    "prepare.consumer.renderer": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prepare.consumer"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/prepare-renderer-consumer.mjs" }
+    },
+    "prepare.consumer.renderer.control": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prepare.consumer"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/prepare-renderer-consumer.mjs --native-only" }
+    },
     "build.consumer.android": {
       "executor": "nx:run-commands",
       "cache": false,
@@ -74,6 +86,11 @@
       "executor": "nx:run-commands",
       "cache": false,
       "options": { "command": "node tools/mason-core/run-android-consumer.mjs" }
+    },
+    "test.consumer.android.emulator": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer" }
     },
     "verify": {
       "executor": "nx:run-commands",

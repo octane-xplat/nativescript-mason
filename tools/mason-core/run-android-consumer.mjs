@@ -19,17 +19,26 @@ function run(args, timeout = 30000) {
   assert.equal(result.status, 0, `adb failed:\n${result.stdout}\n${result.stderr}`);
   return result.stdout;
 }
-const connected = run(['devices', '-l']).split(/\r?\n/).filter((line) => /^\S+\s+device\s/.test(line) && !line.startsWith('emulator-'));
-const candidates = connected.filter((line) => !process.env.MASON_CORE_ANDROID_SERIAL || line.split(/\s+/)[0] === process.env.MASON_CORE_ANDROID_SERIAL);
-assert.equal(candidates.length, 1, 'Connect exactly one physical Android device, or set MASON_CORE_ANDROID_SERIAL.');
+const emulatorSerial = process.env.MASON_CORE_ANDROID_EMULATOR_SERIAL;
+if (emulatorSerial) assert.match(emulatorSerial, /^emulator-\d+$/);
+const requested = emulatorSerial ?? process.env.MASON_CORE_ANDROID_SERIAL;
+const connected = run(['devices', '-l']).split(/\r?\n/).filter((line) => /^\S+\s+device\s/.test(line) && (emulatorSerial || !line.startsWith('emulator-')));
+const candidates = connected.filter((line) => !requested || line.split(/\s+/)[0] === requested);
+assert.equal(candidates.length, 1, 'Connect exactly one physical Android device, or run the dedicated emulator consumer target.');
 const serial = candidates[0].split(/\s+/)[0];
 const device = (args, timeout) => run(['-s', serial, ...args], timeout);
-assert.notEqual(device(['shell', 'getprop', 'ro.kernel.qemu']).trim(), '1');
+if (emulatorSerial) {
+  assert.equal(device(['shell', 'getprop', 'ro.kernel.qemu']).trim(), '1');
+  assert.ok(device(['emu', 'avd', 'name']).split(/\r?\n/).includes('mason-core-extraction'), 'Use only the owned Mason core extraction AVD.');
+} else {
+  assert.notEqual(device(['shell', 'getprop', 'ro.kernel.qemu']).trim(), '1');
+}
 assert.ok(device(['shell', 'getprop', 'ro.product.cpu.abilist']).trim().split(',').includes('arm64-v8a'));
 const api = Number(device(['shell', 'getprop', 'ro.build.version.sdk']).trim());
 assert.ok(api >= 23, 'The NativeScript Android runtime requires API 23 or later.');
 const output = resolve(workspaceRoot, 'tmp/mason-core-nativescript-android-tests', String(Date.now()));
 mkdirSync(output, { recursive: true });
+writeFileSync(resolve(output, 'device.json'), JSON.stringify({ api, physical: !emulatorSerial }) + '\n');
 const hash = (filename) => createHash('sha256').update(readFileSync(filename)).digest('hex');
 const ownership = resolve(workspaceRoot, 'tmp', `mason-core-android-consumer-${createHash('sha256').update(serial).digest('hex').slice(0, 16)}.json`);
 const installed = spawnSync(adb, ['-s', serial, 'shell', 'pm', 'path', applicationId], { encoding: 'utf8', timeout: 30000 });
@@ -72,6 +81,8 @@ try {
   const result = JSON.parse(text);
   assert.equal(result.passed, true, result.error);
   assert.equal(result.platform, 'android');
+  const scenarioPath = resolve(consumer, 'consumer-scenario.json');
+  if (existsSync(scenarioPath)) assert.equal(result.scenario, JSON.parse(readFileSync(scenarioPath, 'utf8')).scenario, 'The installed app does not match the prepared consumer scenario.');
   console.log('The isolated NativeScript Android consumer passed its native bridge, layout and ownership assertions.');
 } finally {
   try {

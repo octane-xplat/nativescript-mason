@@ -54,6 +54,8 @@ try {
   writeFileSync(resolve(output, 'result.json'), JSON.stringify(result, null, 2) + '\n');
   assert.equal(result.passed, true, result.error);
   assert.equal(result.platform, 'ios');
+  const scenarioPath = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer/consumer-scenario.json');
+  if (existsSync(scenarioPath)) assert.equal(result.scenario, JSON.parse(readFileSync(scenarioPath, 'utf8')).scenario, 'The installed app does not match the prepared consumer scenario.');
   console.log('The isolated NativeScript iOS consumer passed its native bridge, layout and ownership assertions.');
 } finally {
   consoleProcess?.kill('SIGTERM');

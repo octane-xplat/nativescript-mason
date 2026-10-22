@@ -80,7 +80,9 @@ facade types preserved inactive branches; it is not shipped and does not
 establish Windows support. See [native type generation](native-types-README.md).
 
 The isolated NativeScript apps pass bridge, geometry and ownership checks on
-iOS Simulator and Android. Still required before Xplat adoption: the actual
-Xplat renderer, real scrolling and hit-testing, iOS device packaging,
+iOS Simulator and Android. The separate renderer scenario also passes driver
+and Octane host-plan component checks on both simulator/emulator targets.
+Still required before Xplat adoption: compiled Xplat components and hook
+subscriptions, real scrolling and hit-testing, iOS device packaging,
 representative full-package native regressions and matching release-build size
 measurements. Windows is not qualified by this prototype.
