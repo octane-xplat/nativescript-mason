@@ -1,4 +1,4 @@
-import { View, Text } from '@triniwiz/nativescript-masonkit';
+import { View, Text } from '@octane-xplat/nativescript-masonkit';
 import { Label } from '@nativescript/core';
 
 const root = new View();

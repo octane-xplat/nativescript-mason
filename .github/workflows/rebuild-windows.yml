@@ -1,0 +1,34 @@
+name: Rebuild Windows release binaries
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64, ARM64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc,aarch64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: windows-${{ matrix.platform }}
+      - name: Test Rust core and C bridge on Windows
+        if: matrix.platform == 'x64'
+        run: cargo test -p mason-core -p mason-c --all-targets
+      - name: Build native component
+        shell: pwsh
+        run: ./packages/nativescript-masonkit/src-native/windows/publish.ps1 -Platforms '${{ matrix.platform }}' -PlatformToolset v143
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.platform }}
+          path: packages/nativescript-masonkit/platforms/windows/${{ matrix.platform }}/*
+          if-no-files-found: error

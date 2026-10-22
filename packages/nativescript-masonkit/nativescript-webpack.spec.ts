@@ -52,6 +52,6 @@ describe('nativescript.webpack.js', () => {
     expect(runConfig([APP_ENTRY], { __ANDROID__: true }).defines).toEqual({ __ANDROID__: true, __WINDOWS__: false });
     expect(runConfig([APP_ENTRY], {}, 'windows').defines).toEqual({ __WINDOWS__: true });
     expect(runConfig([APP_ENTRY], { __WINDOWS__: 'kept' }).defines).toEqual({ __WINDOWS__: 'kept' });
-    expect(runConfig([APP_ENTRY], null).entries).toEqual(['@triniwiz/nativescript-masonkit', APP_ENTRY]);
+    expect(runConfig([APP_ENTRY], null).entries).toEqual(['@octane-xplat/nativescript-masonkit', APP_ENTRY]);
   });
 });

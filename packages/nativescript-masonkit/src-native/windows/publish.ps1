@@ -17,7 +17,8 @@
 #>
 param(
   [string[]] $Platforms = @('x64', 'ARM64'),
-  [string] $Configuration = 'Release'
+  [string] $Configuration = 'Release',
+  [string] $PlatformToolset = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -73,11 +74,10 @@ foreach ($plat in $Platforms) {
 
     # 2. C++/WinRT component (links the Rust lib produced above).
     $outDir = Join-Path $root "Mason\bin\$plat\$Configuration\"
-    & $msbuild $project -restore `
-      -p:Configuration=$Configuration `
-      -p:Platform=$plat `
-      "-p:OutDir=$outDir" `
-      -m -v:minimal
+    $buildArgs = @($project, '-restore', "-p:Configuration=$Configuration",
+      "-p:Platform=$plat", "-p:OutDir=$outDir", '-m', '-v:minimal')
+    if ($PlatformToolset) { $buildArgs += "-p:PlatformToolset=$PlatformToolset" }
+    & $msbuild @buildArgs
     if ($LASTEXITCODE -ne 0) { throw "MSBuild exited with code $LASTEXITCODE" }
 
     $dll = Join-Path $outDir 'NativeScript.Mason.dll'
@@ -101,4 +101,5 @@ foreach ($plat in $Platforms) {
 Write-Host "`n=== Summary ===" -ForegroundColor Cyan
 if ($built.Count)  { Write-Host "Published: $($built -join ', ')" -ForegroundColor Green }
 if ($failed.Count) { Write-Host "Failed/skipped: $($failed -join ', ')" -ForegroundColor Yellow }
+if ($failed.Count) { throw "Failed to publish: $($failed -join ', ')" }
 if (-not $built.Count) { throw 'No platforms were published.' }
