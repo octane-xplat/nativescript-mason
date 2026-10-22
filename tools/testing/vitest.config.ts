@@ -2,6 +2,7 @@ import { defineConfig } from 'vitest/config';
 import { dirname, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import { platformSuffixResolver } from './mason-test-kit/platform-suffix-resolver';
+import { masonCoreSourceResolver } from '../mason-core/source-resolver';
 
 const root = resolve(__dirname, '../..');
 
@@ -52,7 +53,7 @@ export default defineConfig({
     __CSS_PARSER__: '"css-tree"',
     __SNAPSHOT__: 'false',
   },
-  plugins: [masonkitInternalResolver(), platformSuffixResolver('android')],
+  plugins: [masonCoreSourceResolver(), masonkitInternalResolver(), platformSuffixResolver('android')],
   resolve: {
     alias: [
       { find: /^@nativescript\/core$/, replacement: resolve(root, 'tools/testing/mason-test-kit/ns-core-stub.ts') },

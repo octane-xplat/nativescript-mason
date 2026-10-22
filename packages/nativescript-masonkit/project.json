@@ -6,9 +6,12 @@
   "targets": {
     "build": {
       "executor": "@nx/js:tsc",
+      "dependsOn": ["prepare.sources"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "options": {
         "outputPath": "dist/packages/nativescript-masonkit",
-        "tsConfig": "packages/nativescript-masonkit/tsconfig.json",
+        "tsConfig": "tmp/nativescript-masonkit/tsconfig.json",
+        "rootDir": "tmp/nativescript-masonkit",
         "packageJson": "packages/nativescript-masonkit/package.json",
         "main": "packages/nativescript-masonkit/index.d.ts",
         "assets": [
@@ -45,7 +48,7 @@
     "build.vue": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["production", "^production"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "options": {
         "commands": ["tsc -p packages/nativescript-masonkit/vue/tsconfig.json", "node tools/scripts/copy-subpackage.ts nativescript-masonkit vue"],
         "parallel": false
@@ -61,7 +64,7 @@
     "build.svelte": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["production", "^production"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "options": {
         "commands": ["tsc -p packages/nativescript-masonkit/svelte/tsconfig.json", "node tools/scripts/copy-subpackage.ts nativescript-masonkit svelte"],
         "parallel": false
@@ -75,6 +78,7 @@
       ]
     },
     "build.all": {
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "executor": "nx:run-commands",
       "options": {
         "commands": ["node tools/scripts/build-finish.ts nativescript-masonkit"],
@@ -153,6 +157,11 @@
         "parallel": false
       },
       "executor": "nx:run-commands"
+    },
+    "prepare.sources": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/prepare-full.mjs" }
     },
     "focus": {
       "executor": "nx:run-commands",
