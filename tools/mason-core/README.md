@@ -2,8 +2,10 @@
 
 The prototype preserves MasonKit's published imports while relocating reusable
 source into `packages/nativescript-mason-core`. It does not make the full package
-depend on the core package at runtime. Native hosts have not been extracted yet. Separate native targets package the
-existing shared Rust C interface as independent engine archives; see the
+depend on the core package at runtime. The separate
+[runtime prototype](runtime-README.md) tests a container-only TypeScript API;
+native view/scroll hosts have not been extracted yet. Separate native targets
+package the existing shared Rust C interface as independent engine archives; see the
 [native proof](../../packages/nativescript-mason-core/src-native/README.md).
 
 The design is tracked in the Octane Xplat repository at
@@ -40,9 +42,9 @@ The repository's root LICENSE continues to apply.
 The math, color, and host integration tests remain in the full package. The
 second move preserves 27 additional source files unchanged, preparing the
 layout/style/view/scroll dependency closure. `common.ts` and `tree/` still belong
-to the full package: their widget/text coupling needs a separate core boundary.
-The ordinary core build still emits only portable helpers. No behavioral
-divergence is introduced by these moves.
+to the full package. The core runtime build generates its own narrowed versions
+without changing those originals. The ordinary core build still emits only
+portable helpers. No behavioral divergence is introduced by the moves.
 
 ## Build and test wiring
 

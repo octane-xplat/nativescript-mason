@@ -16,6 +16,21 @@
       "dependsOn": ["build"],
       "options": { "command": "node -e \"console.log('Core prototype build complete; native hosts are not included.')\"" }
     },
+    "build.runtime": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "outputs": ["{workspaceRoot}/dist/prototypes/nativescript-mason-core"],
+      "options": { "command": "node tools/mason-core/build-runtime.mjs" }
+    },
+    "verify.runtime": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.runtime", { "target": "build", "projects": ["nativescript-masonkit"] }],
+      "cache": false,
+      "options": {
+        "commands": ["node tools/mason-core/verify-runtime.mjs", "vitest run --config tools/mason-core/vitest-runtime.config.ts"],
+        "parallel": false
+      }
+    },
     "verify": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],

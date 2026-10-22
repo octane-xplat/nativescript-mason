@@ -1,0 +1,109 @@
+import ts from 'typescript';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fullSourceRoot, coreSourceRoot } from './sources.mjs';
+import { containerMembers } from './container-members.mjs';
+
+function parse(name) {
+  const text = readFileSync(resolve(fullSourceRoot, name), 'utf8');
+  return ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true);
+}
+
+function nameOf(node, file) {
+  if (ts.isConstructorDeclaration(node)) return 'constructor';
+  if (node.name) return node.name.getText(file);
+  if (ts.isVariableStatement(node)) return node.declarationList.declarations[0].name.getText(file);
+  return '';
+}
+
+function apply(file, edits) {
+  let output = file.text;
+  let previous = output.length;
+  for (const { node, text = '' } of edits.sort((a, b) => b.node.getFullStart() - a.node.getFullStart())) {
+    if (node.getEnd() > previous) throw new Error(`Overlapping core source adaptations in ${file.fileName}`);
+    output = output.slice(0, node.getFullStart()) + text + output.slice(node.getEnd());
+    previous = node.getFullStart();
+  }
+  return output;
+}
+
+function required(nodes, names, file) {
+  return names.map((name) => {
+    const found = nodes.filter((node) => nameOf(node, file) === name);
+    if (found.length !== 1) throw new Error(`Core extraction requires exactly one ${file.fileName}:${name}; found ${found.length}`);
+    return found[0];
+  });
+}
+
+/** Temporary prototype seam: full ViewBase stays untouched; only core is projected. */
+export function coreCommonSource() {
+  const file = parse('common.ts');
+  const [view] = required(file.statements, ['ViewBase'], file);
+  const edits = [];
+  const removeTop = required(file.statements, [
+    'textContentProperty', 'windowsRunCounts', 'windowsNativeOf', 'windowsBreakRun',
+    'windowsMemberKind', 'windowsInnerHTML', 'setWindowsInnerHTML', 'windowsFontSource',
+    'TextBase', 'ButtonBase', 'srcProperty', 'ImageBase', 'InputEvent', 'CompositionEvent', 'KeyboardEvent',
+  ], file);
+  edits.push(...removeTop.map((node) => ({ node })));
+  for (const node of file.statements) {
+    if (ts.isImportDeclaration(node) && ['./text-node', './text-runs', './framework-registry'].includes(node.moduleSpecifier.text)) edits.push({ node });
+    if (ts.isExpressionStatement(node) && /^(?:textProperty|textContentProperty|srcProperty)\.register\(/.test(node.getText(file))) edits.push({ node });
+  }
+  const [owner, getStyle, wrap] = required(file.statements, ['nativeOwnerFor', 'getViewStyle', 'wrapNativeEvent'], file);
+  edits.push({ node: owner, text: `\nfunction nativeOwnerFor(nativeView: any): ViewBase | NSViewBase | null {\n  return getWeakRefValue<ViewBase | NSViewBase>(nativeView?.__masonOwner);\n}\n` });
+  edits.push({ node: getStyle, text: '\n' + getStyle.getText(file).replace('WeakRef<NSViewBase> | WeakRef<TextBase>', 'WeakRef<NSViewBase>') });
+  edits.push({ node: wrap, text: '\nfunction wrapNativeEvent(_type: string): Event { return new Event(); }\n' });
+
+  const replace = required(view.members, [
+    '_children', 'addChild', 'insertBefore', 'insertChild', 'replaceChild', 'removeChild', 'removeChildren', '_nativeIndexFor',
+  ], file);
+  edits.push(...replace.map((node, index) => ({ node, text: index === 0 ? '\n' + containerMembers : '' })));
+  // Contiguous native text/run reconciliation block, including its Windows path.
+  const [first, last] = required(view.members, ['_createOrUpdateNativeTextNode', '[textProperty.setNative]'], file);
+  const textMembers = view.members.filter((node) => node.getStart(file) >= first.getStart(file) && node.getEnd() <= last.getEnd());
+  if (textMembers.length !== 34) throw new Error(`ViewBase text boundary changed (${textMembers.length} members); review the projection.`);
+  edits.push(...textMembers.map((node) => ({ node })));
+  for (const name of ['innerHTML', '_windowsNativeIndexOf', '_nativeRemoveChildNode', '_windowsAttachPlaceholder', '_windowsDetachPlaceholder']) {
+    const found = view.members.filter((node) => nameOf(node, file) === name);
+    if (found.length !== (name === 'innerHTML' ? 2 : 1)) throw new Error(`ViewBase boundary changed: ${name}`);
+    edits.push(...found.map((node) => ({ node })));
+  }
+  const output = apply(file, edits);
+  if (/\b(?:TextNode|TextBase|ButtonBase|ImageBase|frameworkRegistry|reconcileTextRuns|MasonTextNode|innerHTML)\b/.test(output)) {
+    throw new Error('The core ViewBase projection still references optional text/HTML implementation.');
+  }
+  return output;
+}
+
+export function coreTreeSource(platform) {
+  const file = parse(platform === 'types' ? 'tree/index.d.ts' : `tree/index.${platform}.ts`);
+  const [tree] = required(file.statements, ['Tree'], file);
+  const keep = new Set(['_base', '_tree', 'constructor', 'instance', 'native', 'createView', 'createScrollView', 'preflight']);
+  const edits = tree.members.filter((node) => !keep.has(nameOf(node, file))).map((node) => ({ node }));
+  for (const node of file.statements) {
+    if ((ts.isEnumDeclaration(node) && nameOf(node, file) === 'TextType') ||
+      (ts.isImportDeclaration(node) && node.moduleSpecifier.text === '..')) edits.push({ node });
+  }
+  return apply(file, edits);
+}
+
+export function coreLayoutTypes() {
+  const file = parse('index.d.ts');
+  // The existing layout aliases have no widget dependencies. Keep their text unchanged.
+  const aliases = file.statements.filter((node) =>
+    (ts.isTypeAliasDeclaration(node) && node.name.text !== 'InputType') || ts.isModuleDeclaration(node));
+  return "import type { Color, CoreTypes } from '@nativescript/core';\nimport type { LengthPercentage } from '@nativescript/core/css/parser';\n" + aliases.map((node) => node.getFullText(file)).join('\n');
+}
+
+export function corePropertiesSource() {
+  let text = readFileSync(resolve(coreSourceRoot, 'properties.ts'), 'utf8');
+  for (const [before, after] of [
+    ["import type { TextBase, ViewBase } from './common';", "import type { ViewBase } from './common';"],
+    ['WeakRef<NSViewBase> | WeakRef<TextBase>', 'WeakRef<NSViewBase> | WeakRef<ViewBase>'],
+  ]) {
+    if (text.split(before).length !== 2) throw new Error('Core property type adaptation needs review.');
+    text = text.replace(before, after);
+  }
+  return text;
+}
