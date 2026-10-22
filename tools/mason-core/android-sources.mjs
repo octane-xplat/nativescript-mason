@@ -108,6 +108,18 @@ export function projectAndroidSources() {
       source.branch('node.type == NodeType.Text');
     }
     if (name === 'Style.kt') {
+      // Commit the slow-style flag before synchronizing. Otherwise the first
+      // grid-template write sees the old flag and never reaches JNI; writing
+      // it after synchronization also undoes resetState(). Full source stays
+      // untouched so this behavioral fix can be offered upstream separately.
+      source.replace('isSlowDirty', 'Style', `private var isSlowDirty = false
+    set(value) {
+      field = value
+      if (value && !inBatch) {
+        node.dirty()
+        updateNativeStyle()
+      }
+    }`);
       source.branch('node.view is TextContainer', { otherwise: true, expression: true });
       source.branch('node.detailsRole == Details.SUMMARY');
     }

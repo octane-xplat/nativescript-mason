@@ -34,7 +34,8 @@ class MasonCoreHostInstrumentedTest {
   @Test
   fun gridPlacesOrdinaryContainersInDeclaredTracks() {
     instrumentation.runOnMainSync {
-      val mason = Mason()
+      // Native frames and point dimensions in this case use physical pixels.
+      val mason = Mason().apply { setDeviceScale(1f) }
       val root = mason.createView(context).apply {
         style.display = Display.Grid
         style.gridTemplateColumns = "100px 100px"
