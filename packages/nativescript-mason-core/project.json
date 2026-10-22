@@ -75,6 +75,39 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-native.mjs android" }
     },
+    "build.jni.android": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-android-jni.mjs" }
+    },
+    "prepare.parser.android": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/kotlin-source.mjs --bootstrap" }
+    },
+    "build.host.android": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.jni.android"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-android-host.mjs" }
+    },
+    "build.tests.android": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.jni.android"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-android-host.mjs --tests" }
+    },
+    "verify.host.android.artifact": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.host.android"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-android-host.mjs" }
+    },
+    "test.host.android": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-tests.mjs" }
+    },
     "verify.native": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.native.host"],

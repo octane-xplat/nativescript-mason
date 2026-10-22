@@ -51,7 +51,7 @@ function buildArchive(target, destination) {
   copyFileSync(resolve(cargoTargetRoot, target, 'release/libmason_c.a'), destination);
 }
 
-function androidTools() {
+export function androidTools() {
   let ndk = process.env.ANDROID_NDK_HOME;
   if (!ndk) {
     const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? resolve(homedir(), 'Library/Android/sdk');
@@ -61,7 +61,7 @@ function androidTools() {
     ndk = resolve(root, versions.at(-1));
   }
   const bin = resolve(ndk, 'toolchains/llvm/prebuilt/darwin-x86_64/bin');
-  return { clang: resolve(bin, 'aarch64-linux-android21-clang'), nm: resolve(bin, 'llvm-nm') };
+  return { ndk, bin, clang: resolve(bin, 'aarch64-linux-android21-clang'), nm: resolve(bin, 'llvm-nm') };
 }
 
 function verifyHeader(target, archive, include) {

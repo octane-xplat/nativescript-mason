@@ -5,7 +5,8 @@ source into `packages/nativescript-mason-core`. It does not make the full packag
 depend on the core package at runtime. The separate
 [runtime prototype](runtime-README.md) tests a container-only TypeScript API;
 the [iOS host prototype](ios-host-README.md) now builds and runs independently
-on iOS Simulator. Android view/scroll hosts and NativeScript packaging remain.
+on iOS Simulator. The [Android host prototype](android-host-README.md) builds a
+separate AAR and verifies an isolated Java client. NativeScript packaging remains.
 Separate native targets package the existing shared Rust C interface as
 independent engine archives; see the
 [native proof](../../packages/nativescript-mason-core/src-native/README.md).

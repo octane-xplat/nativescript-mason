@@ -34,6 +34,7 @@ const result = evaluateCssMath('calc(1rem + 2px)', (value, unit) => {
 ```
 
 See `tools/mason-core/README.md` in the source checkout for source provenance
-and the full-package overlay. The separate runtime and iOS host prototypes now
-build; they are not integrated into this helper tarball. NativeScript plugin
-packaging and Android hosts remain. No application-size savings are claimed.
+and the full-package overlay. The separate runtime, iOS host, and Android AAR
+prototypes build; they are not integrated into this helper tarball. NativeScript
+plugin packaging remains. See `tools/mason-core/android-host-README.md` for the
+Android qualification boundary. No application-size savings are claimed.

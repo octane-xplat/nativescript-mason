@@ -9,8 +9,9 @@ is needed for this step.
 This is an engine foundation, not a NativeScript plugin. These archives do not
 include layout hosts, scrolling, painting, or bridge metadata. The separate
 iOS host prototype now builds and runs; its scope and commands live in
-`tools/mason-core/ios-host-README.md` in the source checkout. Plugin packaging
-and Android hosts remain. The archives retain Rust's existing inline-layout
+`tools/mason-core/ios-host-README.md` in the source checkout. The independent
+Android JNI/AAR proof is documented in `tools/mason-core/android-host-README.md`.
+Plugin packaging remains. The archives retain Rust's existing inline-layout
 and UA-default helpers; this proof does not remove all text-related engine code.
 
 ## Build and verify
