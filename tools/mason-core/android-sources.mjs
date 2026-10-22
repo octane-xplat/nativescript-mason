@@ -125,7 +125,12 @@ export function projectAndroidSources() {
     }
     let text = source.result();
     const replacements = {
-      'Mason.kt': [['      refreshTextMetrics()', ''], ['    HTMLParser.refreshViewportStyles(this)', '']],
+      'Mason.kt': [
+        ['      refreshTextMetrics()', ''], ['    HTMLParser.refreshViewportStyles(this)', ''],
+        // Match syncStyleParts: a foreign leaf's own dirty flag does not
+        // invalidate the root's cached flat layout for unchanged constraints.
+        ['    node.dirty()\n    view.requestLayout()', '    node.dirty()\n    node.getRootNode()?.computeCacheDirty = true\n    view.requestLayout()'],
+      ],
       'Element.kt': [
         ['    TextEngine.flushPendingTextStyles(node)', ''],
         ['      root.type == NodeType.Document -> root.document?.documentElement?.view\n', ''],

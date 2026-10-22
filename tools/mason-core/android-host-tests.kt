@@ -55,11 +55,13 @@ class MasonCoreHostInstrumentedTest {
   @Test
   fun percentWidthTracksParentAndClearsToForeignIntrinsicWidth() {
     instrumentation.runOnMainSync {
-      val mason = Mason()
+      // Keep the definite parent dimensions and native frames in physical pixels.
+      val mason = Mason().apply { setDeviceScale(1f) }
       val root = mason.createView(context).apply {
         style.display = Display.Flex
         style.flexDirection = FlexDirection.Column
         style.alignItems = AlignItems.Start
+        style.dimensions(200f, 100f)
       }
       val label = AndroidTextView(context).apply {
         text = "short"
@@ -67,15 +69,16 @@ class MasonCoreHostInstrumentedTest {
       }
       root.addView(label)
       layout(root, 200, 100)
+      assertEquals("The percentage containing block must have definite width", 200f, root.node.computedWidth, 0f)
       val intrinsic = label.width
       assertTrue(intrinsic > 0)
-      val style = mason.nodeForView(label).style
-      style.setSizeWidth(0.5f, Dimension.Kind.Percent.value)
+      mason.setPercentWidth(label, 0.5f)
       layout(root, 200, 100)
-      assertEquals(100, label.width)
+      assertEquals("Root=${root.node.computedWidth}, leaf=${mason.nodeForView(label).computedWidth}", 100, label.width)
+      root.style.setSizeWidth(300f, Dimension.Kind.Points.value)
       layout(root, 300, 100)
       assertEquals(150, label.width)
-      style.setSizeWidth(Dimension.Auto)
+      mason.setPercentWidth(label, Float.NaN)
       layout(root, 300, 100)
       assertEquals(intrinsic, label.width)
     }

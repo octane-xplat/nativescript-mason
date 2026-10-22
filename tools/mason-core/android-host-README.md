@@ -72,9 +72,10 @@ identifiers are not included in the result summary. On a shared host, reserve
 an exclusive USB-device lock, such as `android-usb:<serial>`; no emulator is
 started or counted as a resident VM.
 
-The first API 36 physical-device run passed 16 of 17 tests, including all 12
-unchanged foreign-view tests and the direct grid setter regression. Percentage
-width remains under investigation; this is not a complete runtime qualification.
+The API 36 physical-device run passes all 17 tests, including all 12 unchanged
+foreign-view tests, the direct grid setter regression, and percentage sizing,
+resize, and reset. NativeScript application lifecycle and OS input remain
+separate qualification gates.
 
 ## Preserve source and the full package
 
@@ -100,6 +101,21 @@ The source projection is temporary proof tooling, not the final upstream seam.
 Move unchanged native modules with `git mv` after qualifying their full-build
 references and native regressions. Keep core and full MasonKit in separate
 hosts; their Java class names and native library names still collide.
+
+The first instrumentation run passed 15 of 17 tests, including all 12 unchanged
+foreign-view tests. A standalone grid-template setter exposed an existing
+`Style.isSlowDirty` ordering problem: synchronization read the flag before its
+assignment, and the assignment could overwrite the sync's reset. Core's
+projection assigns the flag first; the direct-setter grid regression remains.
+The full native source is unchanged and needs a separate upstream fix.
+Foreign-view percentage tests use Mason's `setPercentWidth`/NaN-clear API and
+give the containing block definite dimensions. The root cache also needs explicit
+invalidation, as already performed by `syncStyleParts`; core's projection adds
+that invalidation. A physical-device control run with this adaptation removed
+still reported root width 200 and intrinsic leaf width 107 instead of 100. The
+same test passes with the adaptation, including resize to 150 and intrinsic reset.
+Both tests fix engine scale at 1 so CSS dimensions and physical frame assertions
+use the same units. Passing a batched case alone would not qualify the grid setter.
 
 ## Remaining qualification
 
