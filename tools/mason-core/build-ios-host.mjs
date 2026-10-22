@@ -5,12 +5,17 @@ import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
 import { iosSourceRoot, iosHostFiles, projectIosSource, backgroundGlyphProtocol } from './ios-sources.mjs';
 
-const stage = resolve(workspaceRoot, 'tmp/mason-core-ios-host');
+const device = process.argv.includes('--device');
+const sdk = device ? 'iphoneos' : 'iphonesimulator';
+const suffix = device ? '-device' : '';
+const derived = resolve(workspaceRoot, `tmp/mason-core-ios-derived${suffix}`);
+const stage = resolve(workspaceRoot, `tmp/mason-core-ios-host${suffix}`);
 const project = resolve(stage, 'Mason.xcodeproj');
 const originalProject = resolve(iosSourceRoot, '../Mason.xcodeproj');
 const artifactRoot = resolve(workspaceRoot, 'dist/native/mason-core/ios');
-const engine = resolve(artifactRoot, 'aarch64-apple-ios-sim/libMasonCore.a');
+const engine = resolve(artifactRoot, device ? 'aarch64-apple-ios/libMasonCore.a' : 'aarch64-apple-ios-sim/libMasonCore.a');
 const tests = process.argv.includes('--tests');
+if (tests && device) throw new Error('Native host tests require the dedicated simulator.');
 if (!existsSync(engine)) throw new Error('Build nativescript-mason-core:build.native.ios first.');
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(resolve(stage, 'include'), { recursive: true });
@@ -66,8 +71,8 @@ if (chmod.error) throw chmod.error;
 if (chmod.status !== 0) process.exit(chmod.status ?? 1);
 const args = [
   '-project', project, '-scheme', 'Mason', '-configuration', tests ? 'Debug' : 'Release',
-  '-sdk', 'iphonesimulator', '-destination', 'generic/platform=iOS Simulator',
-  '-derivedDataPath', resolve(workspaceRoot, 'tmp/mason-core-ios-derived'),
+  '-sdk', sdk, '-destination', device ? 'generic/platform=iOS' : 'generic/platform=iOS Simulator',
+  '-derivedDataPath', derived,
   '-clonedSourcePackagesDirPath', resolve(workspaceRoot, 'tmp/mason-core-ios-packages'),
   '-disableAutomaticPackageResolution', '-onlyUsePackageVersionsFromResolvedFile',
   'ARCHS=arm64', 'ONLY_ACTIVE_ARCH=YES', 'CODE_SIGNING_ALLOWED=NO',
@@ -77,8 +82,8 @@ const result = spawnSync('xcodebuild', args, { cwd: workspaceRoot, stdio: 'inher
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 const configuration = tests ? 'Debug' : 'Release';
-const products = resolve(workspaceRoot, 'tmp/mason-core-ios-derived/Build/Products', `${configuration}-iphonesimulator`);
-const output = resolve(workspaceRoot, 'dist/native/mason-core/ios-host', configuration.toLowerCase());
+const products = resolve(derived, 'Build/Products', `${configuration}-${sdk}`);
+const output = resolve(workspaceRoot, 'dist/native/mason-core/ios-host', ...(device ? ['device'] : []), configuration.toLowerCase());
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 cpSync(resolve(products, 'MasonCore.framework'), resolve(output, 'MasonCore.framework'), { recursive: true });
@@ -105,8 +110,8 @@ const sources = iosHostFiles.map((name) => ({
   name, originalSha256: hash(resolve(iosSourceRoot, name)), projectedSha256: hash(resolve(stage, 'Mason', name)),
 }));
 const manifest = {
-  platform: 'iOS Simulator', architecture: 'arm64', configuration,
-  qualification: 'Core-only native framework; NativeScript metadata, app packaging, device build and OS input are not yet qualified.',
+  platform: device ? 'iOS' : 'iOS Simulator', architecture: 'arm64', configuration,
+  qualification: 'Core-only native framework build; native client verification and target-specific application execution are separate checks.',
   nativeFrameworkSha256: hash(resolve(output, 'MasonCore.framework/MasonCore')),
   engineSha256: hash(engine), dependencyLockSha256: hash(resolve(output, 'Package.resolved')),
   retainedDependencies: ['FontManager', 'SDWebImage'],
@@ -114,4 +119,4 @@ const manifest = {
   sources,
 };
 writeFileSync(resolve(output, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
-console.log(tests ? 'Built the core-only iOS foreign-view test bundle; execution is still required.' : 'Compiled core-only iOS simulator host; NativeScript metadata and runtime qualification are still required.');
+console.log(tests ? 'Built the core-only iOS foreign-view test bundle; execution is still required.' : `Compiled core-only ${device ? 'iOS device' : 'iOS simulator'} host; target-specific consumer qualification is separate.`);

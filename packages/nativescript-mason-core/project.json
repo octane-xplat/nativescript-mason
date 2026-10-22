@@ -132,6 +132,18 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-ios-host.mjs" }
     },
+    "build.host.ios.device": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.native.ios"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-ios-host.mjs --device" }
+    },
+    "verify.host.ios.device.artifact": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.host.ios.device"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-ios-host.mjs release --device" }
+    },
     "build.tests.ios": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.native.ios"],

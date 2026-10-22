@@ -20,6 +20,19 @@ isolated temporary directory, links Swift and Objective-C consumers, verifies
 all 99 declared C functions are exported, and checks native symbols and headers
 for excluded classes.
 
+Build and verify the unsigned arm64 device framework separately:
+
+```sh
+pnpm exec nx run nativescript-mason-core:verify.host.ios.device.artifact
+```
+
+This uses `iphoneos`, the device engine archive and separate staging/derived
+folders, exporting `dist/native/mason-core/ios-host/device/release`. The device
+framework and isolated Swift/Objective-C clients compile and link; its Mach-O
+platform and all 99 C exports are verified. This is build evidence only. It does
+not qualify a device application or replace the simulator-only plugin artifact.
+Both builds require a native-build resource reservation.
+
 The exported framework retains FontManager for styling/font metrics and
 SDWebImage for container backgrounds and nine-slice images. Their code is
 linked into the framework. Their dependency headers and licenses accompany it;
@@ -28,7 +41,7 @@ only `MasonCore`. Removing image/text widgets does not remove these remaining
 callers. The export also carries SwiftPM's SDWebImage resource/privacy bundle.
 The separate isolated NativeScript app verifies resource discovery, core class
 metadata, layout and ownership on an arm64 simulator. Independent public native
-declarations and device coverage remain gates.
+declarations are generated independently; device app coverage remains a gate.
 
 ## Run native layout tests
 
@@ -86,9 +99,10 @@ constructors; this proof does not claim those costs have been removed.
 
 ## Remaining qualification
 
-The current host artifact is arm64 iOS Simulator only. Device slices,
-NativeScript bridge metadata and types, plugin/resource packaging, Android's
-JNI/view hosts, actual touch scrolling/hit-testing, and matching release app
-size measurements remain. Core and full MasonKit are separate-host choices;
+The native host exports separate arm64 simulator and device frameworks.
+The plugin still packages only the simulator framework; combining slices and
+qualifying device app metadata/resources remain gates. Simulator bridge types,
+plugin discovery, compiled components and OS input pass separately; see the
+[plugin proof](plugin-README.md). Matching release app size measurements remain. Core and full MasonKit are separate-host choices;
 coinstallation and native ABI compatibility are not qualified. Windows is not
 qualified by this prototype.

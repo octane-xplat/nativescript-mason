@@ -8,7 +8,10 @@ import { workspaceRoot } from './sources.mjs';
 
 const configuration = process.argv[2] ?? 'release';
 assert.ok(['debug', 'release'].includes(configuration));
-const input = resolve(workspaceRoot, 'dist/native/mason-core/ios-host', configuration);
+const device = process.argv.includes('--device');
+const sdkName = device ? 'iphoneos' : 'iphonesimulator';
+const target = device ? 'arm64-apple-ios15.6' : 'arm64-apple-ios15.6-simulator';
+const input = resolve(workspaceRoot, 'dist/native/mason-core/ios-host', ...(device ? ['device'] : []), configuration);
 const temporary = mkdtempSync(resolve(tmpdir(), 'mason-core-ios-client-'));
 
 function run(command, args, env = {}) {
@@ -33,9 +36,10 @@ try {
   }
   for (const name of ['NSCMason', 'MasonUIView', 'MasonNode', 'MasonStyle']) assert.ok(symbols.includes(`_OBJC_CLASS_$_${name}`));
   assert.doesNotMatch(run('otool', ['-L', binary]), /(?:^|\/)Mason\.framework\//m);
-  assert.match(run('xcrun', ['vtool', '-show-build', binary]), /IOSSIMULATOR/);
-  const sdk = run('xcrun', ['--sdk', 'iphonesimulator', '--show-sdk-path']).trim();
-  const cHeader = run('xcrun', ['clang', '-isysroot', sdk, '-target', 'arm64-apple-ios15.6-simulator', '-E', '-P', '-x', 'c', resolve(artifact, 'MasonCore.framework/Headers/mason_native.h')]);
+  assert.equal(manifest.platform, device ? 'iOS' : 'iOS Simulator');
+  assert.match(run('xcrun', ['vtool', '-show-build', binary]), device ? /platform IOS\s/ : /platform IOSSIMULATOR\s/);
+  const sdk = run('xcrun', ['--sdk', sdkName, '--show-sdk-path']).trim();
+  const cHeader = run('xcrun', ['clang', '-isysroot', sdk, '-target', target, '-E', '-P', '-x', 'c', resolve(artifact, 'MasonCore.framework/Headers/mason_native.h')]);
   const functions = [...cHeader.matchAll(/\b(mason_\w+)\s*\([^;{}]*\)\s*;/g)].map((match) => match[1]);
   assert.equal(new Set(functions).size, 99);
   for (const name of functions) assert.ok(new RegExp(`\\b_${name}\\b`).test(symbols), `Missing exported C function: ${name}`);
@@ -43,7 +47,7 @@ try {
     assert.ok(header.includes(name) || readFileSync(resolve(artifact, 'MasonCore.framework/Headers/Mason.h'), 'utf8').includes(name));
     assert.ok(symbols.includes(`_${name}`));
   }
-  const shared = ['-sdk', sdk, '-target', 'arm64-apple-ios15.6-simulator', '-F', artifact, '-I', resolve(artifact, 'include')];
+  const shared = ['-sdk', sdk, '-target', target, '-F', artifact, '-I', resolve(artifact, 'include')];
   writeFileSync(resolve(temporary, 'consumer.swift'), `import UIKit
 import MasonCore
 let engine = NSCMason()
@@ -64,7 +68,7 @@ void checkCore(void) {
 }
 int main(void) { checkCore(); return MasonCoreVersionNumber >= 0 ? 0 : 1; }
 `);
-  run('xcrun', ['clang', '-isysroot', sdk, '-target', 'arm64-apple-ios15.6-simulator', '-F', artifact, '-I', resolve(artifact, 'include'),
+  run('xcrun', ['clang', '-isysroot', sdk, '-target', target, '-F', artifact, '-I', resolve(artifact, 'include'),
     '-fmodules', `-fmodules-cache-path=${resolve(temporary, 'clang-cache')}`, '-fobjc-arc', '-Werror', resolve(temporary, 'consumer.m'), '-framework', 'MasonCore', '-o', resolve(temporary, 'objc-consumer')]);
   console.log('Isolated Swift and Objective-C clients link against core plus its retained dependency headers; all 99 C declarations are exported.');
   console.log('Core native symbols and public headers exclude HTML, rich-text rendering and widget classes.');
