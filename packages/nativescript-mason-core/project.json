@@ -98,6 +98,18 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer" }
     },
+    "test.consumer.ios.input": {
+      "executor": "nx:run-commands", "cache": false,
+      "options": { "command": "node tools/mason-core/run-ios-consumer.mjs --os-input" }
+    },
+    "test.consumer.android.input.emulator": {
+      "executor": "nx:run-commands", "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer --os-input" }
+    },
+    "test.consumer.android.input.device": {
+      "executor": "nx:run-commands", "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-consumer.mjs --os-input" }
+    },
     "verify": {
       "executor": "nx:run-commands",
       "dependsOn": ["build"],

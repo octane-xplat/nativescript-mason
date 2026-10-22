@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
+import { driveInputStep } from './input-driver.mjs';
 
 const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? resolve(homedir(), 'Library/Android/sdk');
 const adb = resolve(sdk, 'platform-tools/adb');
@@ -13,6 +14,8 @@ assert.ok(existsSync(resolve(consumer, '.mason-core-consumer')));
 const apk = resolve(consumer, 'platforms/android/app/build/outputs/apk/debug/app-debug.apk');
 assert.ok(existsSync(apk), 'Build nativescript-mason-core:build.consumer.android first.');
 const applicationId = 'org.octane.masoncoreprobe';
+const osInput = process.argv.includes('--os-input');
+if (osInput) assert.equal(JSON.parse(readFileSync(resolve(consumer, 'consumer-scenario.json'), 'utf8')).scenario, 'xplat-compiled');
 function run(args, timeout = 30000) {
   const result = spawnSync(adb, args, { encoding: 'utf8', timeout, maxBuffer: 8 * 1024 * 1024 });
   if (result.error) throw result.error;
@@ -60,20 +63,38 @@ if (installed.stdout.trim()) {
 device(['install', '-r', apk], 120000);
 writeFileSync(ownership, JSON.stringify({ applicationId, apkSha256: hash(apk) }) + '\n');
 let pid;
+const actions = [];
 try {
   device(['shell', 'am', 'force-stop', applicationId]);
   device(['shell', 'run-as', applicationId, 'rm', '-f', 'files/mason-core-result.json']);
+  device(['shell', 'run-as', applicationId, 'rm', '-f', 'files/mason-core-input-ready.json']);
+  device(['shell', 'run-as', applicationId, ...(osInput ? ['touch', 'files/mason-core-os-input'] : ['rm', '-f', 'files/mason-core-os-input'])]);
   const launch = device(['shell', 'am', 'start', '-W', '-n', `${applicationId}/com.tns.NativeScriptActivity`], 60000);
   writeFileSync(resolve(output, 'launch.log'), launch);
   const running = spawnSync(adb, ['-s', serial, 'shell', 'pidof', applicationId], { encoding: 'utf8', timeout: 10000 });
   pid = running.stdout?.trim();
   assert.ok(!pid || /^\d+$/.test(pid), 'Unexpected consumer process identifier.');
-  const deadline = Date.now() + 45000;
+  const deadline = Date.now() + (osInput ? 90000 : 45000);
   let text;
   while (Date.now() < deadline) {
     const report = spawnSync(adb, ['-s', serial, 'shell', 'run-as', applicationId, 'cat', 'files/mason-core-result.json'], { encoding: 'utf8', timeout: 10000 });
     if (report.error) throw report.error;
     if (report.status === 0) { text = report.stdout; break; }
+    if (osInput) {
+      const ready = spawnSync(adb, ['-s', serial, 'shell', 'run-as', applicationId, 'cat', 'files/mason-core-input-ready.json'], { encoding: 'utf8', timeout: 10000 });
+      if (ready.error) throw ready.error;
+      let input;
+      if (ready.status === 0) {
+        try { input = JSON.parse(ready.stdout); } catch (error) { if (!(error instanceof SyntaxError)) throw error; }
+      }
+      if (input) driveInputStep(input, 'android', actions, (action) => {
+        const focus = device(['shell', 'dumpsys', 'window']);
+        assert.ok(focus.split(/\r?\n/).some((line) => line.includes('mCurrentFocus=') && line.includes(`${applicationId}/`)), 'The owned consumer no longer has input focus.');
+        if (action.phase === 'tap') device(['shell', 'input', 'tap', String(action.point.x), String(action.point.y)]);
+        else device(['shell', 'input', 'swipe', String(action.from.x), String(action.from.y), String(action.to.x), String(action.to.y), '350']);
+        writeFileSync(resolve(output, 'input-actions.json'), JSON.stringify([...actions, action], null, 2) + '\n');
+      });
+    }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   assert.ok(text, 'NativeScript Android consumer did not report its assertions; inspect launch.log and console.log.');
@@ -81,6 +102,10 @@ try {
   const result = JSON.parse(text);
   assert.equal(result.passed, true, result.error);
   assert.equal(result.platform, 'android');
+  if (osInput) {
+    assert.equal(result.osInput, true);
+    assert.deepEqual(actions.map(({ phase }) => phase), ['tap', 'scroll']);
+  }
   const scenarioPath = resolve(consumer, 'consumer-scenario.json');
   if (existsSync(scenarioPath)) assert.equal(result.scenario, JSON.parse(readFileSync(scenarioPath, 'utf8')).scenario, 'The installed app does not match the prepared consumer scenario.');
   console.log('The isolated NativeScript Android consumer passed its native bridge, layout and ownership assertions.');

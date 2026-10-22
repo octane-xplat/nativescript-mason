@@ -1,4 +1,4 @@
-const { Application, Frame, Page, knownFolders, isIOS } = require('@nativescript/core');
+const { Application, File, Frame, Page, Screen, knownFolders, isIOS, path } = require('@nativescript/core');
 const { renderNativeScriptApp } = require('@nativescript-community/octane');
 const { Counter } = require('./hook-component');
 
@@ -18,13 +18,35 @@ function fail(error) {
   report({ passed: false, error: `${error?.name}: ${error?.message}\n${error?.stack}` });
 }
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
-async function waitFor(predicate, description) {
-  const deadline = Date.now() + 8000;
+async function waitFor(predicate, description, timeout = 8000) {
+  const deadline = Date.now() + timeout;
   while (!predicate()) {
     if (failed) throw new Error('A prior application failure stopped the probe.');
     if (Date.now() > deadline) throw new Error(`Timed out: ${description}`);
     await pause(40);
   }
+}
+function ready(input) {
+  knownFolders.documents().getFile('mason-core-input-ready.json').writeTextSync(JSON.stringify({
+    version: 1, platform: isIOS ? 'ios' : 'android', density: Screen.mainScreen.scale, ...input,
+  }));
+}
+function point(view, horizontal, vertical) {
+  const origin = view.getLocationOnScreen();
+  const size = view.getActualSize();
+  return { x: origin.x + size.width * horizontal, y: origin.y + size.height * vertical };
+}
+async function settleScroll(scroll) {
+  let previous = scroll.scrollTop;
+  let changed = Date.now();
+  const deadline = Date.now() + 6000;
+  while (Date.now() < deadline) {
+    await pause(40);
+    const next = scroll.scrollTop;
+    if (!near(next, previous)) { previous = next; changed = Date.now(); }
+    if (Date.now() - changed > 240) return;
+  }
+  throw new Error('Native scroll motion did not settle.');
 }
 const near = (actual, expected) => Math.abs(actual - expected) < 2;
 Application.on(Application.uncaughtErrorEvent, (event) => fail(event.error ?? event));
@@ -49,6 +71,7 @@ Application.run({
     let disposals = 0;
     let root;
     async function assertions() {
+      const osInput = File.exists(path.join(knownFolders.documents().path, 'mason-core-os-input'));
       phase = 'compiled initial render and effect';
       await waitFor(() => mounts === 1 && label?.text === 'Count 0' && near(label.getActualSize().width, 90) && near(label.getActualSize().height, 35),
         'compiled component CSS, native geometry and mount effect');
@@ -56,23 +79,34 @@ Application.run({
       const original = label;
       const initialSize = label.getActualSize();
       phase = 'compiled tap handler and state update';
-      button.notify({ eventName: 'tap', object: button });
-      await waitFor(() => label?.text === 'Count 1' && near(label.getActualSize().width, 130), 'hook-driven native text and geometry update');
+      if (osInput) ready({ phase: 'tap', point: point(button, 0.5, 0.5) });
+      else button.notify({ eventName: 'tap', object: button });
+      await waitFor(() => label?.text === 'Count 1' && near(label.getActualSize().width, 130), 'hook-driven native text and geometry update', osInput ? 30000 : 8000);
       check(label === original, 'A hook update recreated the foreign native label');
       check(mounts === 1 && disposals === 0, 'A state update restarted the mount effect');
       const updatedSize = label.getActualSize();
       phase = 'compiled scroll host';
       await waitFor(() => scroll.scrollHeight > scroll.clientHeight && scroll.clientHeight > 0, 'compiled scroll content geometry');
-      scroll.scrollTo({ top: 90, left: 0, behavior: 'auto' });
-      await waitFor(() => near(scroll.scrollTop, 90), 'native programmatic scroll seek');
+      const firstRow = scroll.getChildAt(0).getChildAt(0);
+      const rowBefore = firstRow.getLocationOnScreen();
+      if (osInput) {
+        ready({ phase: 'scroll', from: point(scroll, 0.5, 0.85), to: point(scroll, 0.5, 0.15) });
+        await waitFor(() => scroll.scrollTop > 20, 'OS swipe moves the native scroll host', 30000);
+        await settleScroll(scroll);
+      } else {
+        scroll.scrollTo({ top: 90, left: 0, behavior: 'auto' });
+        await waitFor(() => near(scroll.scrollTop, 90), 'native programmatic scroll seek');
+      }
       const scrollTop = scroll.scrollTop;
+      const rowAfter = firstRow.getLocationOnScreen();
+      check(near(rowBefore.y - rowAfter.y, scrollTop), 'Native scroll content did not move with its reported offset');
       phase = 'compiled unmount and effect cleanup';
       root.unmount();
       await waitFor(() => disposals === 1 && label == null && button == null && scroll == null && page.content == null,
         'effect disposal, ref clearing and host release');
       await pause(50);
-      report({ passed: true, initialSize, updatedSize, mounts, disposals, scrollTop,
-        input: 'Synthesized NativeScript tap notification; OS input is not covered.',
+      report({ passed: true, initialSize, updatedSize, mounts, disposals, scrollTop, rowMovement: rowBefore.y - rowAfter.y, osInput,
+        input: osInput ? 'OS coordinate tap and swipe; no synthesized handler notification or programmatic seek.' : 'Synthesized NativeScript tap notification; OS input is not covered.',
         evidence: 'Authored TSRX compiled by the pinned Octane compiler; native class styles, hook updates, scroll seek and cleanup.' });
     }
     page.once('loaded', () => { assertions().catch(fail); });

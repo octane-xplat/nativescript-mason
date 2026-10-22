@@ -58,14 +58,14 @@ device before running. Each runner stops its own probe afterward; the Android
 runner verifies ownership before replacing an installed app.
 
 The prototype currently includes only an arm64 iOS **simulator** framework and
-an Android arm64-v8a AAR. It cannot build an iOS device application. Independent
-OS input and release-size savings remain unqualified.
+an Android arm64-v8a AAR. It cannot build an iOS device application. Release-size savings remain unqualified.
 The isolated apps pass bridge, native geometry and ownership assertions on an
 arm64 iOS simulator and an API 36 Android phone. They install only core and
 NativeScript core as runtime dependencies. The iOS app declares the scene
 lifecycle required by the current SDK; NativeScript provides its default scene
-delegate. Plain-app assertions and renderer assertions are qualified separately;
-touch input remains unverified. Do not switch production consumers or publish
+delegate. Plain-app assertions and renderer assertions are qualified separately.
+The compiled scenario also passes OS input on the simulator and Android emulator
+as described below. Do not switch production consumers or publish
 this artifact.
 
 iOS retains embedded FontManager and SDWebImage code, dependency module headers,
@@ -148,3 +148,32 @@ hook-driven text/size updates without replacing the label, scroll content and
 programmatic seek, effect cleanup, ref clearing and host release. The button
 notification is explicitly synthetic; these results do not establish OS touch
 input or physical-device renderer qualification.
+
+## Verify OS taps and touch scrolling
+
+Build the compiled scenario above, then run these targets under the matching
+owned-device reservation:
+
+```sh
+pnpm exec nx run nativescript-mason-core:test.consumer.ios.input
+pnpm exec nx run nativescript-mason-core:test.consumer.android.input.emulator
+```
+
+The iOS target requires `idb` and `idb_companion` on `PATH`. It creates a private
+companion socket for the owned simulator and sends HID coordinate input. The
+Android target uses `adb shell input` after confirming that the owned app has
+focus. For a connected authorized phone, use
+`test.consumer.android.input.device` instead. No screenshots are required.
+
+The app reports native button and scroll coordinates in
+`mason-core-input-ready.json`; the runner records each delivered phase in
+`input-actions.json`. In this mode the app waits for a real tap and swipe. It
+requires the count and label width to update, then checks that an on-screen
+row moves by the reported scroll offset before verifying effect/ref cleanup.
+The ordinary consumer targets retain synthetic notification and programmatic
+seek coverage. Input results must be reported separately from those checks
+and separately for simulators, emulators and physical devices.
+
+OS-input checks pass on arm64 iOS 27 Simulator and the API 35 Android emulator.
+Native row movement matches the reported scroll offset (137.3 points on iOS,
+94.9 logical pixels on Android). Physical-device OS input is not yet qualified.

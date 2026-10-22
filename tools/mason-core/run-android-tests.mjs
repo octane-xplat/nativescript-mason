@@ -73,7 +73,7 @@ try {
   const reportedName = run(adb, ['-s', serial, 'emu', 'avd', 'name']);
   assert.ok(reportedName.split(/\r?\n/).includes(avd), `Unexpected AVD name response: ${JSON.stringify(reportedName)}`);
   if (consumer) {
-    const result = spawnSync(process.execPath, [resolve(workspaceRoot, 'tools/mason-core/run-android-consumer.mjs')], {
+    const result = spawnSync(process.execPath, [resolve(workspaceRoot, 'tools/mason-core/run-android-consumer.mjs'), ...(process.argv.includes('--os-input') ? ['--os-input'] : [])], {
       encoding: 'utf8', timeout: 180000, maxBuffer: 16 * 1024 * 1024,
       env: { ...process.env, MASON_CORE_ANDROID_EMULATOR_SERIAL: serial },
     });
