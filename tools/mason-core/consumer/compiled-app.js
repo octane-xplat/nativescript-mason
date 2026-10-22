@@ -3,6 +3,7 @@ const { renderNativeScriptApp } = require('@nativescript-community/octane');
 const { Counter } = require('./hook-component');
 
 let failed = false;
+let captureDiagnostics = () => ({});
 let phase = 'initialization';
 function check(condition, message) {
   if (!condition) throw new Error(message);
@@ -15,7 +16,9 @@ function report(result) {
   console.log(`MASON_CORE_RESULT ${text}`);
 }
 function fail(error) {
-  report({ passed: false, error: `${error?.name}: ${error?.message}\n${error?.stack}` });
+  let diagnostics;
+  try { diagnostics = captureDiagnostics(); } catch (diagnosticError) { diagnostics = { error: String(diagnosticError) }; }
+  report({ passed: false, error: `${error?.name}: ${error?.message}\n${error?.stack}`, diagnostics });
 }
 const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 async function waitFor(predicate, description, timeout = 8000) {
@@ -72,6 +75,12 @@ Application.run({
     let root;
     async function assertions() {
       const osInput = File.exists(path.join(knownFolders.documents().path, 'mason-core-os-input'));
+      captureDiagnostics = () => ({
+        labelText: label?.text, labelSize: label?.getActualSize(),
+        buttonLoaded: button?.isLoaded, buttonEnabled: button?.isEnabled,
+        buttonSize: button?.getActualSize(), buttonPoint: button && point(button, 0.5, 0.5),
+        mounts, disposals, scrollTop: scroll?.scrollTop,
+      });
       if (isIOS) {
         const resources = NSBundle.bundleForClass(NSCMason).pathForResourceOfType('SDWebImage_SDWebImage', 'bundle');
         check(resources && File.exists(path.join(resources, 'PrivacyInfo.xcprivacy')), 'The selected core framework slice lost its dependency privacy bundle');
