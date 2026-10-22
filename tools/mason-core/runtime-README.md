@@ -48,7 +48,11 @@ The unchanged sources live under `packages/nativescript-mason-core`. The
 prototype generates core-specific `common.ts`, `tree/`, and root types from the
 full source in `tmp/nativescript-mason-core`; it does not change the full
 package's text/HTML implementation. `properties.ts` has a generated type-only
-adaptation. Its emitted JavaScript must match the full package.
+adaptation. Its emitted JavaScript must match the full package under the same
+iOS/Android platform constant: this prototype resolves `__WINDOWS__` to `false`
+at build time because no Windows wrapper is shipped. Standard NativeScript
+webpack does not define that flag. The verifier applies the same constant to
+the full emission before comparison; other differences still fail.
 
 The adaptation rules in `tools/mason-core/runtime-sources.mjs` reject unexpected
 source structure so upstream changes require review. The new child-ownership

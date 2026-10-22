@@ -1,9 +1,10 @@
-import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { workspaceRoot, coreSourceRoot, relocatedFiles } from './sources.mjs';
 import { coreCommonSource, coreTreeSource, coreLayoutTypes, corePropertiesSource } from './runtime-sources.mjs';
+import { resolveMobileConstants } from './mobile-constants.mjs';
 
 const require = createRequire(import.meta.url);
 const runtimeSourceRoot = resolve(workspaceRoot, 'tmp/nativescript-mason-core');
@@ -61,6 +62,18 @@ for (const name of ['index.d.ts', 'layout-types.d.ts', 'view/index.d.ts', 'scrol
   mkdirSync(dirname(resolve(runtimeOutput, name)), { recursive: true });
   copyFileSync(resolve(runtimeSourceRoot, name), resolve(runtimeOutput, name));
 }
+function resolveConstants(directory) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const filename = resolve(directory, entry.name);
+    if (entry.isDirectory()) resolveConstants(filename);
+    else if (entry.name.endsWith('.js')) {
+      const source = readFileSync(filename, 'utf8');
+      const projected = resolveMobileConstants(source, filename);
+      if (projected !== source) writeFileSync(filename, projected);
+    }
+  }
+}
+resolveConstants(runtimeOutput);
 const base = JSON.parse(readFileSync(resolve(coreSourceRoot, 'package.json'), 'utf8'));
 const manifest = {
   name: base.name, version: base.version, private: true, license: base.license,

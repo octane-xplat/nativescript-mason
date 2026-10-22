@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
+import { resolveMobileConstants } from './mobile-constants.mjs';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname, relative } from 'node:path';
@@ -87,13 +88,13 @@ try {
     const files = graph(packageRoot, platform);
     console.log(`Packed ${platform} entry closes over ${files.size} local JS modules and NativeScript core only.`);
   }
-  // Verify the relocated runtime modules still compile identically. The one
-  // property adaptation is type-only; the JS must remain identical too.
+  // Compare both emissions under the prototype's iOS/Android platform constant.
+  // Every other difference still fails, including the type-only property seam.
   for (const name of relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.'))) {
     const emitted = name.replace(/\.ts$/, '.js');
     const clean = (text) => text.replace(/\n?\/\/# sourceMappingURL=.*\s*$/, '').trimEnd();
     assert.equal(clean(readFileSync(resolve(packageRoot, emitted), 'utf8')),
-      clean(readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8')),
+      clean(resolveMobileConstants(readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8'), emitted)),
       `Shared runtime changed: ${name}`);
   }
 
