@@ -94,3 +94,6 @@ Before expanding into native hosts, prove the rich-text/layout boundary and
 independent native compilation. Core and full MasonKit remain separate-host
 choices until native symbol and class ownership is qualified. Passing host
 unit tests does not prove native layout, input, or application-size savings.
+
+See the [full native baseline](full-baseline-README.md) before moving unchanged
+native modules; core-only passing tests do not establish full-package behavior.

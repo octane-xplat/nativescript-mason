@@ -171,6 +171,16 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/run-ios-tests.mjs" }
     },
+    "build.baseline.android.full": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-full-android-baseline.mjs" }
+    },
+    "test.baseline.android.full": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-tests.mjs --full-baseline" }
+    },
     "build.native.android": {
       "executor": "nx:run-commands",
       "cache": false,

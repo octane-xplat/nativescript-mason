@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, openSync, closeSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
@@ -13,7 +14,15 @@ const avd = 'mason-core-extraction';
 const image = 'system-images;android-35;google_apis;arm64-v8a';
 const ownershipFile = resolve(workspaceRoot, 'tmp/mason-core-android-avd.json');
 const consumer = process.argv.includes('--consumer');
-const apk = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-consumer/platforms/android/app/build/outputs/apk/debug/app-debug.apk' : 'dist/native/mason-core/android-host/tests/MasonCore-tests.apk');
+const fullBaseline = process.argv.includes('--full-baseline');
+assert.ok(!consumer || !fullBaseline);
+const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'dist/native/mason-core/full-android-baseline/manifest.json'), 'utf8')) : null;
+const expectedTests = baseline?.testCount ?? 17;
+const apk = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-consumer/platforms/android/app/build/outputs/apk/debug/app-debug.apk' : fullBaseline ? 'dist/native/mason-core/full-android-baseline/MasonFull-tests.apk' : 'dist/native/mason-core/android-host/tests/MasonCore-tests.apk');
+if (fullBaseline) {
+  assert.ok(Number.isInteger(expectedTests) && expectedTests > 0);
+  assert.equal(createHash('sha256').update(readFileSync(apk)).digest('hex'), baseline.testApkSha256, 'The full baseline test artifact changed after its build.');
+}
 if (!existsSync(apk)) throw new Error(consumer ? 'Build nativescript-mason-core:build.consumer.android first.' : 'Build nativescript-mason-core:build.tests.android first.');
 
 function run(command, args, options = {}) {
@@ -52,7 +61,7 @@ for (let candidate = 5554; candidate <= 5584; candidate += 2) {
 }
 assert.ok(port, 'No free Android emulator port pair.');
 const serial = `emulator-${port}`;
-const results = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-android-emulator-tests' : 'tmp/mason-core-android-tests', String(Date.now()));
+const results = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-android-emulator-tests' : fullBaseline ? 'tmp/mason-full-android-tests' : 'tmp/mason-core-android-tests', String(Date.now()));
 mkdirSync(results, { recursive: true });
 const descriptor = openSync(resolve(results, 'emulator.log'), 'w');
 const child = spawn(emulator, ['-avd', avd, '-port', String(port), '-no-window', '-no-audio', '-no-boot-anim', '-no-snapshot', '-gpu', 'swiftshader_indirect'], { stdio: ['ignore', descriptor, descriptor] });
@@ -86,10 +95,10 @@ try {
     const output = run(adb, ['-s', serial, 'shell', 'am', 'instrument', '-w', 'org.nativescript.mason.masonkit.test/androidx.test.runner.AndroidJUnitRunner'], { timeout: 240000 });
     writeFileSync(resolve(results, 'instrumentation.log'), output);
     console.log(output);
-    assert.match(output, /OK \(17 tests\)/);
+    assert.ok(output.includes(`OK (${expectedTests} tests)`), `Expected ${expectedTests} passing native tests.`);
     assert.doesNotMatch(output, /FAILURES!!!|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS_CODE: -[34]\b/);
-    writeFileSync(resolve(results, 'summary.json'), JSON.stringify({ avd, serial, total: 17, passed: 17, failed: 0, skipped: 0, evidence: 'Android native instrumentation; no NativeScript runtime or OS-input qualification.' }, null, 2) + '\n');
-    console.log('All 17 native Android core tests passed with no skips.');
+    writeFileSync(resolve(results, 'summary.json'), JSON.stringify({ avd, serial, total: expectedTests, passed: expectedTests, failed: 0, skipped: 0, fullBaseline, evidence: 'Android native instrumentation; no NativeScript runtime or OS-input qualification.' }, null, 2) + '\n');
+    console.log(`All ${expectedTests} native Android ${fullBaseline ? 'full baseline' : 'core'} tests passed with no skips.`);
   }
 } catch (error) {
   const logs = spawnSync(adb, ['-s', serial, 'logcat', '-d', '-s', 'AndroidRuntime', 'masonnative'], { encoding: 'utf8', timeout: 15000 });
