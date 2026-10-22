@@ -1283,7 +1283,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       child,
       () => {
         const native = childRef.deref()?.nativeViewProtected;
-        if (native) mason.nodeForView(native).markDirty();
+        if (native) mason.nodeForView(native, true).markDirty();
       },
       () => measuringForeignEngines.has(mason),
     );

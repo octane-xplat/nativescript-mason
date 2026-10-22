@@ -45,7 +45,7 @@ describe('foreign content invalidation on iOS', () => {
     const child = foreign(original);
     parent._masonMeasureForeign(child);
     child.requestLayout();
-    expect(nodeForView).toHaveBeenCalledWith(child.nativeViewProtected);
+    expect(nodeForView).toHaveBeenCalledWith(child.nativeViewProtected, true);
     expect(markDirty).toHaveBeenCalledOnce();
     expect(order).toEqual(['dirty', 'core']);
   });
@@ -94,7 +94,7 @@ describe('foreign content invalidation on iOS', () => {
     child.nativeViewProtected = {};
     parent._masonMeasureForeign(child);
     child.requestLayout();
-    expect(nodeForView).toHaveBeenCalledWith(child.nativeViewProtected);
+    expect(nodeForView).toHaveBeenCalledWith(child.nativeViewProtected, true);
     expect(markDirty).toHaveBeenCalledOnce();
   });
 
