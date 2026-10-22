@@ -7,7 +7,7 @@ import { relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
 
-const plugin = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core-plugin');
+const plugin = resolve(workspaceRoot, 'dist/packages/nativescript-mason-core');
 const isolated = mkdtempSync(resolve(tmpdir(), 'mason-core-plugin-'));
 function run(command, args, cwd = isolated) {
   const result = spawnSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });

@@ -6,9 +6,10 @@ import { spawnSync } from 'node:child_process';
 import ts from 'typescript';
 import { workspaceRoot, coreSourceRoot } from './sources.mjs';
 
-const consumer = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer');
-const sdk = resolve(consumer, 'node_modules/@nativescript/android');
-const iosSdk = resolve(consumer, 'node_modules/@nativescript/ios');
+const sdkRoot = resolve(workspaceRoot, 'tmp/mason-core-native-sdk');
+assert.ok(existsSync(resolve(sdkRoot, '.mason-core-native-sdk')), 'Run nativescript-mason-core:prepare.native.sdk first.');
+const sdk = resolve(sdkRoot, 'node_modules/@nativescript/android');
+const iosSdk = resolve(sdkRoot, 'node_modules/@nativescript/ios');
 const jar = resolve(sdk, 'framework/build-tools/dts-generator.jar');
 const generatorCommit = '5fcf611330bd9eb60d9bb45d5b37251980b127ab';
 const sourceSha256 = 'e310fb9b7dc122bff9ae2b2ad06dfbc446f3b38099702a6107d1881b06cd9678';

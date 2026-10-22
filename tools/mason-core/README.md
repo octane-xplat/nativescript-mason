@@ -48,8 +48,8 @@ The math, color, and host integration tests remain in the full package. The
 second move preserves 27 additional source files unchanged, preparing the
 layout/style/view/scroll dependency closure. `common.ts` and `tree/` still belong
 to the full package. The core runtime build generates its own narrowed versions
-without changing those originals. The ordinary core build still emits only
-portable helpers. No behavioral divergence is introduced by the moves.
+without changing those originals. The helper proof remains a separate target;
+the normal core build now packages the native hosts. No behavioral divergence is introduced by the moves.
 
 ## Build and test wiring
 
@@ -124,3 +124,19 @@ the separately qualified Rust build:
 ```sh
 pnpm exec nx run nativescript-mason-core:verify.references.android.full
 ```
+
+## Normal core package output
+
+`nativescript-mason-core:build` now assembles the native plugin at
+`dist/packages/nativescript-mason-core`; `verify` checks that packed artifact.
+The helper-only proof is `build.helpers` / `verify.helpers` under
+`dist/prototypes/nativescript-mason-core-helpers`. The runtime-only intermediate
+stays under `dist/prototypes/nativescript-mason-core`. No compatibility aliases
+for the old plugin prototype targets remain.
+
+Native artifacts must be prepared explicitly. `prepare.native.sdk` installs
+pinned generators independently of consumers, avoiding a bootstrap dependency
+on an already assembled plugin. See the core package README for the complete
+sequence. The private core project has no `build.all` target, so the full
+repository's release-oriented `build:all` remains independent of this native
+setup and publishing remains opt-in.

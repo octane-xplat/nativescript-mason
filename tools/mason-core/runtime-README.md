@@ -38,7 +38,8 @@ pnpm exec nx run nativescript-mason-core:verify.runtime
 ```
 
 The build writes `dist/prototypes/nativescript-mason-core`. It leaves the
-portable helper package at `dist/packages/nativescript-mason-core` separate.
+portable helper proof at `dist/prototypes/nativescript-mason-core-helpers` separate.
+The normal `build` assembles the native plugin at `dist/packages/nativescript-mason-core`.
 Verification packs the runtime, follows both platform import graphs, checks an
 isolated TypeScript consumer with NativeScript's bundler resolution, and tests
 child ownership using NativeScript's real JavaScript view classes.

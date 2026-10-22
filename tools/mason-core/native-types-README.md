@@ -9,14 +9,15 @@ evidence; native ABI compatibility and application behavior have separate checks
 
 Keep the generated `packages/nativescript-mason-core/typings/` files in Git so
 ordinary JavaScript builds do not require native build tools. To update them,
-first export both core native hosts and install the isolated consumer's pinned
-SDK dependencies. An existing consumer app build is not required. Run this
+first export both core native hosts and install the independent pinned SDK
+tooling. Neither consumer preparation nor a consumer app build is required. Run this
 target from the repository root under a native-build resource reservation:
 
 ```sh
+pnpm exec nx run nativescript-mason-core:prepare.native.sdk
 pnpm exec nx run nativescript-mason-core:generate.native.types
 pnpm exec nx run nativescript-mason-core:verify.runtime
-pnpm exec nx run nativescript-mason-core:verify.plugin.prototype
+pnpm exec nx run nativescript-mason-core:verify
 ```
 
 Generation reads `MasonCore.aar` and the exported iOS Simulator framework directly.

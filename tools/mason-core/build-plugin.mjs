@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, relative } from 'node:path';
 import { workspaceRoot } from './sources.mjs';
@@ -7,9 +7,12 @@ import { workspaceRoot } from './sources.mjs';
 const runtime = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core');
 const ios = resolve(workspaceRoot, 'dist/native/mason-core/ios-host/universal');
 const android = resolve(workspaceRoot, 'dist/native/mason-core/android-host');
-const output = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core-plugin');
+const output = resolve(workspaceRoot, 'dist/packages/nativescript-mason-core');
 const json = (filename) => JSON.parse(readFileSync(filename, 'utf8'));
 const hash = (filename) => createHash('sha256').update(readFileSync(filename)).digest('hex');
+for (const filename of [resolve(ios, 'simulator-manifest.json'), resolve(ios, 'manifest.json'), resolve(android, 'manifest.json')]) {
+  assert.ok(existsSync(filename), 'Build both native hosts and the iOS XCFramework first; see packages/nativescript-mason-core/README.md.');
+}
 const iosManifest = json(resolve(ios, 'simulator-manifest.json'));
 const xcManifest = json(resolve(ios, 'manifest.json'));
 assert.deepEqual(xcManifest.platforms, ['iOS', 'iOS Simulator']);
@@ -53,19 +56,20 @@ HEADER_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/
 SWIFT_INCLUDE_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/nativescript-mason-core/platforms/ios/include"
 `);
 const manifest = json(resolve(runtime, 'package.json'));
-manifest.description = 'Private Mason core NativeScript plugin proof (arm64 iOS device/simulator and Android)';
-manifest.nativescript = { platforms: { ios: '9.1.0', android: '9.1.1' } };
+const sourceManifest = json(resolve(workspaceRoot, 'packages/nativescript-mason-core/package.json'));
+manifest.description = sourceManifest.description;
+manifest.nativescript = sourceManifest.nativescript;
 manifest.masonCorePrototype = {
   nativeHosts: true,
   ios: { architectures: ['arm64'], simulatorOnly: false },
   android: { abis: ['arm64-v8a'] },
   nativeTypes: true,
   coinstallationWithFullMasonKit: false,
-  qualification: 'Plugin discovery, bridge metadata and application execution still require an isolated NativeScript consumer.',
+  qualification: 'Qualified targets and remaining limits are recorded in README; coinstallation with full MasonKit is unsupported.',
 };
 // Match pnpm pack's manifest serialization so the inventory survives packing.
 writeFileSync(resolve(output, 'package.json'), JSON.stringify(manifest, null, 2));
-copyFileSync(resolve(workspaceRoot, 'tools/mason-core/plugin-README.md'), resolve(output, 'README.md'));
+copyFileSync(resolve(workspaceRoot, 'packages/nativescript-mason-core/README.md'), resolve(output, 'README.md'));
 // Hash every shipped file, including resource/privacy bundles and dependency headers.
 function files(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -75,4 +79,4 @@ function files(directory) {
 }
 const inventory = files(output).sort().map((filename) => ({ name: relative(output, filename), sha256: hash(filename) }));
 writeFileSync(resolve(output, 'artifact-inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
-console.log('Assembled private core-only NativeScript plugin proof; native consumer qualification is still required.');
+console.log('Built the private core-only NativeScript package; target qualification is documented in its README.');

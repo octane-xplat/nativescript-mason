@@ -101,14 +101,14 @@ function resolveConstants(directory) {
 }
 resolveConstants(runtimeOutput);
 const base = JSON.parse(readFileSync(resolve(coreSourceRoot, 'package.json'), 'utf8'));
+assert.notEqual(base.type, 'commonjs', 'The native runtime emits ES modules; CommonJS metadata belongs only to the portable helper proof.');
 const manifest = {
-  name: base.name, version: base.version, private: true, license: base.license,
-  description: 'Mason core runtime prototype; native host artifacts are not yet included',
-  main: 'index', types: 'index.d.ts',
-  peerDependencies: { '@nativescript/core': '~9.1.2' },
-  repository: base.repository,
+  ...base,
+  description: 'Mason core runtime intermediate; native host artifacts are not included',
   masonCorePrototype: { nativeHosts: false, nativeTypes: true, platforms: ['ios', 'android'] },
 };
+// This intermediate is not a NativeScript plugin until native assembly.
+delete manifest.nativescript;
 writeFileSync(resolve(runtimeOutput, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(runtimeOutput, 'LICENSE'));
 copyFileSync(resolve(workspaceRoot, 'tools/mason-core/runtime-README.md'), resolve(runtimeOutput, 'README.md'));

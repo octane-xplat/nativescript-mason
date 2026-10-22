@@ -52,7 +52,7 @@ const git = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repository, encoding:
 assert.equal(git.status, 0, git.stderr);
 writeFileSync(resolve(consumer, 'consumer-scenario.json'), JSON.stringify({
   scenario: nativeOnly ? 'nativescript' : 'xplat-renderer', xplatCommit: git.stdout.trim(), versions, patches: provenance,
-  coreInventorySha256: hash(readFileSync(resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core-plugin/artifact-inventory.json'))),
+  coreInventorySha256: hash(readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-mason-core/artifact-inventory.json'))),
   boundary: 'Canonical Xplat renderer patch with only its two Mason package specifiers retargeted to core; full MasonKit is absent.',
 }, null, 2) + '\n');
 copyFileSync(resolve(workspaceRoot, 'tools/mason-core/consumer', nativeOnly ? 'app.js' : 'renderer-app.js'), resolve(consumer, 'app/app.js'));

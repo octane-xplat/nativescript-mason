@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { relocatedModules, workspaceRoot } from './sources.mjs';
 
 const require = createRequire(import.meta.url);
-const output = resolve(workspaceRoot, 'dist/packages/nativescript-mason-core');
+const output = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core-helpers');
 const temporary = mkdtempSync(resolve(tmpdir(), 'mason-core-consumer-'));
 
 function run(command, args, cwd) {
@@ -25,7 +25,7 @@ try {
   assert.equal(archives.length, 1);
   const archive = resolve(artifacts, archives[0]);
   const entries = run('tar', ['-tzf', archive], temporary).trim().split('\n').map((name) => name.replace(/^package\//, ''));
-  const expected = ['LICENSE', 'README.md', 'src-native/README.md', 'package.json', ...['index', ...relocatedModules].flatMap((name) => [`${name}.js`, `${name}.d.ts`])];
+  const expected = ['LICENSE', 'README.md', 'src-native/README.md', 'package.json', ...['portable-helpers', ...relocatedModules].flatMap((name) => [`${name}.js`, `${name}.d.ts`])];
   assert.deepEqual(entries.sort(), expected.sort(), 'Packed artifact must contain only the independent helper surface.');
 
   const consumer = resolve(temporary, 'consumer');

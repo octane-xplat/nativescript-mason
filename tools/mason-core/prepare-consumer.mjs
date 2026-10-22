@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
 
-const plugin = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core-plugin');
+const plugin = resolve(workspaceRoot, 'dist/packages/nativescript-mason-core');
 const output = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer');
 const marker = resolve(output, '.mason-core-consumer');
 if (existsSync(output)) assert.ok(existsSync(marker), 'Refusing to overwrite an unowned consumer directory.');

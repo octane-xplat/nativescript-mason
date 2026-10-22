@@ -6,15 +6,17 @@
   "targets": {
     "build": {
       "executor": "nx:run-commands",
+      "dependsOn": ["build.runtime"],
+      "cache": false,
+      "outputs": ["{workspaceRoot}/dist/packages/nativescript-mason-core"],
+      "options": { "command": "node tools/mason-core/build-plugin.mjs" }
+    },
+    "build.helpers": {
+      "executor": "nx:run-commands",
       "cache": true,
       "inputs": ["{projectRoot}/**/*", "{workspaceRoot}/tools/mason-core/**/*", "{workspaceRoot}/LICENSE", "{workspaceRoot}/pnpm-lock.yaml"],
-      "outputs": ["{workspaceRoot}/dist/packages/nativescript-mason-core"],
+      "outputs": ["{workspaceRoot}/dist/prototypes/nativescript-mason-core-helpers"],
       "options": { "command": "node tools/mason-core/build-core.mjs" }
-    },
-    "build.all": {
-      "executor": "nx:run-commands",
-      "dependsOn": ["build"],
-      "options": { "command": "node -e \"console.log('Core prototype build complete; native hosts are not included.')\"" }
     },
     "build.runtime": {
       "executor": "nx:run-commands",
@@ -22,21 +24,19 @@
       "outputs": ["{workspaceRoot}/dist/prototypes/nativescript-mason-core"],
       "options": { "command": "node tools/mason-core/build-runtime.mjs" }
     },
-    "build.plugin.prototype": {
+    "prepare.native.sdk": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build.runtime"],
       "cache": false,
-      "outputs": ["{workspaceRoot}/dist/prototypes/nativescript-mason-core-plugin"],
-      "options": { "command": "node tools/mason-core/build-plugin.mjs" }
+      "options": { "command": "node tools/mason-core/prepare-native-sdk.mjs" }
     },
     "generate.native.types": {
       "executor": "nx:run-commands",
       "cache": false,
       "options": { "command": "node tools/mason-core/generate-native-types.mjs" }
     },
-    "verify.plugin.prototype": {
+    "verify": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build.plugin.prototype"],
+      "dependsOn": ["build"],
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-plugin.mjs" }
     },
@@ -51,7 +51,7 @@
     },
     "prepare.consumer": {
       "executor": "nx:run-commands",
-      "dependsOn": ["verify.plugin.prototype"],
+      "dependsOn": ["verify"],
       "cache": false,
       "options": { "command": "node tools/mason-core/prepare-consumer.mjs" }
     },
@@ -115,9 +115,9 @@
       "executor": "nx:run-commands", "cache": false,
       "options": { "command": "node tools/mason-core/run-android-consumer.mjs --os-input" }
     },
-    "verify": {
+    "verify.helpers": {
       "executor": "nx:run-commands",
-      "dependsOn": ["build"],
+      "dependsOn": ["build.helpers"],
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-package.mjs" }
     },

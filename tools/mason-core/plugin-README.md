@@ -2,8 +2,8 @@
 
 This private artifact combines the container-only JavaScript runtime with the
 independently built native hosts. It excludes MasonKit's HTML parser, rich-text
-renderer and optional widgets. The ordinary core helper build and the existing
-full MasonKit package remain separate.
+renderer and optional widgets. The portable helper proof and existing full MasonKit package remain separate.
+The normal core build produces this plugin.
 
 Build the hosts, then assemble the plugin:
 
@@ -12,13 +12,13 @@ pnpm exec nx run nativescript-mason-core:verify.host.ios.artifact
 pnpm exec nx run nativescript-mason-core:verify.host.ios.device.artifact
 pnpm exec nx run nativescript-mason-core:build.host.ios.xcframework
 pnpm exec nx run nativescript-mason-core:build.host.android
-pnpm exec nx run nativescript-mason-core:build.plugin.prototype
+pnpm exec nx run nativescript-mason-core:build
 ```
 
 Native builds require the development environment's native-build resource
 reservation. Assembly reads the exported artifacts and verifies their hashes;
 it does not rebuild them. The result is
-`dist/prototypes/nativescript-mason-core-plugin`.
+`dist/packages/nativescript-mason-core`.
 
 Verify its packed files and prepare the isolated NativeScript app:
 
