@@ -123,3 +123,19 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
   }
   return apply(file, [{ node: method }]);
 }
+
+/** A released foreign helper must not flush against a detached native view. */
+export function coreForeignLayoutSource(source = readFileSync(resolve(coreSourceRoot, 'foreign-layout.ts'), 'utf8')) {
+  const file = ts.createSourceFile('foreign-layout.ts', source, ts.ScriptTarget.Latest, true);
+  const [release] = required(file.statements, ['releaseForeignLayout'], file);
+  const statements = release.body?.statements ?? [];
+  const clear = statements.filter((node) => node.getText(file).replace(/\s/g, '') === 'view[foreignStyle_]=undefined;');
+  if (clear.length !== 1) throw new Error('Review the foreign helper release boundary.');
+  const guard = statements[statements.indexOf(clear[0]) - 1];
+  if (guard?.getText(file).replace(/\s/g, '') !== 'if(!view?.[foreignStyle_])return;') {
+    throw new Error('Review the foreign helper release guard.');
+  }
+  const prefix = file.text.slice(clear[0].getFullStart(), clear[0].getStart(file));
+  if (!/^\s+$/.test(prefix)) throw new Error('Review comments at the foreign helper release boundary.');
+  return apply(file, [{ node: clear[0], text: `${prefix}view[foreignStyle_].resetState();${clear[0].getFullText(file)}` }]);
+}

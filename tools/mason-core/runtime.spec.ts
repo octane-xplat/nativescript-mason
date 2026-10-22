@@ -3,7 +3,9 @@ import { View as NativeScriptView } from '@nativescript/core';
 import * as core from '../../tmp/nativescript-mason-core/index.android';
 import { Tree } from '../../tmp/nativescript-mason-core/tree/index.android';
 import { isMasonView_ } from '../../tmp/nativescript-mason-core/symbols';
-import { invalidateOnLayoutRequest } from '../../tmp/nativescript-mason-core/foreign-layout';
+import { adoptForeignLayout, invalidateOnLayoutRequest, releaseForeignLayout } from '../../tmp/nativescript-mason-core/foreign-layout';
+import { STYLE_BUFFER_SIZE } from '../testing/mason-test-kit/style-under-test';
+import { styleKey } from '../testing/mason-test-kit/style-keys';
 
 // Actual NativeScript JS ownership/lifecycle; no UI host or device is simulated.
 class Container extends core.ViewBase {
@@ -97,6 +99,46 @@ describe('the core-only container boundary', () => {
     parent.removeChild(children[0]);
     expect(parent._nativeAttachIndex(children[1], 0)).toEqual({ jsIndex: 0, nativeIndex: 0 });
     parent.removeChildren();
+  });
+
+  it('cancels queued writes for a released foreign native view and syncs its replacement', async () => {
+    const sync = vi.fn();
+    const factory = vi.spyOn(core.Style, 'fromView').mockImplementation((owner, native) => {
+      const buffer = new ArrayBuffer(STYLE_BUFFER_SIZE);
+      const data = new DataView(buffer);
+      data.setUint32(styleKey('REF_COUNT'), 1, true);
+      const style = new core.Style() as any;
+      style.view_ = owner;
+      style.nativeView = native;
+      style.style_view = data;
+      style.i8View = new Int8Array(buffer);
+      style.u8View = new Uint8Array(buffer);
+      style._sendSync = () => sync(native);
+      return style;
+    });
+    const child = new NativeScriptView();
+    const first = {};
+    const replacement = {};
+    // NativeScript's runtime WeakRef supplies get(); Node's supplies deref().
+    (child.style as any).viewRef = { get: () => child, deref: () => child };
+    try {
+      child.width = 31;
+      (child as any).nativeViewProtected = first;
+      adoptForeignLayout(child);
+      releaseForeignLayout(child);
+      (child as any).nativeViewProtected = undefined;
+      await Promise.resolve();
+      expect(sync).not.toHaveBeenCalled();
+
+      child.width = 54;
+      (child as any).nativeViewProtected = replacement;
+      adoptForeignLayout(child);
+      await Promise.resolve();
+      expect(sync).toHaveBeenCalledExactlyOnceWith(replacement);
+    } finally {
+      releaseForeignLayout(child);
+      factory.mockRestore();
+    }
   });
 
 });

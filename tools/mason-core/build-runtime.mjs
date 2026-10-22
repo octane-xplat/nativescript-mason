@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
 import { workspaceRoot, coreSourceRoot, relocatedFiles } from './sources.mjs';
-import { coreCommonSource, coreTreeSource, coreLayoutTypes, corePropertiesSource, coreStyleSource } from './runtime-sources.mjs';
+import { coreCommonSource, coreTreeSource, coreLayoutTypes, corePropertiesSource, coreStyleSource, coreForeignLayoutSource } from './runtime-sources.mjs';
 import { resolveMobileConstants } from './mobile-constants.mjs';
 
 const require = createRequire(import.meta.url);
@@ -34,6 +34,7 @@ for (const name of relocatedFiles.filter((name) => !name.includes('.windows.')))
 write('common.ts', coreCommonSource());
 write('properties.ts', corePropertiesSource());
 write('style.ts', coreStyleSource());
+write('foreign-layout.ts', coreForeignLayoutSource());
 write('layout-types.d.ts', coreLayoutTypes());
 cpSync(resolve(coreSourceRoot, 'typings'), resolve(runtimeSourceRoot, 'typings'), { recursive: true });
 const entry = `/// <reference path="./typings/native.d.ts" />

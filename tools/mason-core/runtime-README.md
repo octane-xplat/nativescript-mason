@@ -58,6 +58,13 @@ the full emission before comparison. The generated `style.ts` also omits
 guard must retain the expected structure; every other shared implementation
 difference still fails comparison. The tracked style source remains unchanged.
 
+The generated foreign-view helper also cancels queued style writes on release.
+Without that cancellation, removing and destroying a label in the same turn as
+adoption leaves a queued native sync targeting its cleared native view. The
+regression exercises the real style queue and confirms that a replacement
+native view still receives its writes. This adaptation stays in the core
+projection; the moved `foreign-layout.ts` source and full package are unchanged.
+
 The adaptation rules in `tools/mason-core/runtime-sources.mjs` reject unexpected
 source structure so upstream changes require review. The new child-ownership
 methods live in `tools/mason-core/container-members.mjs`. This projection is a

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { resolveMobileConstants } from './mobile-constants.mjs';
-import { coreStyleSource } from './runtime-sources.mjs';
+import { coreStyleSource, coreForeignLayoutSource } from './runtime-sources.mjs';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname, relative } from 'node:path';
@@ -92,13 +92,14 @@ try {
     console.log(`Packed ${platform} entry closes over ${files.size} local JS modules and NativeScript core only.`);
   }
   // Compare both emissions under the prototype's iOS/Android platform constant.
-  // Only the Windows rich-text-only copy method is removed; every other
-  // difference still fails, including the type-only property seam.
+  // Apply the explicit mobile-only style and foreign-release adaptations;
+  // every other shared difference still fails, including the property seam.
   for (const name of relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.'))) {
     const emitted = name.replace(/\.ts$/, '.js');
     const clean = (text) => text.replace(/\n?\/\/# sourceMappingURL=.*\s*$/, '').trimEnd();
     let full = readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8');
     if (name === 'style.ts') full = coreStyleSource(full);
+    if (name === 'foreign-layout.ts') full = coreForeignLayoutSource(full);
     assert.equal(clean(readFileSync(resolve(packageRoot, emitted), 'utf8')),
       clean(resolveMobileConstants(full, emitted)),
       `Shared runtime changed: ${name}`);
