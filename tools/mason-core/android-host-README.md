@@ -54,6 +54,28 @@ programmatic scroll bounds. Logs and a passing summary stay under
 `tmp/mason-core-android-tests`. The tests do not capture screenshots or prove
 NativeScript lifecycle or OS input.
 
+## Use a connected physical device
+
+The same 17 tests can run on an authorized arm64 Android phone without an
+emulator. Build the APK first, then run:
+
+```sh
+pnpm exec nx run nativescript-mason-core:test.host.android.device
+```
+
+The runner selects the sole connected physical device; set
+`MASON_CORE_ANDROID_SERIAL` when more than one is connected. It installs only
+the native test APK and refuses to replace an existing package unless this
+checkout's ownership record and installed APK hash match. It stops its test
+app afterward. Logs stay in `tmp/mason-core-android-device-tests`; device
+identifiers are not included in the result summary. On a shared host, reserve
+an exclusive USB-device lock, such as `android-usb:<serial>`; no emulator is
+started or counted as a resident VM.
+
+The first API 36 physical-device run passed 16 of 17 tests, including all 12
+unchanged foreign-view tests and the direct grid setter regression. Percentage
+width remains under investigation; this is not a complete runtime qualification.
+
 ## Preserve source and the full package
 
 The host compiles 96 source files: 86 remain byte-identical, nine have explicit

@@ -108,6 +108,11 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/run-android-tests.mjs" }
     },
+    "test.host.android.device": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-device-tests.mjs" }
+    },
     "verify.native": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.native.host"],
