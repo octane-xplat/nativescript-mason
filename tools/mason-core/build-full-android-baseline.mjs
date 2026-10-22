@@ -4,6 +4,7 @@ import { copyFileSync, cpSync, mkdirSync, readFileSync, readdirSync, rmSync, wri
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { workspaceRoot } from './sources.mjs';
+import { copyRelocatedNativeSources, nativeSource } from './native-sources.mjs';
 import { androidProjectRoot } from './android-sources.mjs';
 import { run } from './build-native.mjs';
 
@@ -32,8 +33,14 @@ function files(directory, prefix = '') {
 // wiring substitutes our already-verified JNI artifact for Gradle's Rust task.
 rmSync(resolve(stage, 'masonkit/src'), { recursive: true, force: true });
 cpSync(resolve(moduleRoot, 'src/main'), resolve(stage, 'masonkit/src/main'), { recursive: true });
-const sourceInventory = files(resolve(moduleRoot, 'src/main')).map((name) => ({ name, sha256: hash(resolve(moduleRoot, 'src/main', name)) }));
-for (const { name, sha256 } of sourceInventory) assert.equal(hash(resolve(stage, 'masonkit/src/main', name)), sha256);
+copyRelocatedNativeSources('android', resolve(stage, 'masonkit/src/main/java/org/nativescript/mason/masonkit'));
+const sourceInventory = files(resolve(stage, 'masonkit/src/main')).map((name) => {
+  const prefix = 'java/org/nativescript/mason/masonkit/';
+  const filename = name.startsWith(prefix) ? nativeSource('android', name.slice(prefix.length)) : resolve(moduleRoot, 'src/main', name);
+  const sha256 = hash(filename);
+  assert.equal(hash(resolve(stage, 'masonkit/src/main', name)), sha256);
+  return { name, sha256 };
+});
 const testRoot = 'src/androidTest/java/org/nativescript/mason/masonkit';
 const testInventory = tests.map((name) => {
   const filename = resolve(moduleRoot, testRoot, `${name}.kt`);
@@ -47,6 +54,7 @@ const start = gradle.indexOf("apply plugin: 'org.mozilla.rust-android-gradle.rus
 const end = gradle.indexOf('\ndependencies {', start);
 assert.ok(start > 0 && end > start);
 gradle = gradle.slice(0, start) + gradle.slice(end);
+gradle = gradle.replace("  // Shared source only; the full artifact does not depend on the core runtime.\n  sourceSets.main.java.srcDir '../../../../nativescript-mason-core/src-native/android/java'\n", '');
 assert.ok(gradle.includes("api 'org.nativescript:fontmanager:[1.0.8,2.0)'"));
 gradle = gradle.replace("api 'org.nativescript:fontmanager:[1.0.8,2.0)'", "api 'org.nativescript:fontmanager:1.0.20'");
 write('masonkit/build.gradle', gradle);

@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
+import { nativeSource, restoreStagedIosReferences } from './native-sources.mjs';
 import { iosSourceRoot, iosHostFiles, projectIosSource, backgroundGlyphProtocol } from './ios-sources.mjs';
 
 const device = process.argv.includes('--device');
@@ -36,7 +37,7 @@ copyFileSync(resolve(artifactRoot, 'include/mason_native.h'), resolve(stage, 'in
 write('Mason/module.modulemap', 'framework module MasonCore {\n  umbrella header "Mason.h"\n  export *\n  module * { export * }\n}\n');
 write('pre-build.sh', '#!/bin/sh\nset -eu\n# Core engine archives and headers are provided by the independent engine build.\n');
 
-let pbx = readFileSync(resolve(originalProject, 'project.pbxproj'), 'utf8');
+let pbx = restoreStagedIosReferences(readFileSync(resolve(originalProject, 'project.pbxproj'), 'utf8'));
 // Remove optional sources from the generated project only. File references may
 // remain for provenance; none participates in a build phase.
 const keep = new Set(iosHostFiles);
@@ -107,7 +108,7 @@ for (const [checkout, name] of [['font-manager', 'FontManager'], ['SDWebImage', 
 copyFileSync(resolve(originalProject, 'project.xcworkspace/xcshareddata/swiftpm/Package.resolved'), resolve(output, 'Package.resolved'));
 const hash = (filename) => createHash('sha256').update(readFileSync(filename)).digest('hex');
 const sources = iosHostFiles.map((name) => ({
-  name, originalSha256: hash(resolve(iosSourceRoot, name)), projectedSha256: hash(resolve(stage, 'Mason', name)),
+  name, originalSha256: hash(nativeSource('ios', name)), projectedSha256: hash(resolve(stage, 'Mason', name)),
 }));
 const manifest = {
   platform: device ? 'iOS' : 'iOS Simulator', architecture: 'arm64', configuration,

@@ -89,16 +89,20 @@ before programmatic seeking, matching the host lifecycle.
 
 The generated project compiles 39 existing Swift files. Of these, 25 retain
 identical source bytes; 14 have explicit core-only adaptations. The manifest
-records each original and projected hash. The tracked full native sources and
-Xcode project remain unchanged. No full-to-core runtime dependency is added.
+records each original and projected hash. The 25 unchanged files now live in
+core after byte-preserving `git mv` moves. The full Xcode project changes only
+those source references; its implementation and remaining files retain their
+bytes. No full-to-core runtime dependency is added.
 
 `ios-sources.mjs` uses compiler-derived declaration spans from `swift-source.mjs`
 to remove optional factories, HTML conveniences, text-run reconciliation, and
 widget-specific branches. `ios-node-children.swift` supplies the foreign-view
 and container child operations. Shared measurement methods remain unchanged.
 This projection is temporary prototype wiring, not the final upstream seam.
-Move native modules with `git mv` once their full-build references and native
-regressions are qualified; do not create parallel edited source copies.
+The native path mapping and baseline hashes live in `native-relocations.json`.
+Generated projects reconstruct the original source layout; both builds resolve
+one tracked copy through `native-sources.mjs`. Keep future fixes separate from
+source moves and avoid parallel edited copies.
 
 Container painting and scrolling remain in core. Background text clipping has
 a small native glyph-provider protocol, allowing a renderer to supply outlines

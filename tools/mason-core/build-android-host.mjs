@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { workspaceRoot } from './sources.mjs';
-import { androidProjectRoot, androidSourceRoot, projectAndroidSources, backgroundGlyphProvider } from './android-sources.mjs';
+import { nativeSource } from './native-sources.mjs';
+import { androidProjectRoot, projectAndroidSources, backgroundGlyphProvider } from './android-sources.mjs';
 import { run } from './build-native.mjs';
 
 const stage = resolve(workspaceRoot, 'tmp/mason-core-android-host');
@@ -99,7 +100,7 @@ else {
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(output, 'LICENSE'));
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 writeFileSync(resolve(output, 'sources.json'), JSON.stringify(sources.map(({ name, originalName = name, text }) => ({
-  name, originalName, originalSha256: hash(readFileSync(resolve(androidSourceRoot, originalName))), projectedSha256: hash(text),
+  name, originalName, originalSha256: hash(readFileSync(nativeSource('android', originalName))), projectedSha256: hash(text),
 })), null, 2) + '\n');
 if (!tests) {
   const dependencies = JSON.parse(readFileSync(resolve(stage, 'dependencies.json'), 'utf8'));

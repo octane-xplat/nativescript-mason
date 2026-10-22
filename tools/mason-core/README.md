@@ -6,7 +6,9 @@ depend on the core package at runtime. The separate
 [runtime prototype](runtime-README.md) tests a container-only TypeScript API;
 the [iOS host prototype](ios-host-README.md) now builds and runs independently
 on iOS Simulator. The [Android host prototype](android-host-README.md) builds a
-separate AAR and verifies an isolated Java client. NativeScript packaging remains.
+separate AAR and verifies an isolated Java client. The
+[plugin proof](plugin-README.md) packages both native hosts and independently
+qualifies compiled NativeScript consumers.
 Separate native targets package the existing shared Rust C interface as
 independent engine archives; see the
 [native proof](../../packages/nativescript-mason-core/src-native/README.md).
@@ -97,3 +99,28 @@ unit tests does not prove native layout, input, or application-size savings.
 
 See the [full native baseline](full-baseline-README.md) before moving unchanged
 native modules; core-only passing tests do not establish full-package behavior.
+
+## Native source moves
+
+Twenty-five Swift files and 86 Kotlin/Java files moved with `git mv`, retaining
+all source bytes. `native-relocations.json` records each filename, original and
+destination roots, and its baseline SHA-256. Those hashes record move provenance;
+they do not pin future source contents or prevent upstream fixes. The full iOS project uses source
+references into `src-native/ios`; the full Android project adds the shared
+`src-native/android/java` source set. Neither depends on the core package or its
+compiled artifacts. Source package names, native class names and filenames stay
+unchanged.
+
+`native-sources.mjs` resolves one tracked copy for both builds. Generated
+projects reconstruct their logical source trees without editing those modules.
+Fourteen adapted Swift files and nine adapted Kotlin/Java files stay in the
+full tree; core-only transformations remain in the projection tools. Full
+text/widget implementation is preserved. The entire core/full native source
+inventories match the saved pre-move controls.
+
+The original full Gradle source references can be checked directly, excluding
+the separately qualified Rust build:
+
+```sh
+pnpm exec nx run nativescript-mason-core:verify.references.android.full
+```

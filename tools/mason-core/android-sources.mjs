@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fullSourceRoot, workspaceRoot } from './sources.mjs';
 import { KotlinSource, parseKotlinSources } from './kotlin-source.mjs';
 import { replaceOnce } from './swift-source.mjs';
+import { nativeFiles, nativeSource } from './native-sources.mjs';
 
 export const androidProjectRoot = resolve(fullSourceRoot, 'src-native/mason-android');
 export const androidSourceRoot = resolve(androidProjectRoot, 'masonkit/src/main/java/org/nativescript/mason/masonkit');
@@ -21,7 +22,7 @@ export const androidHostFiles = Object.freeze([
   'Size.kt', 'Style.kt', 'StyleHelpers.kt', 'Styles.kt', 'SvgParser.kt', 'TextDefaultAttributes.kt',
   'Transform.kt', 'TwoDScrollView.kt', 'Utils.kt', 'View.kt', 'ViewLayoutFactory.kt',
   'ViewUtils.kt', 'WebScroll.kt', 'CSSFilters.kt',
-  ...readdirSync(resolve(androidSourceRoot, 'enums')).sort().map((name) => `enums/${name}`),
+  ...nativeFiles('android').filter((name) => name.startsWith('enums/')),
   'events/Event.kt', 'events/EventOptions.kt',
 ]);
 
@@ -35,14 +36,14 @@ function functions(source, name, owner, predicate) {
 }
 
 export function projectAndroidSources() {
-  const filenames = androidHostFiles.filter((name) => name.endsWith('.kt')).map((name) => resolve(androidSourceRoot, name));
+  const filenames = androidHostFiles.filter((name) => name.endsWith('.kt')).map((name) => nativeSource('android', name));
   // Container construction also uses this context helper, currently housed in
   // the text widget's file. Extract only that unchanged declaration.
-  const contextSource = resolve(androidSourceRoot, 'TextView.kt');
+  const contextSource = nativeSource('android', 'TextView.kt');
   filenames.push(contextSource);
   const parsed = parseKotlinSources(filenames);
   const sources = androidHostFiles.map((name) => {
-    const filename = resolve(androidSourceRoot, name);
+    const filename = nativeSource('android', name);
     if (!name.endsWith('.kt')) return { name, text: readFileSync(filename, 'utf8') };
     const source = new KotlinSource(filename, parsed[filename]);
     if (name === 'Mason.kt') {

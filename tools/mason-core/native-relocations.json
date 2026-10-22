@@ -1,0 +1,463 @@
+{
+  "baseline": "623114b070896a21315fcff9a3a6349bdd091cc4",
+  "roots": {
+    "ios": {
+      "original": "packages/nativescript-masonkit/src-native/mason-ios/Mason/Mason",
+      "relocated": "packages/nativescript-mason-core/src-native/ios"
+    },
+    "android": {
+      "original": "packages/nativescript-masonkit/src-native/mason-android/masonkit/src/main/java/org/nativescript/mason/masonkit",
+      "relocated": "packages/nativescript-mason-core/src-native/android/java/org/nativescript/mason/masonkit"
+    }
+  },
+  "files": {
+    "ios": [
+      {
+        "name": "BackgroundParser.swift",
+        "baselineSha256": "84177743e6721a1eabaa3697392adb889bb06995feb97cbde2aed1483f1350cd"
+      },
+      {
+        "name": "Border.swift",
+        "baselineSha256": "243f822d3d49b680a7f860d117b37c2661ed963b75c180d3bb438a166d85f70a"
+      },
+      {
+        "name": "BorderParser.swift",
+        "baselineSha256": "eddcbddf8c38cfb93275cc4b369fd7fe08020f786ebe154e47b573cbd01f4186"
+      },
+      {
+        "name": "BoxShadowRenderer.swift",
+        "baselineSha256": "c34591aa6ee016e146d4f4bba79697063931ae22d5ca4862f81c0f464a3e1984"
+      },
+      {
+        "name": "Constants.swift",
+        "baselineSha256": "db71fada5c8d92c98609915041ac025f19531cdecef906241dc4611077f763f5"
+      },
+      {
+        "name": "CSSFilters.swift",
+        "baselineSha256": "b5e2e7d1ccf25a135525ec389c7d39f278458cccd22fb26429c331f67122c75d"
+      },
+      {
+        "name": "Enums.swift",
+        "baselineSha256": "3e0da6cc83c89a5947f8d37c1d3e73196ba6c9822de4937e0b351729a52deb49"
+      },
+      {
+        "name": "MasonCompat.swift",
+        "baselineSha256": "ea1e9610588984d4d65f33788e85f6cd0906e9ca640e2d34b6dcc9dfb93d9581"
+      },
+      {
+        "name": "MasonEvent.swift",
+        "baselineSha256": "e79e3ab53e6ea40fcc6f6504dc7e5531fd08914baa3cd8e9c4b817de490fba0e"
+      },
+      {
+        "name": "MasonEventTarget.swift",
+        "baselineSha256": "c3429c704c43eac1a3e8712f43d91d31547978d2a4baaa03a2fd23be1d532fae"
+      },
+      {
+        "name": "MasonLayout.swift",
+        "baselineSha256": "d529299b60b7a60f41252857732aca742e03ecab423ce41f94c37aa5d20b1abd"
+      },
+      {
+        "name": "MasonLine.swift",
+        "baselineSha256": "dea50cfd76c44fb7c60b471bcbac13af55be4bb52aed6af26aa1fc496a6f556f"
+      },
+      {
+        "name": "MasonPoint.swift",
+        "baselineSha256": "5f91893b8737ceac7943db88a1e5b0c846c3d9dd30dc9bab13e5d3a5dc5fdb96"
+      },
+      {
+        "name": "MasonRect.swift",
+        "baselineSha256": "5bced8712cae32b06f038159766bb496166b603bb58a04384c6934132ab5ed88"
+      },
+      {
+        "name": "MasonShadowLayer.swift",
+        "baselineSha256": "a8b128ec5a25bb6cb7b6311de6d138faeb5774641f46886825d492b52c28e972"
+      },
+      {
+        "name": "MasonSize.swift",
+        "baselineSha256": "482d3d52aa61fa6b8d75b1e5194e22b376a48c681b1fbe35a1e361648d181e55"
+      },
+      {
+        "name": "Mask.swift",
+        "baselineSha256": "171d13490128faa562a3b8e52634fb2ddc5c8f85221a6744319f583be54a2ade"
+      },
+      {
+        "name": "MaxSizing.swift",
+        "baselineSha256": "6ab636d32b49d8d039c28b8a6904013e06b7634b43d112acd143f66ba6b38ffc"
+      },
+      {
+        "name": "MeasureOutput.swift",
+        "baselineSha256": "7226d92b0d588468717b81b4fc645d7611d82465dc97d94a2dc164fd5f1550af"
+      },
+      {
+        "name": "MinMax.swift",
+        "baselineSha256": "508c8904e427dd1dbd6d8e6122202db7cd6d7c3d4b61375f5ae511e27c3cdea9"
+      },
+      {
+        "name": "MinSizing.swift",
+        "baselineSha256": "9b85e69e047c69210fd0af04e993e1c6b125a0ae20561318beddb6caf758644b"
+      },
+      {
+        "name": "NativeHelpers.swift",
+        "baselineSha256": "902c0e396aab9b2d04186601b8b29e1d114443c54c6199fe4fbf98d0bee7d1ab"
+      },
+      {
+        "name": "Shadow.swift",
+        "baselineSha256": "e74125018b6c9078c4abdac4cb6ec4c8a2a019dd090321a9ed4e567436bd60cc"
+      },
+      {
+        "name": "SvgParser.swift",
+        "baselineSha256": "4382e6dd0c10f5279ecf7e54a215412da6d0788122063e2fdd58dcc03fe93641"
+      },
+      {
+        "name": "TrackSizingFunction.swift",
+        "baselineSha256": "758da5bf8e07330e869a617214ae1b2cde4362968dffb1b4d273b961e829e220"
+      }
+    ],
+    "android": [
+      {
+        "name": "AppFonts.kt",
+        "baselineSha256": "63131c4f88ee6c3f8d2ed1573d19e52a5b137f34e3668b9afd51ede46236e069"
+      },
+      {
+        "name": "AvailableSpace.kt",
+        "baselineSha256": "c00b6e76e49c065f349ff226aa4b4b3b77bf3b0f0798141b82db68ad3214e389"
+      },
+      {
+        "name": "BackdropHelper.kt",
+        "baselineSha256": "b2207ebc1fde408d5a2b2a5ff49886a61fec425db271a2ce21f4deb290751b60"
+      },
+      {
+        "name": "Background.kt",
+        "baselineSha256": "37d1f6a669eb62d8b5b2b5aafaf447b5e42f8b37fffc01f0d8d4209c0959cc9d"
+      },
+      {
+        "name": "Border.kt",
+        "baselineSha256": "31ae9ec1556d48a5797681c56a1d96c4b2f0d22595b073d0888032ae4d428ad8"
+      },
+      {
+        "name": "BoxShadowRenderer.kt",
+        "baselineSha256": "a2634c772bf391c9a207655cd78b7552d022fa17dd9d4fd054f63f63940f2590"
+      },
+      {
+        "name": "ChildList.kt",
+        "baselineSha256": "686d528e2ead6bd4cb26dae83a96a8bb2c5ce01e18a01533a9e576b6a29c535b"
+      },
+      {
+        "name": "ClipPath.kt",
+        "baselineSha256": "363a5915340fd977550a46d249bab39d6054ac69f4a61e232cfb04cd6c560e78"
+      },
+      {
+        "name": "ColorInterpolation.kt",
+        "baselineSha256": "f4afda14f9fb83f20e45aed1546e39e38042d1d93848029ab77e89fedbb3c9a2"
+      },
+      {
+        "name": "Colors.kt",
+        "baselineSha256": "ba5fccfc4134a4716561f62acfe8e19084a3064d0a9ec23f48c1665b43c9ea0e"
+      },
+      {
+        "name": "ComputedStyle.kt",
+        "baselineSha256": "29a8a855de2a28548d3a3491b9a2863d2bea98cbc8c2d83f47de8d32acedb23e"
+      },
+      {
+        "name": "Constants.kt",
+        "baselineSha256": "b92fd251c761ea8529c565bd71a25978665d65fec36809d438e7ad1286f2e007"
+      },
+      {
+        "name": "Dimension.kt",
+        "baselineSha256": "a1d16e9d05aba9fe0882090b527eb359c2c0762dc88d308ae6c11c11e64eac87"
+      },
+      {
+        "name": "DimensionSerializer.kt",
+        "baselineSha256": "0c1791579f8a6b03a98a6fef3d4e81d94d3f2cb60a31491583f81bebebb95b4a"
+      },
+      {
+        "name": "ElementExtensions.kt",
+        "baselineSha256": "73d0dc842c68bcec0e0b97f7af7e57ceaa95e15a6c6351c3f1cf1fdbc8f03e0b"
+      },
+      {
+        "name": "EventTarget.kt",
+        "baselineSha256": "7de6ddd1a33e94fce0c060418c43f5be1757debd48e8a13d0c5d7ec628d98633"
+      },
+      {
+        "name": "GC.kt",
+        "baselineSha256": "71044996d7697a348a7e81c708f3c61da27e1a94c213833e925f143e45b830cc"
+      },
+      {
+        "name": "GradientStops.kt",
+        "baselineSha256": "ce010593229f06d539d294b5ec70b54ea99e6edb4ebcb9ea3488c90d888d21ca"
+      },
+      {
+        "name": "GridPlacement.kt",
+        "baselineSha256": "c966d219d4de26f0411cfb19d296f58a07875d736ba2bcd2e855e6548c39089f"
+      },
+      {
+        "name": "GridTemplate.kt",
+        "baselineSha256": "99b188d4a3e11d963e61877c5805935c726b4d4a8c01ecdaa35975a6a7d9718d"
+      },
+      {
+        "name": "GridTrackRepetition.kt",
+        "baselineSha256": "660124a7d29ca296861275c496373f501feba1d9f9b1a098b3bfbcf1d6bf4781"
+      },
+      {
+        "name": "HitTesting.kt",
+        "baselineSha256": "db6a4bfc0fcee3fbe1b7e4794d28c35325389434dee6025ef2b5d9e37497589b"
+      },
+      {
+        "name": "IdleHandler.kt",
+        "baselineSha256": "cbda1885d1a5a26bf8eaca0c9c0de41a1ac1316d26e289627af10f20c5a50168"
+      },
+      {
+        "name": "InlineSegment.java",
+        "baselineSha256": "9e09a560dcc1756e9efcad16f30ed8cc25c7fb052329e813f86d7130add28765"
+      },
+      {
+        "name": "Layout.kt",
+        "baselineSha256": "e98e91ecc4a743aaa6ec76cccbce43bc8b7ed4a5a60a79c3cddd2de9003056ac"
+      },
+      {
+        "name": "LengthPercentage.kt",
+        "baselineSha256": "e7e2cd600949b4fe36dc34f60a0703998fc264cfae1dae05414952c5153002bb"
+      },
+      {
+        "name": "LengthPercentageAuto.kt",
+        "baselineSha256": "f384366f6904391874678cd428e6cbb8e1754c276750a209b1830f177bfc1974"
+      },
+      {
+        "name": "LengthPercentageAutoSerializer.kt",
+        "baselineSha256": "76609783dbdc82314fb1c3def601661f9b2ca457dbc981ade3a1f9ffa139dc22"
+      },
+      {
+        "name": "LengthPercentageSerializer.kt",
+        "baselineSha256": "bdda4cf7cc43b5d216f808339f87a98d13fd7b58f69f638a2583a9331cb37bd1"
+      },
+      {
+        "name": "Line.kt",
+        "baselineSha256": "6aa46de2a30996a311227bf0fb8a5e16abb22a782f8675e7a02c3517a842cf29"
+      },
+      {
+        "name": "LoadingState.kt",
+        "baselineSha256": "b49091f049479a31f407c2642ff0b8da996b97baf62ffcc84617bb6c85e6959e"
+      },
+      {
+        "name": "Mask.kt",
+        "baselineSha256": "77cbc1cb8c1f81e926dec064cf391ac7f81fc543786ce44b377bf4214083b17f"
+      },
+      {
+        "name": "MasonPositioning.kt",
+        "baselineSha256": "fbfab3bbbaad25b8ac23226629b6947a46ca41ec775c48221cd09f9bb1f29eaa"
+      },
+      {
+        "name": "MaxSizing.kt",
+        "baselineSha256": "41ad2d40df4701f96417abf1965d17ffcaf6c484c7b2c5b081dcad811ec1e9de"
+      },
+      {
+        "name": "MeasureFunc.kt",
+        "baselineSha256": "51e66a11c669661463084fb82507e9db9b5c9d24eb7ea0f04312fe52dc8ce705"
+      },
+      {
+        "name": "MeasureOutput.kt",
+        "baselineSha256": "4ff3cd25cd82975445f1c77f5b9b677cc29b98b8340e72b7f9786f8521d97631"
+      },
+      {
+        "name": "MinMax.kt",
+        "baselineSha256": "e95c66fc10ae8b5d4b97f00e0f0ea3d520a38e4fc9d380f9844188f03158f2d6"
+      },
+      {
+        "name": "MinSizing.kt",
+        "baselineSha256": "7b6506becbbd1138bb8d1ebc862d24f2cf7f57296fa88d00773ff864b17b00f6"
+      },
+      {
+        "name": "NativeHelpers.java",
+        "baselineSha256": "3e5a0b274d8e79203f6103eaa25fd5dd24e5fb6c303861d78bfd780a9d0ca910"
+      },
+      {
+        "name": "NativeObject.kt",
+        "baselineSha256": "294c2cbe4ebed76217c54894c5d52ddf617df704a1848db7bd7e45b41c1e85e4"
+      },
+      {
+        "name": "NineSlice.kt",
+        "baselineSha256": "fe6b865bb261620572bcce23c6ef6ed3678519a78669af30391eaae4cd09b214"
+      },
+      {
+        "name": "NodeType.kt",
+        "baselineSha256": "bd0616894a45a588b9e87b910390adb4ca06c8e13d586a253c125fe41d9177b1"
+      },
+      {
+        "name": "ObjectManager.kt",
+        "baselineSha256": "28614d7b0b5ca3da2039e26599d6983320070525ef611aa66b9c8b64895a2667"
+      },
+      {
+        "name": "Point.kt",
+        "baselineSha256": "33cc77250be139beae42238a874aa418ac715a81384ee13dbc8af3a192027fd7"
+      },
+      {
+        "name": "Rect.kt",
+        "baselineSha256": "61ccfa7a75ea925c825c86eeacf0d7eac7abaa5e59546fa63803c85b9181b8fd"
+      },
+      {
+        "name": "Shadow.kt",
+        "baselineSha256": "000a862730e45e3a65b6a4fd02079d69424f0cb89f0e46dcff4ecf1792f7cf3d"
+      },
+      {
+        "name": "SharedBoxShadowCache.kt",
+        "baselineSha256": "111105230ddc12fe58552e6c84f7e565db2c6cc11516680bda54eaf93e7b57c7"
+      },
+      {
+        "name": "Size.kt",
+        "baselineSha256": "2387d354b26eefd51662be8e26fc4e1bababa879b0181ee11399d352770f7ef7"
+      },
+      {
+        "name": "StyleHelpers.kt",
+        "baselineSha256": "79c6ab6bb9a29a009b04b64f331635e317d98130aaa59c260890b5c56ae7bb1f"
+      },
+      {
+        "name": "Styles.kt",
+        "baselineSha256": "e9fb887cc52be40447ac982a8e8668ff407f6c6fac73676c39bea6b6c5d4893e"
+      },
+      {
+        "name": "SvgParser.kt",
+        "baselineSha256": "d7bc3e01bec7ded44a8411766f950c0c8c82823b51b5ed2a9c5cb8ed1835fb55"
+      },
+      {
+        "name": "TextDefaultAttributes.kt",
+        "baselineSha256": "03bdbbc97768ca28a268350e96f4e42e8c2da6d4d011610dd94cc08e1a7e7a5f"
+      },
+      {
+        "name": "Transform.kt",
+        "baselineSha256": "b69bbbdb5542f4c2b5d84bb3953f169eba124b9b1a8bb5b07e4c1cf67db06b08"
+      },
+      {
+        "name": "TwoDScrollView.kt",
+        "baselineSha256": "9fe6c157497cef299950bfe9d583b113aead8ae1909a668dbc8f91ed495a32b8"
+      },
+      {
+        "name": "Utils.kt",
+        "baselineSha256": "8c47b8a07a6542c5fb0006c6b1acdb923fed4a618d247068c0ccf6f1159907b1"
+      },
+      {
+        "name": "ViewLayoutFactory.kt",
+        "baselineSha256": "5a1211211ac01e4883fe1c1f3ea0e46d537c2a2fbe56c8a289650b85075459f4"
+      },
+      {
+        "name": "WebScroll.kt",
+        "baselineSha256": "44961e84282f18c1619abac975c4476e6f7a99a9bbb4bb7764345d14de87e666"
+      },
+      {
+        "name": "CSSFilters.kt",
+        "baselineSha256": "497f846cdf50dcb1ce6639e10b15233f6b706eec4384dca6f6ee1ce69b56a5a1"
+      },
+      {
+        "name": "enums/Align.kt",
+        "baselineSha256": "f0d25af4cb2a718c551e3d561425a825ba67412703af8d5309cc34348c249c86"
+      },
+      {
+        "name": "enums/AlignContent.kt",
+        "baselineSha256": "0dc69d4ba1a5dce9b9a939cb235ed19d0dff757a6a9d4107641bb2a4b4f6307b"
+      },
+      {
+        "name": "enums/AlignItems.kt",
+        "baselineSha256": "2f473ab5629443ca0fadaf1b26fca735356f25d4e042a99c05984e9227c1ed44"
+      },
+      {
+        "name": "enums/AlignSelf.kt",
+        "baselineSha256": "ceddd906e0ac1cc1b54c34242077abbad1df7c19441cbceffea667289a224c38"
+      },
+      {
+        "name": "enums/BorderStyle.kt",
+        "baselineSha256": "413e714f7d307d3e4e6f37780ea1f1bde64dae56972e26f6d4f3a0ffad48097f"
+      },
+      {
+        "name": "enums/BoxSizing.kt",
+        "baselineSha256": "c779d1b27df2387c5325d37fcc50ae87e930b43c8a9c51c20cf51a0c3b46187e"
+      },
+      {
+        "name": "enums/Clear.kt",
+        "baselineSha256": "a5fee3eb71b0e4f9759d7dcafea5ffb0e188d785f0be6e7c752f5409ac657a15"
+      },
+      {
+        "name": "enums/Direction.kt",
+        "baselineSha256": "ef7707b2880af555713d19a9507e3831ecaf90c230cc08ef66f6b01706f82bf0"
+      },
+      {
+        "name": "enums/Display.kt",
+        "baselineSha256": "33fb13bdd98c6b28a19c74b671069b62c719a09a623276972ce1fa08ee7c6f02"
+      },
+      {
+        "name": "enums/DisplayMode.kt",
+        "baselineSha256": "3c186ee34c82d4252890488fa6877652f91c39eb7e1a9d6d0d01b86470954ea5"
+      },
+      {
+        "name": "enums/FlexDirection.kt",
+        "baselineSha256": "4e1e5b5a3e535920fc2a3b652c8eee5cd2285189eb054f71bae54e5194492c3c"
+      },
+      {
+        "name": "enums/FlexWrap.kt",
+        "baselineSha256": "0207077d5a02742e27710d1975ff6c298208b06cda32e413e95f65d76ec8c4ea"
+      },
+      {
+        "name": "enums/Float.kt",
+        "baselineSha256": "3a10df15bb6d385539d58a9406d2daf991b156d1655e7ad2018f6d49cffed3d8"
+      },
+      {
+        "name": "enums/FontVariantNumeric.kt",
+        "baselineSha256": "90a373057235d58a5a997fbcbecf1922457da2af7da64f8807df8bf103758c23"
+      },
+      {
+        "name": "enums/GridAutoFlow.kt",
+        "baselineSha256": "9f338acf22b0fee18a8ff5634ed6f0b49484414abd562c0c6d4ad945dc7ac52e"
+      },
+      {
+        "name": "enums/JustifyContent.kt",
+        "baselineSha256": "26572c53d9a3155d76dd5c8e7d39c182eb4d23c21f18ed1d8f5d891039ffaebd"
+      },
+      {
+        "name": "enums/JustifyItems.kt",
+        "baselineSha256": "1e88578f3270a3a54eccb170a6b7c99e406991cecae26fe43a5ed086d32db555"
+      },
+      {
+        "name": "enums/JustifySelf.kt",
+        "baselineSha256": "5224b990f02a4256674e2f15cb2569f5d3ce19568c3d13f2d4e64d4f8a558d31"
+      },
+      {
+        "name": "enums/ListStylePosition.kt",
+        "baselineSha256": "66602e02fbf67de118187f26fe4f16ba6ec786165555a8aae2d62977280a2fd2"
+      },
+      {
+        "name": "enums/ListStyleType.kt",
+        "baselineSha256": "a19bdb4826e32402206f02e7e89db6799d3e290b5ac69fd1cfb3a02483b096da"
+      },
+      {
+        "name": "enums/ObjectFit.kt",
+        "baselineSha256": "c23260291c4248d6c2259956c5b4e0c66c47523c49dedba7ab6390b5b8fa9f02"
+      },
+      {
+        "name": "enums/Overflow.kt",
+        "baselineSha256": "1c309f93a6c179cf1fa850861d5af948aea631088aa028d7c64ebab26ff1967a"
+      },
+      {
+        "name": "enums/Position.kt",
+        "baselineSha256": "83e5f89183fd9eba5d920758f6b8892b852b010b925694fa1d178acdf98e4bd7"
+      },
+      {
+        "name": "enums/TextAlign.kt",
+        "baselineSha256": "6224db91e97ec873e302f1f12a466edd2735ada9a7d011fda9027a0967594451"
+      },
+      {
+        "name": "enums/TextType.kt",
+        "baselineSha256": "2012ecbc2131ad590489b8f792ef67b7bb363afc5dc104dac4b55d885cddb2c5"
+      },
+      {
+        "name": "enums/VerticalAlign.kt",
+        "baselineSha256": "e1205e9b48353d7a763f36d3ccf36ad2915994abe0db1193e12cfdae5b83a6ba"
+      },
+      {
+        "name": "events/Event.kt",
+        "baselineSha256": "c0a703925d2cc20a7d9246558178928cb5c76412e43f3d97e919143c663cef4a"
+      },
+      {
+        "name": "events/EventOptions.kt",
+        "baselineSha256": "44b100e06d90ba1703ea170369fa291b9f1bc3138f44a2888ffe33c0b3a2ddd7"
+      }
+    ]
+  }
+}

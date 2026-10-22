@@ -82,8 +82,9 @@ separate qualification gates.
 The host compiles 96 source files: 86 remain byte-identical, nine have explicit
 core adaptations, and one contains the unchanged `ThemelessContext` declaration
 extracted from the text widget's source file. The source manifest records each
-original path and both hashes. The tracked full Kotlin sources, Gradle project,
-Rust engine, and JNI binding remain unchanged.
+original path and both hashes. The 86 unchanged Kotlin/Java files moved into
+core with `git mv`. The full Gradle project adds only their shared source set;
+the full implementation bytes, Rust engine and JNI binding remain unchanged.
 
 `android-sources.mjs` uses Kotlin compiler-derived spans to remove optional
 factories, HTML/text overloads, inline-run normalization, and widget branches.
@@ -98,8 +99,9 @@ Rust engine still contains inline-layout code and UA defaults. This proof
 removes the optional native hosts, not every text-related datum or function.
 
 The source projection is temporary proof tooling, not the final upstream seam.
-Move unchanged native modules with `git mv` after qualifying their full-build
-references and native regressions. Keep core and full MasonKit in separate
+The move inventory and baseline hashes live in `native-relocations.json`;
+`native-sources.mjs` resolves one tracked source copy for both builds. Keep
+future source fixes separate from moves. Keep core and full MasonKit in separate
 hosts; their Java class names and native library names still collide.
 
 The first instrumentation run passed 15 of 17 tests, including all 12 unchanged

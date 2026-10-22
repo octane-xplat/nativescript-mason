@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fullSourceRoot, workspaceRoot } from './sources.mjs';
 import { SwiftSource, replaceOnce } from './swift-source.mjs';
+import { nativeSource } from './native-sources.mjs';
 
 export const iosSourceRoot = resolve(fullSourceRoot, 'src-native/mason-ios/Mason/Mason');
 export const iosHostFiles = Object.freeze([
@@ -24,7 +25,7 @@ function declarationText(source, name) {
 }
 
 export function projectIosSource(name) {
-  const source = new SwiftSource(resolve(iosSourceRoot, name));
+  const source = new SwiftSource(nativeSource('ios', name));
   if (name === 'NSCMason.swift') {
     source.remove('htmlParser');
     for (const node of source.nodes.filter((node) => node.kind === 'func_decl' && node.name?.startsWith('create') && !['createView()', 'createScrollView()', 'createNode()', 'createNode(measure:)'].includes(node.name))) source.edit(node);

@@ -31,6 +31,8 @@ def rustProfile = isRelease ? "release" : null
 
 android {
   namespace 'org.nativescript.mason.masonkit'
+  // Shared source only; the full artifact does not depend on the core runtime.
+  sourceSets.main.java.srcDir '../../../../nativescript-mason-core/src-native/android/java'
   compileSdk 36
   defaultConfig {
     minSdk 21

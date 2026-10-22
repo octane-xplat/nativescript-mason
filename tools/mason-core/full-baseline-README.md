@@ -2,7 +2,9 @@
 
 Qualify the full package before relocating unchanged native sources. These
 fixtures compile the full implementation separately from core; they add no
-full-to-core runtime dependency and do not change tracked native sources.
+full-to-core runtime dependency. After native moves, they reconstruct unchanged
+source trees from the path mapping; only the full projects’ source references
+change.
 
 ## Android
 
@@ -57,8 +59,8 @@ The original Xcode target omits `MasonTextNodeTests.swift` and
 `AnonymousContainerRemovalTests.swift`, despite their presence in source. The
 first baseline ran 25 passing tests and correctly failed its expected-count
 check. The builder explicitly registers those two unchanged files in its
-**temporary** target and retains the expected 28. The tracked upstream project
-stays unchanged. This staging adaptation must not be mistaken for original
+**temporary** target and retains the expected 28. The tracked upstream test-target wiring stays unchanged; the full project’s
+only native edits are source references for byte-preserving moves. This staging adaptation must not be mistaken for original
 upstream test discovery.
 
 With both files registered, all 28 execute: 27 pass and

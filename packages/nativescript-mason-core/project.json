@@ -181,6 +181,11 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/run-ios-tests.mjs" }
     },
+    "verify.references.android.full": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-full-android-references.mjs" }
+    },
     "build.baseline.android.full": {
       "executor": "nx:run-commands",
       "cache": false,

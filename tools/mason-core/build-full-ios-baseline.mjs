@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, resolve } from 'node:path';
 import { workspaceRoot } from './sources.mjs';
 import { iosSourceRoot } from './ios-sources.mjs';
+import { copyRelocatedNativeSources, nativeFiles, nativeSource, restoreStagedIosReferences } from './native-sources.mjs';
 import { SwiftSource } from './swift-source.mjs';
 import { run } from './build-native.mjs';
 
@@ -19,19 +20,13 @@ function write(name, text) {
   mkdirSync(dirname(filename), { recursive: true });
   writeFileSync(filename, text);
 }
-function files(directory, prefix = '') {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    assert.ok(!entry.isSymbolicLink(), `Unexpected source link: ${entry.name}`);
-    const name = prefix + entry.name;
-    return entry.isDirectory() ? files(resolve(directory, entry.name), `${name}/`) : [name];
-  }).sort();
-}
 rmSync(resolve(stage, 'Mason'), { recursive: true, force: true });
 rmSync(resolve(stage, 'MasonTests'), { recursive: true, force: true });
 cpSync(iosSourceRoot, resolve(stage, 'Mason'), { recursive: true });
+copyRelocatedNativeSources('ios', resolve(stage, 'Mason'));
 // The Xcode header phase resolves this include folder from SRCROOT.
 cpSync(resolve(iosSourceRoot, 'include'), resolve(stage, 'include'), { recursive: true });
-const sources = files(iosSourceRoot).map((name) => ({ name, sha256: hash(resolve(iosSourceRoot, name)) }));
+const sources = nativeFiles('ios').map((name) => ({ name, sha256: hash(nativeSource('ios', name)) }));
 for (const { name, sha256 } of sources) assert.equal(hash(resolve(stage, 'Mason', name)), sha256);
 const tests = [];
 for (const name of testFiles) {
@@ -52,7 +47,7 @@ assert.deepEqual(tests.map(({ name }) => name).sort(), [...selected].sort());
 assert.ok(tests.every(({ count }) => count > 0));
 const keep = new Set([...sources.filter(({ name }) => name.endsWith('.swift')).map(({ name }) => basename(name)), ...testFiles]);
 const project = resolve(original, 'Mason.xcodeproj');
-let pbx = readFileSync(resolve(project, 'project.pbxproj'), 'utf8');
+let pbx = restoreStagedIosReferences(readFileSync(resolve(project, 'project.pbxproj'), 'utf8'));
 pbx = pbx.split('\n').filter((line) => {
   const source = line.match(/^\s+[A-F0-9]+ \/\* (\S+) in Sources \*\/,\s*$/);
   return !source || keep.has(source[1]);

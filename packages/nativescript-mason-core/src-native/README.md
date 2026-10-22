@@ -1,6 +1,12 @@
-# Independent native engine proof
+# Native core sources and independent engine proof
 
-These build targets package the existing `mason-c` crate as a static archive.
+This directory also owns 25 unchanged Swift modules under `ios/` and 86
+Kotlin/Java modules under `android/java/`, moved with `git mv`. Their original
+paths and baseline hashes live in `tools/mason-core/native-relocations.json`.
+Core and full builds compile one tracked source copy with separate native
+artifacts; full MasonKit gains no runtime package dependency.
+
+The engine build targets package the existing `mason-c` crate as a static archive.
 They reuse `mason-core` and the current Rust layout implementation unchanged;
 they do not build MasonKit's Swift/Kotlin hosts, widgets, HTML parser, image
 loader, or font manager. No new Rust crate or duplicate engine implementation
@@ -11,7 +17,8 @@ include layout hosts, scrolling, painting, or bridge metadata. The separate
 iOS host prototype now builds and runs; its scope and commands live in
 `tools/mason-core/ios-host-README.md` in the source checkout. The independent
 Android JNI/AAR proof is documented in `tools/mason-core/android-host-README.md`.
-Plugin packaging remains. The archives retain Rust's existing inline-layout
+The separate plugin proof is documented in `tools/mason-core/plugin-README.md`.
+These archives retain Rust's existing inline-layout
 and UA-default helpers; this proof does not remove all text-related engine code.
 
 ## Build and verify
