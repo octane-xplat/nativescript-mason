@@ -7,7 +7,7 @@
     "build": {
       "executor": "@nx/js:tsc",
       "dependsOn": ["prepare.sources"],
-      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/**/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "options": {
         "outputPath": "dist/packages/nativescript-masonkit",
         "tsConfig": "tmp/nativescript-masonkit/tsconfig.json",
@@ -48,7 +48,7 @@
     "build.vue": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/**/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "options": {
         "commands": ["tsc -p packages/nativescript-masonkit/vue/tsconfig.json", "node tools/scripts/copy-subpackage.ts nativescript-masonkit vue"],
         "parallel": false
@@ -64,7 +64,7 @@
     "build.svelte": {
       "executor": "nx:run-commands",
       "cache": true,
-      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/**/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "options": {
         "commands": ["tsc -p packages/nativescript-masonkit/svelte/tsconfig.json", "node tools/scripts/copy-subpackage.ts nativescript-masonkit svelte"],
         "parallel": false
@@ -78,7 +78,7 @@
       ]
     },
     "build.all": {
-      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
+      "inputs": ["production", "^production", "{workspaceRoot}/packages/nativescript-mason-core/**/*.ts", "{workspaceRoot}/tools/mason-core/**/*"],
       "executor": "nx:run-commands",
       "options": {
         "commands": ["node tools/scripts/build-finish.ts nativescript-masonkit"],

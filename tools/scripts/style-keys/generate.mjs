@@ -177,7 +177,7 @@ const REGIONS = [
   { file: 'crates/mason-core/src/style/arena.rs', blocks: ['rust:size'] },
   { file: `${NATIVE}/mason-android/masonkit/src/main/java/org/nativescript/mason/masonkit/Style.kt`, blocks: ['kotlin:offsets', 'kotlin:state'] },
   { file: `${NATIVE}/mason-ios/Mason/Mason/MasonStyle.swift`, blocks: ['swift:offsets', 'swift:state'] },
-  { file: 'packages/nativescript-masonkit/style.ts', blocks: ['ts:offsets', 'ts:state'] },
+  { file: 'packages/nativescript-mason-core/style.ts', blocks: ['ts:offsets', 'ts:state'] },
 ];
 
 function cppHeader(s) {

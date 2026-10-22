@@ -1,8 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import { dirname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
 import { platformSuffixResolver } from './mason-test-kit/platform-suffix-resolver';
 import { masonCoreSourceResolver } from '../mason-core/source-resolver';
+import { sourceExists } from '../mason-core/sources.mjs';
 
 const root = resolve(__dirname, '../..');
 
@@ -20,7 +20,7 @@ const windowsSuffixResolver = () => ({
     const masonRoot = resolve(root, 'packages/nativescript-masonkit');
     if (!importer.startsWith(masonRoot)) return null;
     const base = resolve(dirname(importer), source);
-    return [`${base}.windows.ts`, `${base}/index.windows.ts`].find(existsSync) ?? null;
+    return [`${base}.windows.ts`, `${base}/index.windows.ts`].find(sourceExists) ?? null;
   },
 });
 

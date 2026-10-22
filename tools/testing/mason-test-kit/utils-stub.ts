@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DTS = resolve(dirname(fileURLToPath(import.meta.url)), '../../../packages/nativescript-masonkit/utils/index.d.ts');
+const DTS = resolve(dirname(fileURLToPath(import.meta.url)), '../../../packages/nativescript-mason-core/utils/index.d.ts');
 
 function readConstEnums(source: string): Record<string, Record<string, number>> {
   const out: Record<string, Record<string, number>> = {};

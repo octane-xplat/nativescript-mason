@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { relocatedFile } from '../mason-core/sources.mjs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -13,7 +14,8 @@ const root = resolve(__dirname, '../..');
 const pkg = 'packages/nativescript-masonkit';
 
 function read(file: string): string {
-  return readFileSync(resolve(root, file), 'utf8').replace(/\r\n/g, '\n');
+  const original = resolve(root, file);
+  return readFileSync(relocatedFile(original) ?? original, 'utf8').replace(/\r\n/g, '\n');
 }
 
 // `position_to_enum` in mason-core is the source of truth.

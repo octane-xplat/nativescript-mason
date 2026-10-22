@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const STYLE_TS = resolve(dirname(fileURLToPath(import.meta.url)), '../../../packages/nativescript-masonkit/style.ts');
+const STYLE_TS = resolve(dirname(fileURLToPath(import.meta.url)), '../../../packages/nativescript-mason-core/style.ts');
 
 function parse(): Record<string, number> {
   const source = readFileSync(STYLE_TS, 'utf8');

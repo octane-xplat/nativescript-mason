@@ -30,11 +30,19 @@ The repository's root LICENSE continues to apply.
 | `box-shadow.spec.ts` | `box-shadow.spec.ts` | Existing host test suite |
 | `css-filter.spec.ts` | `css-filter.spec.ts` | Existing host test suite |
 | `css-transform.spec.ts` | `css-transform.spec.ts` | Existing host test suite |
+| `style.ts`, `properties.ts`, `symbols.ts`, `units.ts`, `display-density.ts` | Same relative paths | Full build; core runtime preparation |
+| `css-keyframes.ts`, `css-shorthands.ts`, `diagnostics.ts`, `fonts.ts`, `foreign-layout.ts`, `gradient-stops.ts`, `pseudo.ts` | Same relative paths | Full build; core runtime preparation |
+| `mask.ts`, `mask.windows.ts`, `panel-helpers.ts`, `panel-helpers.windows.ts`, `svg-path.d.ts`, `svg-path.windows.ts` | Same relative paths | Full build; retained styling dependencies |
+| `utils/index.{android,ios}.ts`, `utils/index.d.ts` | Same relative paths | Full build; native layout/style bridge |
+| `view/index.{android,ios}.ts`, `view/index.d.ts` | Same relative paths | Full build; native view wrapper |
+| `scroll/index.{android,ios}.ts`, `scroll/index.d.ts` | Same relative paths | Full build; native scroll wrapper |
 
-The math and color integration tests remain in the full package because they
-also exercise its style layer. Helpers depending on NativeScript's style
-sentinels, the text engine, or platform hosts remain with MasonKit until their
-boundary is proved. No behavioral divergence is introduced by these moves.
+The math, color, and host integration tests remain in the full package. The
+second move preserves 27 additional source files unchanged, preparing the
+layout/style/view/scroll dependency closure. `common.ts` and `tree/` still belong
+to the full package: their widget/text coupling needs a separate core boundary.
+The ordinary core build still emits only portable helpers. No behavioral
+divergence is introduced by these moves.
 
 ## Build and test wiring
 
@@ -64,6 +72,9 @@ pnpm test
 ```
 
 Their source resolver reads the same relocation manifest as the build overlay.
+It loads moved files at their original logical filenames so relative imports
+and the existing platform resolver keep their original meaning. Tests and
+generators which read source directly use the physical relocation mapping.
 Tests of the full style layer therefore exercise the relocated implementation,
 without creating forwarding modules or generating files into tracked source.
 

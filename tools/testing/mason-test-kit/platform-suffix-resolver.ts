@@ -1,6 +1,6 @@
-import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { Plugin } from 'vite';
+import { sourceExists } from '../../mason-core/sources.mjs';
 
 const SUFFIXED = (base: string, platform: string) => [`${base}.${platform}.js`, `${base}/index.${platform}.js`, `${base}.${platform}.ts`, `${base}/index.${platform}.ts`, `${base}.js`, `${base}/index.js`];
 
@@ -40,7 +40,7 @@ export function platformSuffixResolver(platform: 'ios' | 'android' = 'ios'): Plu
       // Bare subpath into core, e.g. "@nativescript/core/ui/styling/background".
       if (coreRoot && source.startsWith('@nativescript/core/')) {
         const base = resolve(coreRoot, source.slice('@nativescript/core/'.length));
-        return SUFFIXED(base, platform).find(existsSync) ?? null;
+        return SUFFIXED(base, platform).find(sourceExists) ?? null;
       }
 
       // Relative import, e.g. core's "./layout-helper" or masonkit's "./utils".
@@ -55,7 +55,7 @@ export function platformSuffixResolver(platform: 'ios' | 'android' = 'ios'): Plu
         for (const [pattern, stub] of stubs) {
           if (pattern.test(base)) return stub;
         }
-        return SUFFIXED(base, platform).find(existsSync) ?? null;
+        return SUFFIXED(base, platform).find(sourceExists) ?? null;
       }
 
       return null;

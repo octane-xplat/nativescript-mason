@@ -11,6 +11,6 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["*.ts"],
+  "include": ["index.ts"],
   "exclude": ["*.spec.ts"]
 }
