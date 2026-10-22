@@ -72,6 +72,10 @@ Application.run({
     let root;
     async function assertions() {
       const osInput = File.exists(path.join(knownFolders.documents().path, 'mason-core-os-input'));
+      if (isIOS) {
+        const resources = NSBundle.bundleForClass(NSCMason).pathForResourceOfType('SDWebImage_SDWebImage', 'bundle');
+        check(resources && File.exists(path.join(resources, 'PrivacyInfo.xcprivacy')), 'The selected core framework slice lost its dependency privacy bundle');
+      }
       phase = 'compiled initial render and effect';
       await waitFor(() => mounts === 1 && label?.text === 'Count 0' && near(label.getActualSize().width, 90) && near(label.getActualSize().height, 35),
         'compiled component CSS, native geometry and mount effect');

@@ -5,14 +5,17 @@ import { resolve, relative } from 'node:path';
 import { workspaceRoot } from './sources.mjs';
 
 const runtime = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core');
-const ios = resolve(workspaceRoot, 'dist/native/mason-core/ios-host/release');
+const ios = resolve(workspaceRoot, 'dist/native/mason-core/ios-host/universal');
 const android = resolve(workspaceRoot, 'dist/native/mason-core/android-host');
 const output = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core-plugin');
 const json = (filename) => JSON.parse(readFileSync(filename, 'utf8'));
 const hash = (filename) => createHash('sha256').update(readFileSync(filename)).digest('hex');
-const iosManifest = json(resolve(ios, 'manifest.json'));
+const iosManifest = json(resolve(ios, 'simulator-manifest.json'));
+const xcManifest = json(resolve(ios, 'manifest.json'));
+assert.deepEqual(xcManifest.platforms, ['iOS', 'iOS Simulator']);
+for (const { name, sha256 } of xcManifest.files) assert.equal(hash(resolve(ios, 'MasonCore.xcframework', name)), sha256, `XCFramework changed: ${name}`);
 const androidManifest = json(resolve(android, 'manifest.json'));
-assert.equal(hash(resolve(ios, 'MasonCore.framework/MasonCore')), iosManifest.nativeFrameworkSha256);
+assert.equal(hash(resolve(ios, 'MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/MasonCore')), iosManifest.nativeFrameworkSha256);
 assert.equal(hash(resolve(android, 'MasonCore.aar')), androidManifest.aarSha256);
 assert.deepEqual(iosManifest.resourceBundles, ['SDWebImage_SDWebImage.bundle']);
 assert.equal(androidManifest.abi, 'arm64-v8a');
@@ -29,11 +32,10 @@ const iosOutput = resolve(output, 'platforms/ios');
 const androidOutput = resolve(output, 'platforms/android');
 mkdirSync(iosOutput, { recursive: true });
 mkdirSync(androidOutput, { recursive: true });
-cpSync(resolve(ios, 'MasonCore.framework'), resolve(iosOutput, 'MasonCore.framework'), { recursive: true });
+cpSync(resolve(ios, 'MasonCore.xcframework'), resolve(iosOutput, 'MasonCore.xcframework'), { recursive: true });
 cpSync(resolve(ios, 'include'), resolve(iosOutput, 'include'), { recursive: true });
-// NativeScript discovers plugin resources in the capitalized Resources folder.
-cpSync(resolve(ios, 'resources'), resolve(iosOutput, 'Resources'), { recursive: true });
-for (const name of ['FontManager.LICENSE', 'SDWebImage.LICENSE', 'Package.resolved', 'manifest.json']) {
+// Privacy bundles are embedded in their matching framework slice.
+for (const name of ['FontManager.LICENSE', 'SDWebImage.LICENSE', 'Package.resolved', 'manifest.json', 'simulator-manifest.json', 'device-manifest.json']) {
   copyFileSync(resolve(ios, name), resolve(iosOutput, name));
 }
 copyFileSync(resolve(android, 'MasonCore.aar'), resolve(androidOutput, 'MasonCore.aar'));
@@ -51,11 +53,11 @@ HEADER_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/
 SWIFT_INCLUDE_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/nativescript-mason-core/platforms/ios/include"
 `);
 const manifest = json(resolve(runtime, 'package.json'));
-manifest.description = 'Private Mason core NativeScript plugin proof (arm64 iOS simulator and Android only)';
+manifest.description = 'Private Mason core NativeScript plugin proof (arm64 iOS device/simulator and Android)';
 manifest.nativescript = { platforms: { ios: '9.1.0', android: '9.1.1' } };
 manifest.masonCorePrototype = {
   nativeHosts: true,
-  ios: { architectures: ['arm64'], simulatorOnly: true },
+  ios: { architectures: ['arm64'], simulatorOnly: false },
   android: { abis: ['arm64-v8a'] },
   nativeTypes: true,
   coinstallationWithFullMasonKit: false,

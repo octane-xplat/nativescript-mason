@@ -8,6 +8,8 @@ import { workspaceRoot } from './sources.mjs';
 
 const platform = process.argv[2];
 assert.ok(['ios', 'android'].includes(platform));
+const device = process.argv.includes('--device');
+assert.ok(!device || platform === 'ios', 'The unsigned device build is iOS-only.');
 const consumer = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer');
 assert.ok(existsSync(resolve(consumer, '.mason-core-consumer')));
 const manifest = JSON.parse(readFileSync(resolve(consumer, 'package.json'), 'utf8'));
@@ -73,7 +75,7 @@ if (previous !== fingerprint) {
   console.log(`Regenerating the owned ${platform} fixture platform for its current native dependency inputs.`);
 }
 if (platform === 'ios') {
-  env.TNS_TYPESCRIPT_DECLARATIONS_PATH = resolve(consumer, 'typings/ios');
+  env.TNS_TYPESCRIPT_DECLARATIONS_PATH = resolve(consumer, device ? 'typings/ios-device' : 'typings/ios');
   mkdirSync(env.TNS_TYPESCRIPT_DECLARATIONS_PATH, { recursive: true });
 } else {
   const java = spawnSync('/usr/libexec/java_home', ['-v', '21'], { encoding: 'utf8' });
@@ -81,11 +83,41 @@ if (platform === 'ios') {
   assert.equal(java.status, 0, java.stderr);
   env.JAVA_HOME = process.env.MASON_CORE_JAVA_HOME ?? java.stdout.trim();
 }
-const args = ['exec', 'ns', 'build', platform, '--no-hmr'];
+const args = ['exec', 'ns', device ? 'prepare' : 'build', platform, '--no-hmr'];
+if (device) args.push('--for-device');
 if (platform === 'android') args.push('--android-typings');
 const result = spawnSync('pnpm', args, { cwd: consumer, env, stdio: 'inherit' });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
+if (device) {
+  // `ns build --for-device` archives with provisioning updates. This proof
+  // deliberately prepares through the CLI, then builds unsigned without any
+  // certificate/profile selection or signing changes.
+  const directory = resolve(consumer, 'platforms/ios');
+  const projects = readdirSync(directory).filter((name) => name.endsWith('.xcodeproj'));
+  assert.equal(projects.length, 1);
+  const name = projects[0].slice(0, -'.xcodeproj'.length);
+  const derived = resolve(workspaceRoot, 'tmp/mason-core-consumer-device-derived');
+  const built = spawnSync('xcodebuild', ['-project', resolve(directory, projects[0]), '-scheme', name,
+    '-configuration', 'Debug', '-sdk', 'iphoneos', '-destination', 'generic/platform=iOS',
+    '-derivedDataPath', derived, 'ARCHS=arm64', 'ONLY_ACTIVE_ARCH=YES', 'CODE_SIGNING_ALLOWED=NO',
+    'SWIFT_ENABLE_EXPLICIT_MODULES=NO', 'build'], { cwd: consumer, env, stdio: 'inherit' });
+  if (built.error) throw built.error;
+  assert.equal(built.status, 0, 'The unsigned iOS device application failed to build.');
+  const app = resolve(derived, 'Build/Products/Debug-iphoneos', `${name}.app`);
+  const framework = resolve(app, 'Frameworks/MasonCore.framework');
+  const nativePlatform = spawnSync('xcrun', ['vtool', '-show-build', resolve(framework, 'MasonCore')], { encoding: 'utf8' });
+  if (nativePlatform.error) throw nativePlatform.error;
+  assert.equal(nativePlatform.status, 0, nativePlatform.stderr);
+  assert.match(nativePlatform.stdout, /platform IOS\s/);
+  const bundle = resolve(framework, 'SDWebImage_SDWebImage.bundle');
+  assert.ok(existsSync(resolve(bundle, 'PrivacyInfo.xcprivacy')));
+  const plist = spawnSync('plutil', ['-convert', 'json', '-o', '-', resolve(bundle, 'Info.plist')], { encoding: 'utf8' });
+  if (plist.error) throw plist.error;
+  assert.equal(plist.status, 0, plist.stderr);
+  assert.deepEqual(JSON.parse(plist.stdout).CFBundleSupportedPlatforms, ['iPhoneOS']);
+  console.log('Unsigned device app selects the IOS framework slice and embeds its device privacy bundle; device execution is not qualified.');
+}
 if (platform === 'android') {
   const apk = resolve(consumer, 'platforms/android/app/build/outputs/apk/debug/app-debug.apk');
   const inventory = spawnSync('unzip', ['-Z1', apk], { encoding: 'utf8' });

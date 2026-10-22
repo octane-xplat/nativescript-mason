@@ -25,7 +25,7 @@ const apps = readdirSync(products).filter((name) => name.endsWith('.app'));
 assert.equal(apps.length, 1, 'Build the isolated iOS consumer first.');
 const app = resolve(products, apps[0]);
 assert.ok(existsSync(resolve(app, 'Frameworks/MasonCore.framework/MasonCore')));
-assert.ok(existsSync(resolve(app, 'SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy')));
+assert.ok(existsSync(resolve(app, 'Frameworks/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy')));
 assert.ok(!existsSync(resolve(app, 'Frameworks/Mason.framework')));
 const id = 'org.octane.masoncoreprobe';
 const output = resolve(workspaceRoot, 'tmp/mason-core-nativescript-ios-tests', String(Date.now()));

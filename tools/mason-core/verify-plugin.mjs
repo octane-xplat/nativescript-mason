@@ -26,7 +26,7 @@ try {
   assert.deepEqual(Object.keys(manifest.peerDependencies), ['@nativescript/core']);
   assert.equal(manifest.dependencies, undefined);
   assert.equal(manifest.masonCorePrototype.nativeHosts, true);
-  assert.equal(manifest.masonCorePrototype.ios.simulatorOnly, true);
+  assert.equal(manifest.masonCorePrototype.ios.simulatorOnly, false);
   assert.equal(manifest.masonCorePrototype.nativeTypes, true);
   const inventory = JSON.parse(readFileSync(resolve(root, 'artifact-inventory.json'), 'utf8'));
   function files(directory) {
@@ -41,9 +41,11 @@ try {
     assert.equal(createHash('sha256').update(readFileSync(resolve(root, name))).digest('hex'), sha256, name);
   }
   for (const name of [
-    'platforms/ios/MasonCore.framework/MasonCore',
+    'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/MasonCore',
+    'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/MasonCore',
     'platforms/ios/include/module.modulemap',
-    'platforms/ios/Resources/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
+    'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
+    'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/android/MasonCore.aar', 'platforms/android/include.gradle',
   ]) assert.ok(existsSync(resolve(root, name)), `Missing native plugin input: ${name}`);
   const javascript = inventory.filter(({ name }) => name.endsWith('.js'));

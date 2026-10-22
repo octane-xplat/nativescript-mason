@@ -30,8 +30,18 @@ This uses `iphoneos`, the device engine archive and separate staging/derived
 folders, exporting `dist/native/mason-core/ios-host/device/release`. The device
 framework and isolated Swift/Objective-C clients compile and link; its Mach-O
 platform and all 99 C exports are verified. This is build evidence only. It does
-not qualify a device application or replace the simulator-only plugin artifact.
-Both builds require a native-build resource reservation.
+not qualify device runtime behavior.
+Both builds require a native-build resource reservation. Assemble the verified
+slices after both builds:
+
+```sh
+pnpm exec nx run nativescript-mason-core:build.host.ios.xcframework
+```
+
+Assembly requires matching source hashes, dependency locks and public headers.
+It exports `dist/native/mason-core/ios-host/universal`, embedding each platform's
+SDWebImage privacy bundle in its own framework slice. The plugin packages this
+XCFramework; resource paths no longer depend on a simulator-only global bundle.
 
 The exported framework retains FontManager for styling/font metrics and
 SDWebImage for container backgrounds and nine-slice images. Their code is
@@ -100,8 +110,10 @@ constructors; this proof does not claim those costs have been removed.
 ## Remaining qualification
 
 The native host exports separate arm64 simulator and device frameworks.
-The plugin still packages only the simulator framework; combining slices and
-qualifying device app metadata/resources remain gates. Simulator bridge types,
+The plugin packages both slices. Its compiled simulator app qualifies bridge
+metadata, framework-local resources and OS input; the unsigned device app build
+checks device metadata and resource selection separately. Physical iOS device
+execution remains unqualified. Simulator bridge types,
 plugin discovery, compiled components and OS input pass separately; see the
 [plugin proof](plugin-README.md). Matching release app size measurements remain. Core and full MasonKit are separate-host choices;
 coinstallation and native ABI compatibility are not qualified. Windows is not

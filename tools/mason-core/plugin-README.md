@@ -8,7 +8,9 @@ full MasonKit package remain separate.
 Build the hosts, then assemble the plugin:
 
 ```sh
-pnpm exec nx run nativescript-mason-core:build.host.ios
+pnpm exec nx run nativescript-mason-core:verify.host.ios.artifact
+pnpm exec nx run nativescript-mason-core:verify.host.ios.device.artifact
+pnpm exec nx run nativescript-mason-core:build.host.ios.xcframework
 pnpm exec nx run nativescript-mason-core:build.host.android
 pnpm exec nx run nativescript-mason-core:build.plugin.prototype
 ```
@@ -57,8 +59,8 @@ setup. The Android runner uses the sole authorized arm64 phone, or
 device before running. Each runner stops its own probe afterward; the Android
 runner verifies ownership before replacing an installed app.
 
-The prototype currently includes only an arm64 iOS **simulator** framework and
-an Android arm64-v8a AAR. It cannot build an iOS device application. Release-size savings remain unqualified.
+The prototype includes an arm64 iOS device/simulator XCFramework and an Android
+arm64-v8a AAR. Release-size savings remain unqualified.
 The isolated apps pass bridge, native geometry and ownership assertions on an
 arm64 iOS simulator and an API 36 Android phone. They install only core and
 NativeScript core as runtime dependencies. The iOS app declares the scene
@@ -69,7 +71,8 @@ as described below. Do not switch production consumers or publish
 this artifact.
 
 iOS retains embedded FontManager and SDWebImage code, dependency module headers,
-licenses and the SDWebImage resource/privacy bundle. Android declares the same
+licenses and the SDWebImage resource/privacy bundle embedded in each matching
+framework slice. Android declares the same
 direct Maven dependencies as the native host build; their transitive AndroidX
 cost remains. No app-size savings have been measured.
 
@@ -177,3 +180,18 @@ and separately for simulators, emulators and physical devices.
 OS-input checks pass on arm64 iOS 27 Simulator and the API 35 Android emulator.
 Native row movement matches the reported scroll offset (137.3 points on iOS,
 94.9 logical pixels on Android). Physical-device OS input is not yet qualified.
+
+## Build an unsigned iOS device app
+
+The same installed compiled consumer can build a device application without
+selecting certificates or changing provisioning:
+
+```sh
+pnpm exec nx run nativescript-mason-core:build.consumer.ios.device
+```
+
+This target prepares through NativeScript, then invokes Xcode with signing
+disabled. It checks that the app selects the device framework, embeds the
+device privacy bundle and generates the core bridge classes without optional
+HTML/text/widget declarations. This is build/metadata evidence only; no iOS
+physical-device runtime or distribution signing is qualified.

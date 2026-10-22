@@ -60,6 +60,11 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-consumer.mjs ios" }
     },
+    "build.consumer.ios.device": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-consumer.mjs ios --device" }
+    },
     "prepare.consumer.renderer": {
       "executor": "nx:run-commands",
       "dependsOn": ["prepare.consumer"],
@@ -143,6 +148,11 @@
       "dependsOn": ["build.host.ios.device"],
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-ios-host.mjs release --device" }
+    },
+    "build.host.ios.xcframework": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-ios-xcframework.mjs" }
     },
     "build.tests.ios": {
       "executor": "nx:run-commands",
