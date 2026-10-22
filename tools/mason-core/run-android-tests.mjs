@@ -69,7 +69,8 @@ try {
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
   assert.ok(booted, `Dedicated Android emulator did not boot. See ${results}/emulator.log.`);
-  assert.ok(run(adb, ['-s', serial, 'emu', 'avd', 'name']).split('\n').includes(avd));
+  const reportedName = run(adb, ['-s', serial, 'emu', 'avd', 'name']);
+  assert.ok(reportedName.split(/\r?\n/).includes(avd), `Unexpected AVD name response: ${JSON.stringify(reportedName)}`);
   run(adb, ['-s', serial, 'install', '-r', '-t', apk], { timeout: 120000 });
   const output = run(adb, ['-s', serial, 'shell', 'am', 'instrument', '-w', 'org.nativescript.mason.masonkit.test/androidx.test.runner.AndroidJUnitRunner'], { timeout: 240000 });
   writeFileSync(resolve(results, 'instrumentation.log'), output);
@@ -84,7 +85,7 @@ try {
   throw error;
 } finally {
   const name = spawnSync(adb, ['-s', serial, 'emu', 'avd', 'name'], { encoding: 'utf8', timeout: 10000 });
-  if (name.status === 0 && name.stdout.split('\n').includes(avd)) spawnSync(adb, ['-s', serial, 'emu', 'kill'], { encoding: 'utf8', timeout: 10000 });
+  if (name.status === 0 && name.stdout.split(/\r?\n/).includes(avd)) spawnSync(adb, ['-s', serial, 'emu', 'kill'], { encoding: 'utf8', timeout: 10000 });
   if (child.exitCode === null) {
     child.kill('SIGTERM');
     await Promise.race([new Promise((resolve) => child.once('exit', resolve)), new Promise((resolve) => setTimeout(resolve, 10000))]);
