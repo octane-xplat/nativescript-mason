@@ -58,7 +58,7 @@ try {
     'common', 'index.ios', 'index.android', 'tree/index.ios', 'tree/index.android',
   ];
   const expected = [
-    'LICENSE', 'README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
+    'LICENSE', 'README.md', 'ios-host-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
     'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts',
     ...modules.flatMap((name) => [`${name}.js`, `${name}.d.ts`]),
   ];

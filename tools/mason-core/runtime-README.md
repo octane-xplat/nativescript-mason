@@ -1,8 +1,10 @@
 # Mason core runtime prototype
 
 This private build tests the layout-container API without MasonKit's HTML,
-rich-text, or widget JavaScript modules. Native host artifacts are not included,
-so this is not an installable replacement for MasonKit yet.
+rich-text, or widget JavaScript modules. The separate
+[iOS host prototype](ios-host-README.md) now builds and runs, but its artifacts
+are not integrated into this package yet. This is not an installable
+replacement for MasonKit yet.
 
 The intended API accepts ordinary NativeScript controls as children:
 

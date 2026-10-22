@@ -73,4 +73,5 @@ const manifest = {
 writeFileSync(resolve(runtimeOutput, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(runtimeOutput, 'LICENSE'));
 copyFileSync(resolve(workspaceRoot, 'tools/mason-core/runtime-README.md'), resolve(runtimeOutput, 'README.md'));
+copyFileSync(resolve(workspaceRoot, 'tools/mason-core/ios-host-README.md'), resolve(runtimeOutput, 'ios-host-README.md'));
 console.log('Built isolated core runtime prototype (native host artifacts are still required).');

@@ -6,10 +6,12 @@ they do not build MasonKit's Swift/Kotlin hosts, widgets, HTML parser, image
 loader, or font manager. No new Rust crate or duplicate engine implementation
 is needed for this step.
 
-This is an engine foundation, not a NativeScript plugin. Layout hosts,
-scrolling, container painting, bridge metadata, and automatic plugin linking
-remain to be extracted. The archives retain Rust's existing inline-layout and
-UA-default helpers; this proof does not remove all text-related engine code.
+This is an engine foundation, not a NativeScript plugin. These archives do not
+include layout hosts, scrolling, painting, or bridge metadata. The separate
+iOS host prototype now builds and runs; its scope and commands live in
+`tools/mason-core/ios-host-README.md` in the source checkout. Plugin packaging
+and Android hosts remain. The archives retain Rust's existing inline-layout
+and UA-default helpers; this proof does not remove all text-related engine code.
 
 ## Build and verify
 

@@ -47,6 +47,29 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-native.mjs ios" }
     },
+    "build.host.ios": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.native.ios"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-ios-host.mjs" }
+    },
+    "build.tests.ios": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.native.ios"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-ios-host.mjs --tests" }
+    },
+    "verify.host.ios.artifact": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.host.ios"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-ios-host.mjs" }
+    },
+    "test.host.ios": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-ios-tests.mjs" }
+    },
     "build.native.android": {
       "executor": "nx:run-commands",
       "cache": false,

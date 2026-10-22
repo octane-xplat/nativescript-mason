@@ -33,7 +33,7 @@ const result = evaluateCssMath('calc(1rem + 2px)', (value, unit) => {
 // result: { kind: 'length', px: 18 }
 ```
 
-See [extraction tooling and source provenance](../../tools/mason-core/README.md)
-for the baseline, path mapping, and full-package source overlay. Future native
-work must establish an independent artifact boundary; this helper extraction
-alone makes no claim about application-size savings.
+See `tools/mason-core/README.md` in the source checkout for source provenance
+and the full-package overlay. The separate runtime and iOS host prototypes now
+build; they are not integrated into this helper tarball. NativeScript plugin
+packaging and Android hosts remain. No application-size savings are claimed.
