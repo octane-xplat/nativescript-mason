@@ -16,3 +16,5 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 mkdirSync(output, { recursive: true });
 for (const name of ['package.json', 'README.md']) copyFileSync(resolve(coreSourceRoot, name), resolve(output, name));
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(output, 'LICENSE'));
+mkdirSync(resolve(output, 'src-native'), { recursive: true });
+copyFileSync(resolve(coreSourceRoot, 'src-native/README.md'), resolve(output, 'src-native/README.md'));

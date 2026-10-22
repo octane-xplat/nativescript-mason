@@ -3,8 +3,10 @@
 This private, unpublished package is the first extraction step toward an
 independent Mason layout/scroll substrate. It currently contains five portable
 style helpers moved unchanged from MasonKit. It has no runtime dependencies.
-It does not yet provide layout hosts, scrolling, or native libraries, and is
-not a replacement for MasonKit in an application.
+It does not yet provide layout hosts or scrolling and is not a replacement for
+MasonKit in an application. Separate native engine build targets are described
+in [the native proof](src-native/README.md); those artifacts are not part of
+this helper tarball.
 
 Build the prototype and check its packed artifact from the repository root:
 

@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "./index.js",
   "types": "./index.d.ts",
-  "files": ["*.js", "*.d.ts", "LICENSE", "README.md"],
+  "files": ["*.js", "*.d.ts", "LICENSE", "README.md", "src-native/README.md"],
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.js" },
     "./box-shadow": { "types": "./box-shadow.d.ts", "default": "./box-shadow.js" },

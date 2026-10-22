@@ -21,6 +21,33 @@
       "dependsOn": ["build"],
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-package.mjs" }
+    },
+    "build.native.host": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-native.mjs host" }
+    },
+    "build.native.ios": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-native.mjs ios" }
+    },
+    "build.native.android": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-native.mjs android" }
+    },
+    "verify.native": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.native.host"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-native.mjs" }
+    },
+    "verify.native.ios": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.native.ios"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-native-ios.mjs" }
     }
   }
 }

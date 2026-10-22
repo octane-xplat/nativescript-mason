@@ -2,8 +2,9 @@
 
 The prototype preserves MasonKit's published imports while relocating reusable
 source into `packages/nativescript-mason-core`. It does not make the full package
-depend on the core package at runtime. Native hosts and native artifacts have
-not been extracted yet.
+depend on the core package at runtime. Native hosts have not been extracted yet. Separate native targets package the
+existing shared Rust C interface as independent engine archives; see the
+[native proof](../../packages/nativescript-mason-core/src-native/README.md).
 
 The design is tracked in the Octane Xplat repository at
 `.agents/design/mason-core-extraction.md`; upstream discussion is
