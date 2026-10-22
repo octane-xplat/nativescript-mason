@@ -12,8 +12,7 @@ https://github.com/triniwiz/nativescript-mason/issues/160.
 ## Source baseline and moves
 
 Fork baseline: `623114b070896a21315fcff9a3a6349bdd091cc4` (beta.126).
-Upstream merge base: `e06651877f1d1a5d703f116eb46c268a45fd15fc`.
-The baseline's latest merged upstream revision is
+Upstream merge base and latest merged upstream revision:
 `2324b8ee52a1f22cf18dc684aa053e92b64a6451`.
 
 All paths below are relative to `packages/`. The initial moves preserve source

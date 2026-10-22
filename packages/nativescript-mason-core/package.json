@@ -1,0 +1,24 @@
+{
+  "name": "@octane-xplat/nativescript-mason-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Mason core extraction prototype; currently portable style helpers only",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "files": ["*.js", "*.d.ts", "LICENSE", "README.md"],
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.js" },
+    "./box-shadow": { "types": "./box-shadow.d.ts", "default": "./box-shadow.js" },
+    "./css-colors": { "types": "./css-colors.d.ts", "default": "./css-colors.js" },
+    "./css-filter": { "types": "./css-filter.d.ts", "default": "./css-filter.js" },
+    "./css-math": { "types": "./css-math.d.ts", "default": "./css-math.js" },
+    "./css-transform": { "types": "./css-transform.d.ts", "default": "./css-transform.js" }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/octane-xplat/nativescript-mason",
+    "directory": "packages/nativescript-mason-core"
+  }
+}

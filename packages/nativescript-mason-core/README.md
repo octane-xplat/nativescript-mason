@@ -1,0 +1,37 @@
+# Mason core extraction prototype
+
+This private, unpublished package is the first extraction step toward an
+independent Mason layout/scroll substrate. It currently contains five portable
+style helpers moved unchanged from MasonKit. It has no runtime dependencies.
+It does not yet provide layout hosts, scrolling, or native libraries, and is
+not a replacement for MasonKit in an application.
+
+Build the prototype and check its packed artifact from the repository root:
+
+```sh
+pnpm exec nx run nativescript-mason-core:verify
+```
+
+The verification packs the built output and exercises it outside the workspace,
+without NativeScript or MasonKit installed. Existing helper tests also run in
+`pnpm test`. The prototype emits CommonJS so its artifact can execute directly
+in this isolated Node consumer without rewriting the moved source's imports;
+the eventual native package format remains open.
+
+For example, an isolated consumer can evaluate a supported math expression
+using its own unit resolver:
+
+```js
+const { evaluateCssMath } = require('@octane-xplat/nativescript-mason-core');
+const result = evaluateCssMath('calc(1rem + 2px)', (value, unit) => {
+  if (unit === 'px') return value;
+  if (unit === 'rem') return value * 16;
+  return undefined;
+});
+// result: { kind: 'length', px: 18 }
+```
+
+See [extraction tooling and source provenance](../../tools/mason-core/README.md)
+for the baseline, path mapping, and full-package source overlay. Future native
+work must establish an independent artifact boundary; this helper extraction
+alone makes no claim about application-size savings.
