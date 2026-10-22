@@ -450,16 +450,15 @@ export function setRootNativeViewFrame(view: any, nativeView: any, frame: CGRect
   if (!CGRectEqualToRect(adjusted, frame)) {
     nativeView.frame = adjusted;
   }
-  if (!CGRectEqualToRect(adjusted, frame)) {
-    // Each measure pass lays the root out at the safe-area size again, so check the
-    // computed size rather than whether the frame changed.
-    const width = Utils.layout.toDevicePixels(adjusted.size.width);
-    const height = Utils.layout.toDevicePixels(adjusted.size.height);
-    const layout = view.ios.node.computedLayout;
-    if (Math.round(layout.width) !== Math.round(width) || Math.round(layout.height) !== Math.round(height)) {
-      view.ios.mason_computeWithSize(width, height);
-      view.ios.mason_markRootComputeAppliedWithSize(width, height);
-    }
+  // The root always lays out at its final frame size: a parent may have measured it
+  // against the safe area but placed it full-bleed, so check the computed size even
+  // when the frame needed no adjustment.
+  const width = Utils.layout.toDevicePixels(adjusted.size.width);
+  const height = Utils.layout.toDevicePixels(adjusted.size.height);
+  const layout = view.ios.node.computedLayout;
+  if (Math.round(layout.width) !== Math.round(width) || Math.round(layout.height) !== Math.round(height)) {
+    view.ios.mason_computeWithSize(width, height);
+    view.ios.mason_markRootComputeAppliedWithSize(width, height);
   }
   const previous: CGRect | undefined = view._masonRootFrame;
   if (!previous || !CGRectEqualToRect(previous, adjusted)) {
