@@ -17,8 +17,7 @@
 #>
 param(
   [string[]] $Platforms = @('x64', 'ARM64'),
-  [string] $Configuration = 'Release',
-  [string] $PlatformToolset = ''
+  [string] $Configuration = 'Release'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -74,10 +73,11 @@ foreach ($plat in $Platforms) {
 
     # 2. C++/WinRT component (links the Rust lib produced above).
     $outDir = Join-Path $root "Mason\bin\$plat\$Configuration\"
-    $buildArgs = @($project, '-restore', "-p:Configuration=$Configuration",
-      "-p:Platform=$plat", "-p:OutDir=$outDir", '-m', '-v:minimal')
-    if ($PlatformToolset) { $buildArgs += "-p:PlatformToolset=$PlatformToolset" }
-    & $msbuild @buildArgs
+    & $msbuild $project -restore `
+      -p:Configuration=$Configuration `
+      -p:Platform=$plat `
+      "-p:OutDir=$outDir" `
+      -m -v:minimal
     if ($LASTEXITCODE -ne 0) { throw "MSBuild exited with code $LASTEXITCODE" }
 
     $dll = Join-Path $outDir 'NativeScript.Mason.dll'

@@ -23,10 +23,10 @@ jobs:
           key: windows-${{ matrix.platform }}
       - name: Test Rust core and C bridge on Windows
         if: matrix.platform == 'x64'
-        run: cargo test -p mason-core -p mason-c --all-targets
+        run: cargo test --release -p mason-core -p mason-c --all-targets
       - name: Build native component
         shell: pwsh
-        run: ./packages/nativescript-masonkit/src-native/windows/publish.ps1 -Platforms '${{ matrix.platform }}' -PlatformToolset v143
+        run: ./packages/nativescript-masonkit/src-native/windows/publish.ps1 -Platforms '${{ matrix.platform }}'
       - uses: actions/upload-artifact@v4
         with:
           name: windows-${{ matrix.platform }}
