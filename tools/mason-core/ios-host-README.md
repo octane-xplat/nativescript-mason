@@ -2,7 +2,8 @@
 
 The core-only simulator framework builds and runs without MasonKit's HTML
 parser, rich-text renderer, or widget classes. It is a native boundary proof;
-NativeScript metadata and npm plugin packaging are not included yet.
+NativeScript metadata and npm plugin packaging are separate proofs; see
+`tools/mason-core/plugin-README.md` in the source checkout.
 
 ## Build and inspect the artifact
 
@@ -24,7 +25,10 @@ SDWebImage for container backgrounds and nine-slice images. Their code is
 linked into the framework. Their dependency headers and licenses accompany it;
 FontManager's Clang module is required even for a Swift client that imports
 only `MasonCore`. Removing image/text widgets does not remove these remaining
-callers. NativeScript resource/metadata packaging remains a separate gate.
+callers. The export also carries SwiftPM's SDWebImage resource/privacy bundle.
+The separate isolated NativeScript app verifies resource discovery, core class
+metadata, layout and ownership on an arm64 simulator. Independent public native
+declarations and device coverage remain gates.
 
 ## Run native layout tests
 

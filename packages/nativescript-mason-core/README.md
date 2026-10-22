@@ -36,5 +36,8 @@ const result = evaluateCssMath('calc(1rem + 2px)', (value, unit) => {
 See `tools/mason-core/README.md` in the source checkout for source provenance
 and the full-package overlay. The separate runtime, iOS host, and Android AAR
 prototypes build; they are not integrated into this helper tarball. NativeScript
-plugin packaging remains. See `tools/mason-core/android-host-README.md` for the
-Android qualification boundary. No application-size savings are claimed.
+plugin assembly is available separately through `build.plugin.prototype`; its
+isolated NativeScript apps pass on iOS Simulator and an Android phone. Independent
+native types, Xplat renderer integration and iOS device coverage still need
+qualification. See `tools/mason-core/plugin-README.md` and
+`tools/mason-core/android-host-README.md`. No application-size savings are claimed.
