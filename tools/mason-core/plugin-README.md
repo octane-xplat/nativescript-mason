@@ -123,3 +123,28 @@ pnpm exec nx run nativescript-mason-core:test.consumer.android.emulator
 The emulator runner boots and shuts down only that owned AVD. Emulator results
 remain distinct from physical-device results. These checks do not exercise OS
 touch input or establish release-size savings.
+
+## Compile TSRX and verify hooks
+
+The compiled scenario uses the same renderer dependency boundary, with an
+authored component under `src/*.tsrx`. Prepare it with the selected Xplat
+checkout, then install, build and run using the commands above:
+
+```sh
+MASON_CORE_XPLAT_REPOSITORY=/path/to/octane-xplat \
+  pnpm exec nx run nativescript-mason-core:prepare.consumer.compiled
+```
+
+The native build invokes the pinned Octane 0.14.0 compiler before webpack.
+Its optional `@tsrx/oxc` 0.20.0 parser belongs to this fixture's development
+dependencies; core gains no dependency. The emitted hooks import the native
+renderer runtime, and `compiled-component-manifest.json` records source and
+emission hashes. The component runs in the same Page/Frame hosting pattern
+as Xplat's mobile application.
+
+This scenario passes on arm64 iOS 27 Simulator and the API 35 Android emulator.
+It checks class-authored geometry, a synthesized NativeScript button handler,
+hook-driven text/size updates without replacing the label, scroll content and
+programmatic seek, effect cleanup, ref clearing and host release. The button
+notification is explicitly synthetic; these results do not establish OS touch
+input or physical-device renderer qualification.

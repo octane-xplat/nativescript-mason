@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { workspaceRoot } from './sources.mjs';
+
+const consumer = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer');
+const scenarioPath = resolve(consumer, 'consumer-scenario.json');
+const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'));
+assert.equal(scenario.scenario, 'xplat-renderer');
+assert.equal(scenario.versions.octane, '0.14.0', 'Review the optional compiler parser peer when changing Octane.');
+const manifestPath = resolve(consumer, 'package.json');
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+manifest.devDependencies['@tsrx/oxc'] = '0.20.0';
+writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+mkdirSync(resolve(consumer, 'src'), { recursive: true });
+copyFileSync(resolve(workspaceRoot, 'tools/mason-core/consumer/hook-component.tsrx'), resolve(consumer, 'src/hook-component.tsrx'));
+copyFileSync(resolve(workspaceRoot, 'tools/mason-core/consumer/compiled-app.js'), resolve(consumer, 'app/app.js'));
+scenario.scenario = 'xplat-compiled';
+scenario.compiler = { source: 'src/hook-component.tsrx', parser: '0.20.0' };
+writeFileSync(scenarioPath, JSON.stringify(scenario, null, 2) + '\n');
+console.log('Prepared the compiled TSRX consumer. Install with pnpm install --force before building.');

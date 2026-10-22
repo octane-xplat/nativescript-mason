@@ -72,6 +72,12 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/prepare-renderer-consumer.mjs --native-only" }
     },
+    "prepare.consumer.compiled": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prepare.consumer.renderer"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/prepare-compiled-consumer.mjs" }
+    },
     "build.consumer.android": {
       "executor": "nx:run-commands",
       "cache": false,

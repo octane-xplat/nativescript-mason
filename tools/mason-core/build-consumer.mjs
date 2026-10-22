@@ -15,7 +15,7 @@ let expectedDependencies = ['@nativescript/core', '@octane-xplat/nativescript-ma
 const scenarioPath = resolve(consumer, 'consumer-scenario.json');
 if (existsSync(scenarioPath)) {
   const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'));
-  assert.ok(['xplat-renderer', 'nativescript'].includes(scenario.scenario));
+  assert.ok(['xplat-renderer', 'xplat-compiled', 'nativescript'].includes(scenario.scenario));
   expectedDependencies.push('@nativescript-community/octane', 'octane');
   const require = createRequire(resolve(consumer, 'package.json'));
   assert.equal(createHash('sha256').update(readFileSync(resolve(consumer, 'node_modules/@octane-xplat/nativescript-mason-core/artifact-inventory.json'))).digest('hex'),
@@ -35,6 +35,11 @@ if (existsSync(scenarioPath)) {
   for (const peer of [rendererRequire, coreRequire]) {
     assert.equal(realpathSync(require.resolve('@nativescript/core/package.json')), realpathSync(peer.resolve('@nativescript/core/package.json')),
       'The renderer and Mason core must share the application NativeScript core.');
+  }
+  if (scenario.scenario === 'xplat-compiled') {
+    const compiled = spawnSync(process.execPath, [resolve(workspaceRoot, 'tools/mason-core/compile-consumer-component.mjs')], { cwd: workspaceRoot, stdio: 'inherit' });
+    if (compiled.error) throw compiled.error;
+    assert.equal(compiled.status, 0, 'The authored TSRX fixture failed compilation.');
   }
 }
 assert.deepEqual(Object.keys(manifest.dependencies).sort(), expectedDependencies.sort());
