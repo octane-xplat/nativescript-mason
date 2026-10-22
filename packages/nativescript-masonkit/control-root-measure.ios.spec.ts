@@ -27,6 +27,7 @@ afterAll(() => vi.unstubAllGlobals());
 
 function fixture(Host: { prototype: object }, parent?: object) {
   const native = {
+    mason_isNodeDirty: vi.fn(() => false),
     node: { computedLayout: { width: 0, height: 0 } },
     mason_computeWithSize: vi.fn(),
     mason_computeWithMaxContent: vi.fn(),

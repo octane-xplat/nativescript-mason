@@ -17,6 +17,7 @@ afterEach(() => vi.restoreAllMocks());
 
 function fixture(Host = View, parent: object = {}) {
   const native = {
+    mason_isNodeDirty: vi.fn(() => false),
     node: { computedLayout: { width: 123, height: 456 } },
     mason_computeWithSize: vi.fn(),
     mason_computeWithMaxContent: vi.fn(),
