@@ -1,5 +1,6 @@
 import { computeMasonRoot } from '../nested-root';
 import { CSSType, Utils } from '@nativescript/core';
+import { isEnabledProperty } from '@nativescript/core/ui/core/view';
 import { TextAreaBase, rowsProperty, colsProperty, maxLengthProperty } from './common';
 import { defaultValueProperty, getValueProperty, setValueProperty, placeholderProperty } from '../input/common';
 import { style_, isMasonView_, native_ } from '../symbols';
@@ -31,6 +32,13 @@ export class TextArea extends TextAreaBase {
   [placeholderProperty.setNative](value) {
     if (this._view) {
       this._view.placeholder = value;
+    }
+  }
+
+  // Core only disables a UIControl, and MasonTextArea is a text view.
+  [isEnabledProperty.setNative](value: boolean) {
+    if (this._view) {
+      this._view.disabled = !value;
     }
   }
 

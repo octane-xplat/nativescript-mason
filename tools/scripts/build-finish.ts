@@ -48,7 +48,20 @@ function copyAngularDist() {
     });
 }
 
+// @nx/js:tsc adds "type": "module" from the tsconfig, which breaks nativescript.webpack.js; keep the source values.
+function restoreModuleFields() {
+  const distPath = path.join('dist', 'packages', packageName, 'package.json');
+  if (!fs.existsSync(distPath)) return;
+  const dist = JSON.parse(fs.readFileSync(distPath));
+  for (const field of ['type', 'module']) {
+    if (packageJson[field] === undefined) delete dist[field];
+    else dist[field] = packageJson[field];
+  }
+  fs.writeFileSync(distPath, JSON.stringify(dist, null, 2) + '\n');
+}
+
 function finishPreparation() {
+  restoreModuleFields();
   // ng-packagr excludes nested manifests by default, but our Angular adapter
   // ships as a subpath of the main package and needs its entry-point metadata.
   const angularIgnore = path.join('dist', 'packages', packageName, 'angular', '.npmignore');
