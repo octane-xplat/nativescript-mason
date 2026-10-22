@@ -76,7 +76,7 @@ export default defineConfig({
         test: {
           name: 'masonkit',
           include: ['packages/**/*.spec.ts', 'tools/testing/**/*.spec.ts'],
-          exclude: ['**/node_modules/**', 'packages/**/*.windows.spec.ts', 'packages/**/*.android.spec.ts', 'packages/**/*.apple.spec.ts', 'packages/**/style-native-sync.spec.ts'],
+          exclude: ['**/node_modules/**', 'packages/**/*.windows.spec.ts', 'packages/**/*.android.spec.ts', 'packages/**/style-native-sync.spec.ts'],
         },
       },
       {
@@ -100,11 +100,6 @@ export default defineConfig({
         extends: true,
         define: { __ANDROID__: 'true' },
         test: { name: 'android', include: ['packages/**/*.android.spec.ts'] },
-      },
-      {
-        extends: true,
-        define: { __APPLE__: 'true' },
-        test: { name: 'apple', include: ['packages/**/*.apple.spec.ts'] },
       },
       {
         // Windows code paths, against mocked NativeScript.Mason natives.

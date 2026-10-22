@@ -41,6 +41,18 @@ impl Into<mason_core::AvailableSpace> for AvailableSpace {
     }
 }
 
+/// Callers may pass null for an empty list, which `slice::from_raw_parts` forbids.
+unsafe fn children_slice<'a>(
+    children: *const *mut CMasonNode,
+    len: usize,
+) -> &'a [*mut CMasonNode] {
+    if len == 0 {
+        &[]
+    } else {
+        std::slice::from_raw_parts(children, len)
+    }
+}
+
 #[repr(C)]
 pub struct NodeArray {
     pub array: *mut *mut c_void,
@@ -325,11 +337,7 @@ pub extern "C" fn mason_node_new_node_with_children(
     unsafe {
         let mason = &mut (*mason).0;
 
-        let data = if children_size == 0 {
-            &[]
-        } else {
-            std::slice::from_raw_parts(children, children_size)
-        };
+        let data = children_slice(children, children_size);
 
         let data: Vec<_> = data
             .iter()
@@ -402,11 +410,7 @@ pub extern "C" fn mason_node_new_text_node_with_children(
     unsafe {
         let mason = &mut (*mason).0;
 
-        let data = if children_size == 0 {
-            &[]
-        } else {
-            std::slice::from_raw_parts(children, children_size)
-        };
+        let data = children_slice(children, children_size);
 
         let data: Vec<_> = data
             .iter()
@@ -670,6 +674,31 @@ pub extern "C" fn mason_node_get_float_rects_buffer(
     }
 }
 
+/// Writes up to `capacity` floats of the container's float exclusions
+/// (`[left, top, width, height, side]` margin boxes, see `Mason::get_float_exclusions`)
+/// into `out` and returns how many there are in total.
+#[no_mangle]
+pub extern "C" fn mason_node_get_float_exclusions(
+    mason: *mut CMason,
+    node: *mut CMasonNode,
+    out: *mut c_float,
+    capacity: usize,
+) -> usize {
+    if mason.is_null() || node.is_null() {
+        return 0;
+    }
+    unsafe {
+        let mason = &(*mason).0;
+        let node = &(*node).0;
+        let output = mason.get_float_exclusions(node.id());
+        if !out.is_null() {
+            let n = output.len().min(capacity);
+            std::ptr::copy_nonoverlapping(output.as_ptr(), out, n);
+        }
+        output.len()
+    }
+}
+
 #[no_mangle]
 pub extern "C" fn mason_node_release_float_rects_buffer(buffer: *mut CMasonBuffer) {
     if buffer.is_null() {
@@ -885,11 +914,7 @@ pub extern "C" fn mason_node_set_children(
 
         let node_id = &(*node).0;
 
-        let data = if children_size == 0 {
-            &[]
-        } else {
-            std::slice::from_raw_parts(children, children_size)
-        };
+        let data = children_slice(children, children_size);
 
         let data: Vec<_> = data
             .iter()
@@ -1339,11 +1364,7 @@ pub extern "C" fn mason_node_is_children_same(
             return false;
         }
 
-        let data = if children_size == 0 {
-            &[]
-        } else {
-            std::slice::from_raw_parts(children, children_size)
-        };
+        let data = children_slice(children, children_size);
 
         let data: Vec<_> = data
             .iter()

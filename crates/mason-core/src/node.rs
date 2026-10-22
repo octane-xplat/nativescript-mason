@@ -26,8 +26,8 @@ use taffy::{AvailableSpace, ClearState, Layout, Size};
 
 use crate::style::arena::{StyleArena, StyleHandle};
 use crate::style::utils::{
-    get_style_data_i32, get_style_data_i8_raw, get_style_data_u8, set_style_data_i32,
-    set_style_data_i8_raw, set_style_data_u8,
+    get_style_data_f32, get_style_data_i32, get_style_data_i8_raw, get_style_data_u8,
+    set_style_data_f32, set_style_data_i32, set_style_data_i8_raw, set_style_data_u8,
 };
 #[cfg(target_os = "android")]
 use crate::{JVM, JVM_CACHE};
@@ -583,6 +583,7 @@ pub struct Node {
     /// Per-node cache that lets distinct measure constraints coexist instead of
     /// evicting each other through taffy's fixed 9-slot cache.
     pub(crate) cache: LayoutCache,
+    /// Resolved writing mode `cache` was built for; see `Tree::sync_writing_mode`.
     pub(crate) cached_writing_mode: WritingMode,
     pub(crate) inline_measure_cache: InlineMeasureCache,
     pub(crate) subtree_analysis: Option<SubtreeAnalysis>,
@@ -899,10 +900,10 @@ impl Node {
             // Font color (i32)
             merge_i32!(StyleKeys::FONT_COLOR, StyleKeys::FONT_COLOR_STATE);
 
-            // Font size (i32 + type byte)
+            // Font size (f32 + type byte)
             if get_style_data_u8(src.data(), StyleKeys::FONT_SIZE_STATE) != 0 {
-                let v = get_style_data_i32(src.data(), StyleKeys::FONT_SIZE);
-                set_style_data_i32(dst.data_mut(), StyleKeys::FONT_SIZE, v);
+                let v = get_style_data_f32(src.data(), StyleKeys::FONT_SIZE);
+                set_style_data_f32(dst.data_mut(), StyleKeys::FONT_SIZE, v);
                 set_style_data_u8(dst.data_mut(), StyleKeys::FONT_SIZE_STATE, 1);
                 let t = get_style_data_i8_raw(src.data(), StyleKeys::FONT_SIZE_TYPE as usize);
                 set_style_data_i8_raw(dst.data_mut(), StyleKeys::FONT_SIZE_TYPE as usize, t);

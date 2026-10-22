@@ -23,7 +23,7 @@ then publish a GitHub release with the matching `v<version>` tag. For example,
 the current prerelease can be published with:
 
 ```sh
-gh release create v1.0.0-beta.125 --repo octane-xplat/nativescript-mason \
+gh release create v1.0.0-beta.126 --repo octane-xplat/nativescript-mason \
   --target main --prerelease --generate-notes
 ```
 

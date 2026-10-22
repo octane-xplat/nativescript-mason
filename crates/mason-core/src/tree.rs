@@ -76,7 +76,7 @@ pub(crate) struct TreeInner {
     // instead of unconditionally re-scanning every node on every layout pass.
     pub(crate) has_floats: bool,
     pub(crate) has_scroll_containers: bool,
-    // Skip ancestor lookups in cache_get until a writing mode is explicitly set.
+    // Skips writing-mode syncs until some node declares a writing mode.
     pub(crate) has_writing_modes: bool,
     // Set when a node is removed from `nodes`; tells compute_layout's
     // sanitize pass it needs to scrub stale ids from `children`.
@@ -155,7 +155,7 @@ impl Default for TreeInner {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct FloatRect {
     // Note: `left`/`top` are the position, `right`/`bottom` are used as
     // width/height for compatibility with existing `taffy::Rect` usage in
@@ -166,6 +166,8 @@ pub(crate) struct FloatRect {
     pub bottom: f32,
     pub side: Float,
     pub node: Id,
+    /// Resolved margins: left, right, top, bottom.
+    pub margin: [f32; 4],
 }
 
 thread_local! {
@@ -637,6 +639,7 @@ impl Tree {
                                 bottom: 0.0,
                                 side: float_side,
                                 node: child_id,
+                                margin: [0.0; 4],
                             });
                         }
                     } else {
@@ -695,13 +698,17 @@ impl Tree {
                     .into_option()
                     .unwrap_or(f32::INFINITY);
 
-                let (style_size, style_min, style_max) = {
+                let (style_size, style_min, style_max, padding, border, border_box) = {
                     let lock = self.0.read();
                     let node = lock.nodes.get(container_id).unwrap();
+                    let style = node.style();
                     (
-                        node.style().get_size(),
-                        node.style().get_min_size(),
-                        node.style().get_max_size(),
+                        style.get_size(),
+                        style.get_min_size(),
+                        style.get_max_size(),
+                        style.get_padding(),
+                        style.get_border(),
+                        style.get_box_sizing() == taffy::BoxSizing::BorderBox,
                     )
                 };
 
@@ -731,6 +738,21 @@ impl Tree {
                     .maybe_resolve(parent_h, |_, _| f32::INFINITY)
                 {
                     h = h.min(max_h);
+                }
+
+                // Floats sit in the content box. A border-box or auto width still
+                // includes the padding and border.
+                let inset = |a: taffy::LengthPercentage, b: taffy::LengthPercentage| {
+                    a.resolve_or_zero(Some(parent_w), |_, _| 0.0)
+                        + b.resolve_or_zero(Some(parent_w), |_, _| 0.0)
+                };
+                let pb_x = inset(padding.left, padding.right) + inset(border.left, border.right);
+                let pb_y = inset(padding.top, padding.bottom) + inset(border.top, border.bottom);
+                if border_box || style_size.width.is_auto() {
+                    w = (w - pb_x).max(0.0);
+                }
+                if border_box || style_size.height.is_auto() {
+                    h = (h - pb_y).max(0.0);
                 }
 
                 (
@@ -958,11 +980,12 @@ impl Tree {
                     candidates.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
 
                     // Precompute margins for this float
-                    let (ml, mr, mt, _mb) = margin_list
+                    let (ml, mr, mt, mb) = margin_list
                         .iter()
                         .find(|(id, _)| *id == fr.node)
                         .map(|(_, m)| *m)
                         .unwrap_or((0.0, 0.0, 0.0, 0.0));
+                    fr.margin = [ml, mr, mt, mb];
 
                     let mut placed_this = false;
 
@@ -1080,6 +1103,57 @@ impl Tree {
         }
     }
 
+    fn snapshot_float_context(&self) -> Vec<(Id, Vec<FloatRect>)> {
+        self.inner()
+            .float_context
+            .iter()
+            .filter(|(_, rects)| !rects.is_empty())
+            .map(|(id, rects)| (id, rects.clone()))
+            .collect()
+    }
+
+    /// Text beside a float is measured around it, so when a container's floats
+    /// move or resize its other children's cached measures are stale.
+    fn dirty_float_siblings(&mut self, previous: &[(Id, Vec<FloatRect>)]) {
+        let mut changed: Vec<Id> = Vec::new();
+        {
+            let inner = self.inner();
+            for (id, rects) in inner.float_context.iter() {
+                if rects.is_empty() {
+                    continue;
+                }
+                let before = previous.iter().find(|(p, _)| *p == id).map(|(_, r)| r);
+                if before != Some(rects) {
+                    changed.push(id);
+                }
+            }
+            for (id, _) in previous {
+                let now_empty = inner.float_context.get(*id).is_none_or(|r| r.is_empty());
+                if now_empty && !changed.contains(id) {
+                    changed.push(*id);
+                }
+            }
+        }
+        if changed.is_empty() {
+            return;
+        }
+        let mut tree = self.0.write();
+        for container in changed {
+            let Some(children) = tree.children.get(container).cloned() else {
+                continue;
+            };
+            for child in children {
+                let floats = tree
+                    .nodes
+                    .get(child)
+                    .is_some_and(|n| n.style().get_float() != Float::None);
+                if !floats && tree.nodes.contains_key(child) {
+                    Self::mark_dirty_inner(&mut tree, child);
+                }
+            }
+        }
+    }
+
     /// Return cloned float rectangles for a container, if any.
     pub(crate) fn get_float_rects(&self, container_id: Id) -> Option<Vec<FloatRect>> {
         let inner = self.inner();
@@ -1182,6 +1256,8 @@ impl Tree {
         drain_deferred_cleanup(&self.0, self.deferred_cleanup_queue(), &self.2);
 
         self.sync_details();
+        // A detached subtree computed as its own root no longer inherits a mode.
+        Self::sync_writing_mode(&mut self.inner_mut(), root.into());
 
         // Hold both locks for the whole pass so its many short-lived guards skip the atomics.
         let (tree_lock, data_lock) = (Arc::clone(&self.0), Arc::clone(&self.2));
@@ -1199,11 +1275,20 @@ impl Tree {
         // Clear and collect floats for the upcoming layout pass. We record
         // floated children per container first; then measure them against the
         // root available space so inline layout can consult approximate sizes.
+        let has_floats = self.inner().has_floats;
+        let previous_floats = if has_floats {
+            self.snapshot_float_context()
+        } else {
+            Vec::new()
+        };
         self.clear_float_context();
-        if self.inner().has_floats {
+        if has_floats {
             self.collect_floats(root.into());
         }
         self.measure_place_floats(root.into(), available_space);
+        if has_floats {
+            self.dirty_float_siblings(&previous_floats);
+        }
 
         // Sanitize children lists to remove stale node ids, but only when a
         // node was actually removed since the last pass.
@@ -1572,7 +1657,48 @@ impl Tree {
             Some(old_parent) => old_parent != parent,
             None => true,
         };
+        Self::sync_writing_mode(tree, child);
         res
+    }
+
+    /// Cache keys ignore the inherited writing mode, so when `id`'s resolved mode
+    /// differs from the one its caches were built for, clear them for it and every
+    /// descendant inheriting it. O(1) unless the mode actually changed.
+    pub(crate) fn sync_writing_mode(tree: &mut TreeInner, id: Id) {
+        if !tree.has_writing_modes {
+            return;
+        }
+        let Some(node) = tree.nodes.get(id) else {
+            return;
+        };
+        let mode = node.style().get_writing_mode().unwrap_or_else(|| {
+            tree.parents
+                .get(id)
+                .copied()
+                .flatten()
+                .and_then(|parent| tree.nodes.get(parent))
+                .map_or(crate::style::WritingMode::HorizontalTb, |parent| {
+                    parent.cached_writing_mode
+                })
+        });
+        if node.cached_writing_mode == mode {
+            return;
+        }
+        let mut side = block_measure_cache();
+        let mut stack = vec![id];
+        while let Some(current) = stack.pop() {
+            let node = &mut tree.nodes[current];
+            node.cached_writing_mode = mode;
+            node.mark_dirty();
+            side.remove(&block_key(tree.uid, current));
+            if let Some(children) = tree.children.get(current) {
+                stack.extend(children.iter().copied().filter(|&child| {
+                    tree.nodes
+                        .get(child)
+                        .is_some_and(|child| child.style().get_writing_mode().is_none())
+                }));
+            }
+        }
     }
 
     pub fn detach(&mut self, child: Id) {
@@ -1608,20 +1734,23 @@ impl Tree {
     }
 
     pub fn set_children(&mut self, parent: Id, children: &[Id]) {
-        let mut tree = self.0.write();
-        if tree
-            .children
-            .get(parent)
-            .is_some_and(|current| current == children)
-        {
+        let mut guard = self.0.write();
+        let tree = &mut *guard;
+        let Some(current) = tree.children.get(parent) else {
+            tree.children.insert(parent, children.to_vec());
+            for &child in children {
+                Self::detach_inner(tree, child);
+                Self::set_parent_inner(tree, child, Some(parent));
+            }
+            Self::mark_dirty_inner(tree, parent);
+            return;
+        };
+        if current.as_slice() == children {
             return;
         }
 
-        let previous = tree
-            .children
-            .insert(parent, children.to_vec())
-            .unwrap_or_default();
-        for &child in &previous {
+        // Detach every previous child; the ones listed again are re-attached below.
+        for &child in current {
             tree.parents.remove(child);
         }
         for &child in children {
@@ -1630,24 +1759,32 @@ impl Tree {
                     if let Some(siblings) = tree.children.get_mut(old_parent) {
                         siblings.retain(|&id| id != child);
                     }
-                    // Reparenting changes both ancestor chains, not just the
-                    // destination and the immediate source parent.
-                    Self::mark_dirty_inner(&mut tree, old_parent);
+                    Self::mark_dirty_inner(tree, old_parent);
                 }
             }
         }
-        Self::mark_dirty_inner(&mut tree, parent);
 
-        // Like remove_all, release detached subtrees that have no external
-        // references. Retained and reparented children are still owned.
-        let collectable: Vec<_> = previous
-            .into_iter()
-            .filter(|&child| crate::node::is_collectable_root(&tree, child))
+        // Like remove_all, release dropped subtrees nothing else references.
+        let collectable: Vec<Id> = tree.children[parent]
+            .iter()
+            .copied()
+            .filter(|&child| crate::node::is_collectable_root(tree, child))
             .collect();
+
+        let current = &mut tree.children[parent];
+        current.clear();
+        current.extend_from_slice(children);
+        Self::mark_dirty_inner(tree, parent);
+        if tree.has_writing_modes {
+            for &child in children {
+                Self::sync_writing_mode(tree, child);
+            }
+        }
+
         if !collectable.is_empty() {
             let mut data = self.2.write();
             for child in collectable {
-                crate::node::remove_unreferenced_subtree(&mut tree, &mut data, child);
+                crate::node::remove_unreferenced_subtree(tree, &mut data, child);
             }
         }
     }
@@ -1762,7 +1899,7 @@ impl Tree {
 
             // Insert after the reference node
             children.insert(node_pos + 1, node);
-            tree.parents.insert(node, Some(parent));
+            Tree::set_parent_inner(&mut tree, node, Some(parent));
         } else {
             // Detach child from its current parent
             Tree::detach_inner(&mut tree, node);
@@ -1770,7 +1907,7 @@ impl Tree {
             // Re-get children after detach (it may have modified the vec)
             let children = tree.children.get_mut(parent).unwrap();
             children.push(node);
-            tree.parents.insert(node, Some(parent));
+            Tree::set_parent_inner(&mut tree, node, Some(parent));
             Tree::mark_dirty_inner(&mut tree, parent);
             return;
         }
@@ -1804,7 +1941,7 @@ impl Tree {
 
         // Insert before the reference node
         children.insert(node_pos, node);
-        tree.parents.insert(node, Some(parent));
+        Tree::set_parent_inner(&mut tree, node, Some(parent));
 
         Tree::mark_dirty_inner(&mut tree, parent);
     }
@@ -1834,7 +1971,7 @@ impl Tree {
                 children.insert(index.min(children.len()), child);
             }
 
-            tree.parents.insert(child, Some(node));
+            Tree::set_parent_inner(&mut tree, child, Some(node));
 
             Tree::mark_dirty_inner(&mut tree, node);
         }
@@ -1943,6 +2080,7 @@ impl Tree {
             }
         }
         Self::mark_dirty_inner(&mut tree, node);
+        Self::sync_writing_mode(&mut tree, node);
     }
 
     fn mark_dirty_inner(tree: &mut TreeInner, node: Id) {
@@ -1980,7 +2118,7 @@ impl Tree {
             let index = children.iter().position(|&id| id == replaced)?;
             children[index] = child;
             tree.parents.remove(replaced);
-            tree.parents.insert(child, Some(node));
+            Self::set_parent_inner(&mut tree, child, Some(node));
             Self::mark_dirty_inner(&mut tree, node);
         }
 
@@ -2167,6 +2305,7 @@ impl Tree {
             // dirty flag to the root — marking only this node leaves
             // ancestor/root caches stale.
             Tree::mark_dirty_inner(tree, node_id);
+            Tree::sync_writing_mode(tree, node_id);
         }
     }
 }
@@ -2413,21 +2552,7 @@ fn measure_cache_key(ignores_offered_height: bool, inputs: &LayoutInput) -> Layo
 impl CacheTree for Tree {
     #[inline]
     fn cache_get(&mut self, node_id: NodeId, inputs: &LayoutInput) -> Option<LayoutOutput> {
-        let id = Id::from(node_id);
-        let mut tree = self.inner_mut();
-        if tree.has_writing_modes {
-            let mode = resolved_writing_mode(&tree, id);
-            let node = &mut tree.nodes[id];
-            // LayoutInput doesn't contain inherited writing-mode. Equal
-            // constraints can otherwise reuse horizontal geometry after an
-            // ancestor changes mode or this subtree is reparented.
-            if node.cached_writing_mode != mode {
-                node.mark_dirty();
-                node.cached_writing_mode = mode;
-                block_measure_cache().remove(&block_key(tree.uid, id));
-            }
-        }
-        let node = &tree.nodes[id];
+        let node = self.node_from_id_mut(node_id);
         node.cache
             .get(&measure_cache_key(node.ignores_offered_height, inputs))
     }

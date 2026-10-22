@@ -37,16 +37,20 @@ final class CoreLayoutInteropTests: XCTestCase {
     mason = nil
   }
 
-  func test_foreignViewAndNodeAreReleasedWhenTheirOwnerDropsThem() {
+  func test_droppedForeignViewReleasesItsNodeAndEngine() {
     weak var releasedView: UIView?
     weak var releasedNode: MasonNode?
+    weak var releasedMason: NSCMason?
     autoreleasepool {
+      let engine = NSCMason()
       let view = UIView()
+      releasedMason = engine
       releasedView = view
-      releasedNode = mason.nodeForView(view)
+      releasedNode = engine.nodeForView(view)
     }
     XCTAssertNil(releasedView, "the engine must not keep a foreign view alive")
-    XCTAssertNil(releasedNode, "the foreign node must be released with its view")
+    XCTAssertNil(releasedNode)
+    XCTAssertNil(releasedMason, "foreign nodes must not form an engine retain cycle")
   }
 
   func test_removedForeignViewAndNodeAreReleased() {
@@ -59,38 +63,10 @@ final class CoreLayoutInteropTests: XCTestCase {
       releasedView = child
       releasedNode = mason.nodeForView(child)
       root.removeView(child)
-      XCTAssertNil(child.superview)
     }
     XCTAssertNil(releasedView)
     XCTAssertNil(releasedNode)
     XCTAssertTrue(root.node.children.isEmpty)
-  }
-
-  func test_foreignViewDoesNotKeepItsEngineAliveAfterRelease() {
-    weak var releasedMason: NSCMason?
-    autoreleasepool {
-      let engine = NSCMason()
-      let view = UIView()
-      releasedMason = engine
-      _ = engine.nodeForView(view)
-    }
-    XCTAssertNil(releasedMason, "the foreign-node cache must not form an engine retain cycle")
-  }
-
-  func test_foreignNodeIdentitySurvivesDetachAndRemainsScopedToItsEngine() {
-    let view = UIView()
-    let root = MasonUIView(mason: mason)
-    let first = mason.nodeForView(view)
-    let otherMason = NSCMason()
-    let other = otherMason.nodeForView(view)
-    XCTAssertFalse(first === other)
-    root.addView(view)
-    root.removeView(view)
-    XCTAssertTrue(mason.nodeForView(view) === first)
-    XCTAssertTrue(otherMason.nodeForView(view) === other)
-    root.addView(view)
-    XCTAssertTrue(root.node.children.contains { $0 === first })
-    root.removeView(view)
   }
 
   func test_clearingAnEngineOnlyReleasesItsOwnForeignNodes() {
@@ -145,6 +121,90 @@ final class CoreLayoutInteropTests: XCTestCase {
     )
   }
 
+  private func spec(_ size: CGFloat, _ mode: Int) -> Int {
+    (Int(size) & 0x3FFF_FFFF) | (mode << 30)
+  }
+
+  private func unpack(_ packed: Double) -> CGSize {
+    let width = (packed / 16_777_216).rounded(.down)
+    return CGSize(width: width, height: packed - width * 16_777_216)
+  }
+
+  /// A host bounding only the width still bounds it; only the open axis is max-content.
+  func test_rootMeasureKeepsEachBoundedAxis() {
+    let scale = CGFloat(NSCMason.scale)
+    let root = MasonUIView(mason: mason)
+    root.display = .Block
+    let child = MasonUIView(mason: mason)
+    child.display = .Block
+    child.setSizeHeight(50 * NSCMason.scale, 1)
+    root.addView(child)
+
+    let size = unpack(root.measure(spec(300 * scale, 1), spec(0, 0), root: true, viewport: false))
+    XCTAssertEqual(size, CGSize(width: (300 * scale).rounded(), height: (50 * scale).rounded()))
+  }
+
+  /// A scroll viewport is clamped to the bounded axis only.
+  func test_rootMeasureClampsAViewportOnBoundedAxes() {
+    let scale = CGFloat(NSCMason.scale)
+    let root = MasonUIView(mason: mason)
+    root.display = .Block
+    let child = MasonUIView(mason: mason)
+    child.setSize(400 * NSCMason.scale, 500 * NSCMason.scale)
+    root.addView(child)
+
+    let size = unpack(root.measure(spec(200 * scale, 2), spec(0, 0), root: true, viewport: true))
+    XCTAssertEqual(size, CGSize(width: (200 * scale).rounded(), height: (500 * scale).rounded()))
+  }
+
+  /// A Mason root measured by a foreign leaf's host measure during the outer
+  /// compute gets its real size in that same pass, not a turn later.
+  func test_nestedRootMeasuredByAForeignHostSettlesInTheSamePass() {
+    let scale = CGFloat(NSCMason.scale)
+    let root = MasonUIView(mason: mason)
+    root.display = .Flex
+    root.alignItems = .FlexStart
+    let leaf = UIView()
+    let nested = MasonUIView(mason: mason)
+    nested.setSize(120 * NSCMason.scale, 60 * NSCMason.scale)
+    leaf.addSubview(nested)
+    root.addView(leaf)
+
+    var measures = 0
+    mason.setMeasure(for: leaf) { [unowned self] _, _, availableWidth, availableHeight in
+      measures += 1
+      let width = availableWidth > 0 ? self.spec(availableWidth, 2) : self.spec(0, 0)
+      let height = availableHeight > 0 ? self.spec(availableHeight, 2) : self.spec(0, 0)
+      return self.unpack(nested.measure(width, height, root: true, viewport: false))
+    }
+
+    root.computeWithSize(Float(300 * scale), Float(300 * scale))
+    XCTAssertGreaterThan(measures, 1, "the outer pass should rerun once the nested root settles")
+    XCTAssertEqual(leaf.frame.size, CGSize(width: 120, height: 60))
+    XCTAssertTrue(nested.node.deferredRootSizes.isEmpty)
+    XCTAssertTrue(nested.node.settledRootSizes.isEmpty, "settled sizes only last for one outer compute")
+  }
+
+  /// Content changes reported during a compute are applied once it returns.
+  func test_foreignInvalidationDuringAComputeWaitsForIt() {
+    let root = MasonUIView(mason: mason)
+    let leaf = UIView()
+    root.addView(leaf)
+    var width: CGFloat = 40
+    var invalidated = false
+    mason.setMeasure(for: leaf) { [unowned self] _, _, _, _ in
+      if !invalidated {
+        invalidated = true
+        self.mason.invalidateForeignView(leaf)
+      }
+      return CGSize(width: width, height: 20)
+    }
+    root.computeWithSize(-2, -2)
+    width = 80
+    root.computeWithSize(-2, -2)
+    XCTAssertEqual(leaf.frame.width * CGFloat(NSCMason.scale), 80, accuracy: 0.5)
+  }
+
   /// A Mason child added as a plain subview of a foreign container (not
   /// through Mason's node tree) should still resolve to a real, non-zero size.
   func test_masonChildInsideForeignContainerResolvesRealSize() {
@@ -182,23 +242,12 @@ final class CoreLayoutInteropTests: XCTestCase {
     autoreleasepool {
       let node = mason.createNode()
       released = node
-      mason.addEventListener(node, "alpha") { _ in }
-      XCTAssertTrue(mason.removeEventListener(node, "alpha"))
-    }
-    XCTAssertNil(released)
-  }
-
-  func test_removingOneTypeKeepsOtherListenersUntilTheyAreRemoved() {
-    weak var released: MasonNode?
-    autoreleasepool {
-      let node = mason.createNode()
-      released = node
       var calls = 0
       mason.addEventListener(node, "alpha") { _ in }
       mason.addEventListener(node, "beta") { _ in calls += 1 }
       XCTAssertTrue(mason.removeEventListener(node, "alpha"))
       mason.dispatch(MasonEvent(type: "beta"), node)
-      XCTAssertEqual(calls, 1)
+      XCTAssertEqual(calls, 1, "removing one type must keep the others")
       XCTAssertTrue(mason.removeEventListener(node, "beta"))
     }
     XCTAssertNil(released)

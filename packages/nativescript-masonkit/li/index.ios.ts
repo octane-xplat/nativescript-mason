@@ -1,6 +1,5 @@
-import { computeMasonRoot } from '../nested-root';
 import { CSSType, Utils, View } from '@nativescript/core';
-import { ViewBase } from '../common';
+import { ViewBase, setMeasuredFromNative } from '../common';
 import { isMasonView_, isPlaceholder_, native_, style_ } from '../symbols';
 import { Tree } from '../tree';
 
@@ -86,67 +85,11 @@ export class Li extends ViewBase {
   public onMeasure(widthMeasureSpec: number, heightMeasureSpec: number) {
     const nativeView = this._view;
     if (nativeView) {
-      const specWidth = Utils.layout.getMeasureSpecSize(widthMeasureSpec);
-      const widthMode = Utils.layout.getMeasureSpecMode(widthMeasureSpec);
-      const specHeight = Utils.layout.getMeasureSpecSize(heightMeasureSpec);
-      const heightMode = Utils.layout.getMeasureSpecMode(heightMeasureSpec);
-
-      const parentIsMason = this.parent && this.parent[isMasonView_];
-      if (!parentIsMason) {
-        const unconstrained = widthMode === Utils.layout.UNSPECIFIED && heightMode === Utils.layout.UNSPECIFIED;
-        const availableWidth = widthMode === Utils.layout.UNSPECIFIED ? -2 : specWidth;
-        const availableHeight = heightMode === Utils.layout.UNSPECIFIED ? -2 : specHeight;
-
-        // Compute against the parent's bounds whenever the spec gives any; see
-        // view/index.ios.ts for why auto/auto doesn't matter here.
-        if (!unconstrained) {
-          // we have explicit constraints from the spec, use them
-          const layout = computeMasonRoot(this as never, `${availableWidth}x${availableHeight}`, () => {
-            // @ts-ignore
-            this.ios.mason_computeWithSize(availableWidth, availableHeight);
-            // Claim this root for the host's spec; see view/index.ios.ts.
-            // @ts-ignore
-            this.ios.mason_markRootComputeAppliedWithSize(availableWidth, availableHeight);
-          });
-
-          const w = Utils.layout.makeMeasureSpec(layout.width, Utils.layout.EXACTLY);
-          const h = Utils.layout.makeMeasureSpec(layout.height, Utils.layout.EXACTLY);
-
-          this.eachLayoutChild((child) => {
-            ViewBase.measureChild(this as never, child, child._currentWidthMeasureSpec, child._currentHeightMeasureSpec);
-          });
-
-          this.setMeasuredDimension(w, h);
-          return;
-        } else {
-          // Nothing definite to resolve against:
-          // measure by max-content so we don't accidentally collapse to zero.
-          const layout = computeMasonRoot(this as never, 'max-content', () => {
-            // @ts-ignore
-            this.ios.mason_computeWithMaxContent();
-          });
-
-          const w = Utils.layout.makeMeasureSpec(layout.width, Utils.layout.EXACTLY);
-          const h = Utils.layout.makeMeasureSpec(layout.height, Utils.layout.EXACTLY);
-
-          this.setMeasuredDimension(w, h);
-
-          this.eachLayoutChild((child) => {
-            ViewBase.measureChild(this as never, child, child._currentWidthMeasureSpec, child._currentHeightMeasureSpec);
-          });
-        }
-      } else {
-        // @ts-ignore
-        const layout = this.ios.node.computedLayout;
-        const w = Utils.layout.makeMeasureSpec(layout.width, Utils.layout.EXACTLY);
-        const h = Utils.layout.makeMeasureSpec(layout.height, Utils.layout.EXACTLY);
-
-        this.setMeasuredDimension(w, h);
-
-        this.eachLayoutChild((child) => {
-          ViewBase.measureChild(this as never, child, child._currentWidthMeasureSpec, child._currentHeightMeasureSpec);
-        });
-      }
+      // @ts-ignore
+      setMeasuredFromNative(this, nativeView.mason_measure(widthMeasureSpec, heightMeasureSpec, !this.parent?.[isMasonView_], false));
+      this.eachLayoutChild((child) => {
+        ViewBase.measureChild(this as never, child, child._currentWidthMeasureSpec, child._currentHeightMeasureSpec);
+      });
     }
   }
 }

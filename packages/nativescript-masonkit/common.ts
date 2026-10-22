@@ -54,9 +54,8 @@ import type { CornerIndex, CornerRadius } from './css-shorthands';
 import type { EventData, TouchGestureEventData } from '@nativescript/core';
 import { originXProperty, originYProperty } from '@nativescript/core/ui/core/view';
 import { animateTransforms } from './css-keyframes';
-import { adoptForeignLayout, observeForeignMeasurement, releaseForeignLayout } from './foreign-layout';
+import { adoptForeignLayout, invalidateOnLayoutRequest, releaseForeignLayout } from './foreign-layout';
 import { Style as MasonStyle, Style, nodeHelper, cssLengthToDip, resolveCssMathIn } from './style';
-import { forgetMasonRootSizes, measuringForeign } from './nested-root';
 import { encodeBoxShadows, parseBoxShadows } from './box-shadow';
 import { parseCssTransform } from './css-transform';
 import {
@@ -117,6 +116,7 @@ import {
   installMasonSizeUnits,
   masonRawDeclaration,
 } from './properties';
+import { masonLayout } from './display-density';
 import { isMasonView_, isTextChild_, isText_, isPlaceholder_, text_, native_, textNode_, textNodeIndex_, textNodeProxied_, pseudoStyles_, emptyTextNode_, breakRun_, anonymousText_, windowsFontSource_, hostsRuns_, needsAnonymousText_, borderRadiusCorners_, borderSideColors_, eventType_, runMember_, runsInline_, runsSettled_, blockified_, touchAction_ } from './symbols';
 import { Tree } from './tree';
 import { masonEngine, removeNativeChild } from './panel-helpers';
@@ -201,7 +201,7 @@ function nativeScrollOffset(view: any, vertical: boolean): number {
   if (!native) return 0;
   if (__ANDROID__) {
     const scroll = org.nativescript.mason.masonkit.WebScroll;
-    return Utils.layout.toDeviceIndependentPixels(vertical ? scroll.scrollTop(native) : scroll.scrollLeft(native));
+    return masonLayout.toDeviceIndependentPixels(vertical ? scroll.scrollTop(native) : scroll.scrollLeft(native));
   }
   if (__APPLE__) {
     return (vertical ? native.mason_scrollTop : native.mason_scrollLeft) ?? 0;
@@ -217,7 +217,7 @@ function nativeScrollMetric(view: any, metric: ScrollMetric): number {
   if (!native) return 0;
   let value = 0;
   if (__ANDROID__) {
-    value = Utils.layout.toDeviceIndependentPixels(org.nativescript.mason.masonkit.WebScroll[metric](native));
+    value = masonLayout.toDeviceIndependentPixels(org.nativescript.mason.masonkit.WebScroll[metric](native));
   } else if (__APPLE__) {
     value = native[`mason_${metric}`];
   } else if (__WINDOWS__) {
@@ -238,7 +238,7 @@ function nativeScrollTo(view: any, left: number, top: number, smooth: boolean) {
     return;
   }
   if (__ANDROID__) {
-    org.nativescript.mason.masonkit.WebScroll.scrollTo(native, isNaN(left) ? NaN : Utils.layout.toDevicePixels(left), isNaN(top) ? NaN : Utils.layout.toDevicePixels(top), smooth);
+    org.nativescript.mason.masonkit.WebScroll.scrollTo(native, isNaN(left) ? NaN : masonLayout.toDevicePixels(left), isNaN(top) ? NaN : masonLayout.toDevicePixels(top), smooth);
   } else if (__APPLE__) {
     native.mason_scrollTo(left, top, smooth);
   } else if (__WINDOWS__) {
@@ -442,6 +442,12 @@ function windowsBreakRun(child: any) {
  * `iosOverflowSafeArea` the same way: when the frame grows past the safe area it lays out
  * again at the new size. Like core views, it raises `layoutChanged` when the frame changes.
  */
+/** Reports the device px size `mason_measure` returns, packed as width * 2^24 + height. */
+export function setMeasuredFromNative(view: any, packed: number): void {
+  const width = Math.floor(packed / 16777216);
+  view.setMeasuredDimension(width, packed - width * 16777216);
+}
+
 export function setRootNativeViewFrame(view: any, nativeView: any, frame: CGRect): void {
   // Place the view before adjusting, as core does: the safe-area math reads its
   // position on screen, and a stale one applied the insets twice.
@@ -450,11 +456,10 @@ export function setRootNativeViewFrame(view: any, nativeView: any, frame: CGRect
   if (!CGRectEqualToRect(adjusted, frame)) {
     nativeView.frame = adjusted;
   }
-  // The root always lays out at its final frame size: a parent may have measured it
-  // against the safe area but placed it full-bleed, so check the computed size even
-  // when the frame needed no adjustment.
-  const width = Utils.layout.toDevicePixels(adjusted.size.width);
-  const height = Utils.layout.toDevicePixels(adjusted.size.height);
+  // A host can place a root beyond its measured safe-area size even when no
+  // inset adjustment was needed. Recompute at the final frame in either case.
+  const width = masonLayout.toDevicePixels(adjusted.size.width);
+  const height = masonLayout.toDevicePixels(adjusted.size.height);
   const layout = view.ios.node.computedLayout;
   if (Math.round(layout.width) !== Math.round(width) || Math.round(layout.height) !== Math.round(height)) {
     view.ios.mason_computeWithSize(width, height);
@@ -503,8 +508,6 @@ let windowsInnerHTML: ((view: any, html: string) => void) | undefined;
 export function setWindowsInnerHTML(build: (view: any, html: string) => void) {
   windowsInnerHTML = build;
 }
-
-const measuringForeignEngines = new WeakSet<object>();
 
 export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   _children: (NSView | { text?: string } | TextNode)[] = [];
@@ -710,7 +713,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     let nativeHit: any = null;
     if (__ANDROID__ && typeof nativeView.elementFromPoint === 'function') {
       // Android views hit-test in device pixels.
-      nativeHit = nativeView.elementFromPoint(Utils.layout.toDevicePixels(x), Utils.layout.toDevicePixels(y));
+      nativeHit = nativeView.elementFromPoint(masonLayout.toDevicePixels(x), masonLayout.toDevicePixels(y));
     } else if (__APPLE__) {
       const hitTest = nativeView.mason_elementFromPointY ?? nativeView.mason_elementFromPoint ?? nativeView.elementFromPoint;
       if (typeof hitTest === 'function') {
@@ -1277,35 +1280,20 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     const native = this.nativeViewProtected as any;
     const mason = native?.mason ?? native?.node?.mason;
     if (typeof mason?.setMeasureForViewBlock !== 'function') return;
+    invalidateOnLayoutRequest(child, mason);
     const parentRef = new WeakRef(this);
     const childRef = new WeakRef(child);
-    observeForeignMeasurement(
-      child,
-      () => {
-        const native = childRef.deref()?.nativeViewProtected;
-        if (native) mason.nodeForView(native, true).markDirty();
-      },
-      () => measuringForeignEngines.has(mason),
-    );
     const spec = (known: number, available: number) => {
       if (!isNaN(known)) return Utils.layout.makeMeasureSpec(known, Utils.layout.EXACTLY);
-      if (available >= 0) return Utils.layout.makeMeasureSpec(available, Utils.layout.AT_MOST);
+      if (available > 0) return Utils.layout.makeMeasureSpec(available, Utils.layout.AT_MOST);
       return Utils.layout.makeMeasureSpec(0, Utils.layout.UNSPECIFIED);
     };
     mason.setMeasureForViewBlock(child.nativeViewProtected, (knownW: number, knownH: number, availW: number, availH: number) => {
       const parent = parentRef.deref();
       const view = childRef.deref();
       if (!parent || !view) return CGSizeMake(0, 0);
-      const alreadyMeasuring = measuringForeignEngines.has(mason);
-      measuringForeignEngines.add(mason);
-      try {
-        measuringForeign(() => {
-          NSView.measureChild(parent as never, view, spec(knownW, availW), spec(knownH, availH));
-        });
-        return CGSizeMake(view.getMeasuredWidth(), view.getMeasuredHeight());
-      } finally {
-        if (!alreadyMeasuring) measuringForeignEngines.delete(mason);
-      }
+      NSView.measureChild(parent as never, view, spec(knownW, availW), spec(knownH, availH));
+      return CGSizeMake(view.getMeasuredWidth(), view.getMeasuredHeight());
     });
   }
 
@@ -1374,7 +1362,6 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   private _masonClimbTurn: Set<any> | null = null;
 
   requestLayout(): void {
-    if (__APPLE__) forgetMasonRootSizes(this);
     // A natively placed view only needs its Mason root re-measured: skip the
     // per-ancestor hops (each a JS call plus a native setNeedsLayout).
     if (this._masonPlacedNatively) {
@@ -1393,13 +1380,6 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (__APPLE__) markClimbed(this);
   }
 
-  /** Core clears its flag only in its own layout pass, which natively placed views skip. */
-  // @ts-expect-error core's types declare isLayoutValid as a field; the runtime member is an accessor.
-  get isLayoutValid(): boolean {
-    if (this._masonPlacedNatively) return !!this.nativeViewProtected && !!nativeViewFor(this)?.node?.isLayoutValid;
-    return Reflect.get(Object.getPrototypeOf(ViewBase.prototype), 'isLayoutValid', this) ?? false;
-  }
-
   _parentChanged(oldParent: any): void {
     climbedRoots?.delete(this);
     this._masonClimbTurn = null;
@@ -1408,14 +1388,14 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
 
   getMeasuredWidth(): number {
     if (this._masonPlacedNatively && this.nativeViewProtected) {
-      return Math.round(Utils.layout.toDevicePixels(this.nativeViewProtected.frame.size.width));
+      return Math.round(masonLayout.toDevicePixels(this.nativeViewProtected.frame.size.width));
     }
     return super.getMeasuredWidth();
   }
 
   getMeasuredHeight(): number {
     if (this._masonPlacedNatively && this.nativeViewProtected) {
-      return Math.round(Utils.layout.toDevicePixels(this.nativeViewProtected.frame.size.height));
+      return Math.round(masonLayout.toDevicePixels(this.nativeViewProtected.frame.size.height));
     }
     return super.getMeasuredHeight();
   }
@@ -1809,25 +1789,43 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   removeChildren() {
-    if (this._children.length === 0) {
+    const children = this._children as any[];
+    if (children.length === 0) {
       return;
     }
     this._masonSettleNativeAdds();
-    // Snapshot because each removal updates the raw list. It includes text
-    // runs and placeholders, which are absent from _viewChildren.
-    for (const child of [...this._children] as any[]) {
-      if (child?.[textNode_]) {
-        // Clear the framework node's binding too, so it can be adopted again.
-        this.removeChild(child[textNode_].__raw__ ?? child);
-      } else if (child && text_ in child && !(child instanceof NSView) && !child[isPlaceholder_]) {
-        // Legacy string children have a native slot but no saved node handle.
-        const index = this._children.indexOf(child);
-        this._nativeRemoveChildNode(undefined, index);
-        this._children.splice(index, 1);
-      } else {
-        this.removeChild(child);
+    // Backwards, so index-based native removal stays aligned. Text runs and
+    // placeholders hold native nodes too.
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (!child) continue;
+      if (child[isPlaceholder_]) {
+        if (!__WINDOWS__ && child._view) this._nativeRemoveChildNode(child._view.node, i);
+        child[isTextChild_] = false;
+      } else if (child instanceof NSView) {
+        // @ts-ignore
+        child._isMasonChild = false;
+        this._removeView(child);
+      } else if (!__WINDOWS__ && text_ in child) {
+        const node = child[textNode_];
+        this._nativeRemoveChildNode(node, i);
+        // Unbind the framework node so it can be adopted again.
+        const raw = node?.__raw__;
+        if (raw) {
+          raw[textNodeProxied_] = false;
+          raw[textNode_] = undefined;
+        }
       }
     }
+    if (__WINDOWS__) {
+      this._forEachAnonymousText((anonymous) => masonEngine().RemoveChild((this as any)._view, anonymous));
+      for (const c of children) {
+        if (!c) continue;
+        c[anonymousText_] = undefined;
+        c[runMember_] = undefined;
+      }
+    }
+    children.splice(0);
     this._invalidateAttachCursor();
     this.requestLayout();
   }

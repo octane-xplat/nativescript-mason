@@ -160,8 +160,8 @@ fn buffer_backed_mode_changes_invalidate_inherited_layout() {
     }
 }
 
-fn two_hosts(text_in_second: bool) -> Fixture {
-    let mut tree = Fixture::new(WritingMode::HorizontalTb, 1, Display::Block);
+fn two_hosts(in_second: bool) -> Fixture {
+    let mut tree = Fixture::new(WritingMode::HorizontalTb, 2, Display::Block);
     let second = tree.mason.create_node();
     tree.mason.with_style_mut(second.id(), |s| {
         s.set_size(Size {
@@ -172,7 +172,7 @@ fn two_hosts(text_in_second: bool) -> Fixture {
         s.set_writing_mode(WritingMode::VerticalRl);
     });
     tree.mason.append(tree.nodes[0].id(), second.id());
-    if text_in_second {
+    if in_second {
         tree.mason.append(second.id(), tree.nodes[2].id());
     }
     tree.nodes.push(second);
@@ -180,11 +180,11 @@ fn two_hosts(text_in_second: bool) -> Fixture {
 }
 
 #[test]
-fn moving_text_between_writing_modes_relayouts_cached_text() {
+fn moving_a_subtree_between_writing_modes_relayouts_it() {
     let mut tree = two_hosts(false);
     tree.compute();
     for second in [true, false, true] {
-        let parent = tree.nodes[if second { 3 } else { 1 }].id();
+        let parent = tree.nodes[if second { 4 } else { 1 }].id();
         tree.mason.append(parent, tree.nodes[2].id());
         let mut fresh = two_hosts(second);
         fresh.compute();
@@ -193,4 +193,18 @@ fn moving_text_between_writing_modes_relayouts_cached_text() {
             assert_eq!(tree.geometry(), fresh.geometry());
         }
     }
+}
+
+#[test]
+fn a_detached_subtree_computed_as_a_root_drops_the_inherited_mode() {
+    let detached = |second: bool| {
+        let mut tree = two_hosts(second);
+        tree.compute();
+        let parent = tree.nodes[if second { 4 } else { 1 }].id();
+        tree.mason.remove_child(parent, tree.nodes[2].id());
+        tree.mason.compute_wh(tree.nodes[2].id(), 100.0, 60.0);
+        [2, 3].map(|i| tree.mason.layout_raw(tree.nodes[i].id()).size)
+    };
+    let (vertical, horizontal) = (detached(true), detached(false));
+    assert_eq!(vertical, horizontal);
 }

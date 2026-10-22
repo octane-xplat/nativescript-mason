@@ -6,10 +6,12 @@ import { Style } from './style';
 // Keep real Mason child operations, iOS deferred inserts, and core parentage.
 // Replace UIKit calls at the native boundary; this suite does not measure geometry.
 const weakRef = WeakRef.prototype as any;
-weakRef.get ??= function (this: WeakRef<object>) { return this.deref(); };
+weakRef.get ??= function (this: WeakRef<object>) {
+  return this.deref();
+};
 
 beforeEach(() => {
-  vi.spyOn(Style, 'fromView').mockImplementation(() => ({} as Style));
+  vi.spyOn(Style, 'fromView').mockImplementation(() => ({}) as Style);
   vi.spyOn(CustomLayoutView.prototype, '_removeViewFromNativeVisualTree').mockImplementation(() => {});
 });
 afterEach(() => vi.restoreAllMocks());
@@ -48,13 +50,16 @@ function leaf(id: number, loaded = false) {
   return view;
 }
 
-// Octane detaches before computing the new index, then its Mason adapter calls
-// insertChild(view, min(index, getChildrenCount())). Text hosts are core Labels.
+// A renderer that detaches before computing the new index, then calls
+// insertChild(view, min(index, getChildrenCount())).
 function insert(parent: View, child: CoreView, before: CoreView | null = null) {
   const old = child.parent as View | undefined;
   old?.removeChild(child);
   const siblings: CoreView[] = [];
-  parent.eachChildView((view) => { siblings.push(view); return true; });
+  parent.eachChildView((view) => {
+    siblings.push(view);
+    return true;
+  });
   const index = before === null ? siblings.length : siblings.indexOf(before);
   expect(index).toBeGreaterThanOrEqual(0);
   parent.insertChild(child, Math.min(index, parent.getChildrenCount()));
@@ -63,13 +68,16 @@ function insert(parent: View, child: CoreView, before: CoreView | null = null) {
 function expectOrder(fixture: ReturnType<typeof host>, expected: CoreView[]) {
   fixture.flush();
   const actual: CoreView[] = [];
-  fixture.view.eachChildView((view) => { actual.push(view); return true; });
+  fixture.view.eachChildView((view) => {
+    actual.push(view);
+    return true;
+  });
   expect(actual).toEqual(expected);
   expect(fixture.children).toEqual(expected.map((view) => view.nativeViewProtected));
   for (const child of expected) expect(child.parent).toBe(fixture.view);
 }
 
-describe('Octane host child lifecycle through the Mason iOS adapter', () => {
+describe('detach-before-insert child lifecycle on iOS', () => {
   it('attaches a batch of initially unloaded children in source order', () => {
     const fixture = host();
     const children = Array.from({ length: 12 }, (_, i) => leaf(i));

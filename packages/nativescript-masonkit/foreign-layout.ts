@@ -1,4 +1,4 @@
-import { layout } from '@nativescript/core/utils';
+import { masonLayout as layout } from './display-density';
 import { widthProperty, heightProperty, minWidthProperty, minHeightProperty, maxWidthProperty, maxHeightProperty, marginTopProperty, marginRightProperty, marginBottomProperty, marginLeftProperty } from '@nativescript/core/ui/styling/style-properties';
 import { alignSelfProperty, flexGrowProperty, flexShrinkProperty } from '@nativescript/core/ui/layouts/flexbox-layout';
 import { aspectRatioProperty, bottomProperty, flexBasisProperty, gridColumnEndProperty, gridColumnStartProperty, gridRowEndProperty, gridRowStartProperty, justifySelfProperty, leftProperty, positionProperty, rightProperty, topProperty } from './properties';
@@ -20,47 +20,7 @@ interface LayoutProperty {
 
 const foreignStyle_ = Symbol('mason:foreignStyle');
 const foreignProto_ = Symbol('mason:foreignProto');
-const foreignMeasure_ = Symbol('mason:foreignMeasure');
-
-interface ForeignMeasure {
-  invalidate: () => void;
-  isMeasuring: () => boolean;
-  requestLayout: (...args: any[]) => any;
-  own?: PropertyDescriptor;
-  pending?: ReturnType<typeof setTimeout>;
-}
-
-/** Invalidate native measurement before core forwards a content change to its parent. */
-export function observeForeignMeasurement(view: any, invalidate: () => void, isMeasuring: () => boolean): void {
-  const existing = view[foreignMeasure_] as ForeignMeasure | undefined;
-  if (existing) {
-    existing.invalidate = invalidate;
-    existing.isMeasuring = isMeasuring;
-    return;
-  }
-  const original = view.requestLayout;
-  if (typeof original !== 'function') return;
-  const state: ForeignMeasure = {
-    invalidate,
-    isMeasuring,
-    own: Object.getOwnPropertyDescriptor(view, 'requestLayout'),
-    requestLayout(this: any, ...args: any[]) {
-      // Rust holds the engine lock while calling core's measure. Retry on
-      // the next turn, coalesced, and request layout again after invalidating.
-      if (state.isMeasuring()) {
-        state.pending ??= setTimeout(() => {
-          state.pending = undefined;
-          state.requestLayout.apply(this, args);
-        }, 0);
-      } else {
-        state.invalidate();
-      }
-      return original.apply(this, args);
-    },
-  };
-  Object.defineProperty(view, 'requestLayout', { value: state.requestLayout, configurable: true, writable: true, enumerable: state.own?.enumerable ?? false });
-  view[foreignMeasure_] = state;
-}
+const foreignInvalidate_ = Symbol('mason:foreignInvalidate');
 
 // Core px objects are device pixels; Mason reads px as CSS pixels, and numbers as dip.
 function toMason(value: any): any {
@@ -161,16 +121,35 @@ export function adoptForeignLayout(view: any): void {
   if (grid) writeGrid(helper, style);
 }
 
-/** Stop observing the child and restore its requestLayout method and Style prototype. */
+/** iOS: a content change core reports through requestLayout drops the child's cached Mason measurement. */
+export function invalidateOnLayoutRequest(view: any, mason: any): void {
+  const hook = view[foreignInvalidate_];
+  if (hook) {
+    hook.mason = mason;
+    return;
+  }
+  const original = view.requestLayout;
+  if (typeof original !== 'function') return;
+  const state = {
+    mason,
+    own: Object.getOwnPropertyDescriptor(view, 'requestLayout'),
+    requestLayout(this: any) {
+      const native = this.nativeViewProtected;
+      if (native) state.mason.invalidateForeignView(native);
+      return original.call(this);
+    },
+  };
+  view.requestLayout = state.requestLayout;
+  view[foreignInvalidate_] = state;
+}
+
+/** Stop mirroring and give the child its own Style prototype and requestLayout back. */
 export function releaseForeignLayout(view: any): void {
-  const measure = view?.[foreignMeasure_] as ForeignMeasure | undefined;
-  if (measure) {
-    if (measure.pending !== undefined) clearTimeout(measure.pending);
-    if (view.requestLayout === measure.requestLayout) {
-      if (measure.own) Object.defineProperty(view, 'requestLayout', measure.own);
-      else delete view.requestLayout;
-    }
-    delete view[foreignMeasure_];
+  const hook = view?.[foreignInvalidate_];
+  if (hook) {
+    view[foreignInvalidate_] = undefined;
+    if (hook.own) Object.defineProperty(view, 'requestLayout', hook.own);
+    else delete view.requestLayout;
   }
   if (!view?.[foreignStyle_]) return;
   view[foreignStyle_] = undefined;

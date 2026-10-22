@@ -26,10 +26,11 @@ function rawChildIndex(parent: NSVElement, child: NSVElement): number {
   const childIndex = childNodes.indexOf(child);
   if (childIndex < 0) return -1;
 
-  let rawIndex = 0;
   const children = (parent.nativeView as MasonChildOps)._children;
+  const raw = Array.isArray(children) ? children : undefined;
+  let rawIndex = 0;
   for (let i = 0; i < childIndex; i++) {
-    if (occupiesRawSlot(childNodes[i], Array.isArray(children) ? children : undefined)) rawIndex++;
+    if (occupiesRawSlot(childNodes[i], raw)) rawIndex++;
   }
   return rawIndex;
 }
