@@ -41,6 +41,8 @@ jobs:
         run: pnpm test:jsx-types
       - name: Typecheck the plugin
         run: pnpm exec tsc -p packages/nativescript-masonkit/tsconfig.json --noEmit
+      - name: Type-check the public consumer API
+        run: pnpm exec tsc -p tools/testing/consumer-types/tsconfig.json
 
   rust:
     name: Rust core and C bridge
