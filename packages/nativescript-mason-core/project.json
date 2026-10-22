@@ -154,6 +154,16 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-ios-xcframework.mjs" }
     },
+    "build.baseline.ios.full": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-full-ios-baseline.mjs" }
+    },
+    "test.baseline.ios.full": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-ios-tests.mjs --full-baseline" }
+    },
     "build.tests.ios": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.native.ios"],
