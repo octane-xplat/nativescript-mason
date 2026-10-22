@@ -1,0 +1,45 @@
+{
+  "androidHostSha256": "bae5a8d02b0fb74de02dddba3b3dce480e3257f2d4227dcad528ff1540552c56",
+  "iosHostSha256": "91df00af7901a95c8e01f9bfea0c429d583b1491546f219eff11b485dc4342c8",
+  "androidGenerator": {
+    "sdk": "9.1.1",
+    "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
+    "sourceUrl": "https://raw.githubusercontent.com/NativeScript/android-dts-generator/5fcf611330bd9eb60d9bb45d5b37251980b127ab/dts-generator/src/main/java/com/telerik/dts/DtsApi.java",
+    "sourceSha256": "e310fb9b7dc122bff9ae2b2ad06dfbc446f3b38099702a6107d1881b06cd9678",
+    "patchSha256": "dde0ffc7b85600a4b71e5b6a2dbc3f0d314e9fb587753663897a3881d9fd3603"
+  },
+  "iosGenerator": {
+    "sdk": "9.1.0",
+    "sha256": "7682e1c285a8f4c619beceb16bcf906fa3fb7e6436b0fb53cea690d8188fb4c0",
+    "appleSdkVersion": "27.0",
+    "architecture": "arm64",
+    "simulator": true
+  },
+  "files": [
+    {
+      "name": "android.d.ts",
+      "sha256": "7a4044b29b992bd21339fdf06fde930f1f4db4f1c02bf4602d68f597b6e588ce"
+    },
+    {
+      "name": "android-declarations.d.ts",
+      "sha256": "2f24940a3cab60ea1bd43daa1905c6dae299b127471f1d32b87514ca102a77bd"
+    },
+    {
+      "name": "objc!MasonCore.d.ts",
+      "sha256": "ad3e471cd4c83478bfdbf540282fa4787a3e449029f42e8b28186186202e3da4"
+    },
+    {
+      "name": "objc!FontManager.d.ts",
+      "sha256": "de98bc3ddc2fb70bb0b91c34fa3821b57b1c4612dd70430b378627b77003e27b"
+    },
+    {
+      "name": "objc!SDWebImage.d.ts",
+      "sha256": "d5f0d4dc094e8a7ef58b22657109855133e9292aa5cdfe83297899b1d4e4e5e5"
+    },
+    {
+      "name": "native.d.ts",
+      "sha256": "e7c895798d8155e444149d2f2818e86261a29ff753f0f0389b3345557f71898a"
+    }
+  ],
+  "qualification": "Generated from independent core artifacts. NativeScript SDK ambient platform types and skipLibCheck remain required; wrapper compilation and consumer verification are separate checks."
+}

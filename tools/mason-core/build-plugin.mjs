@@ -16,6 +16,12 @@ assert.equal(hash(resolve(ios, 'MasonCore.framework/MasonCore')), iosManifest.na
 assert.equal(hash(resolve(android, 'MasonCore.aar')), androidManifest.aarSha256);
 assert.deepEqual(iosManifest.resourceBundles, ['SDWebImage_SDWebImage.bundle']);
 assert.equal(androidManifest.abi, 'arm64-v8a');
+const nativeTypes = json(resolve(runtime, 'typings/manifest.json'));
+assert.equal(nativeTypes.iosHostSha256, iosManifest.nativeFrameworkSha256, 'Regenerate iOS core declarations after rebuilding the native host.');
+assert.equal(nativeTypes.androidHostSha256, androidManifest.aarSha256, 'Regenerate Android core declarations after rebuilding the native host.');
+for (const { name, sha256 } of nativeTypes.files) {
+  assert.equal(hash(resolve(runtime, 'typings', name)), sha256, `Generated core declaration changed: ${name}`);
+}
 
 rmSync(output, { recursive: true, force: true });
 cpSync(runtime, output, { recursive: true });
@@ -51,7 +57,7 @@ manifest.masonCorePrototype = {
   nativeHosts: true,
   ios: { architectures: ['arm64'], simulatorOnly: true },
   android: { abis: ['arm64-v8a'] },
-  nativeTypes: false,
+  nativeTypes: true,
   coinstallationWithFullMasonKit: false,
   qualification: 'Plugin discovery, bridge metadata and application execution still require an isolated NativeScript consumer.',
 };

@@ -29,6 +29,11 @@
       "outputs": ["{workspaceRoot}/dist/prototypes/nativescript-mason-core-plugin"],
       "options": { "command": "node tools/mason-core/build-plugin.mjs" }
     },
+    "generate.native.types": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/generate-native-types.mjs" }
+    },
     "verify.plugin.prototype": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.plugin.prototype"],

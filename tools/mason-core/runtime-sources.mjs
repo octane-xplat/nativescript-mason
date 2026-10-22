@@ -107,3 +107,19 @@ export function corePropertiesSource() {
   }
   return text;
 }
+
+/** Windows rich-text run copying belongs to full MasonKit, not mobile containers. */
+export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 'style.ts'), 'utf8')) {
+  const file = ts.createSourceFile('style.ts', source, ts.ScriptTarget.Latest, true);
+  const [style] = required(file.statements, ['Style'], file);
+  const [method] = required(style.members, ['copyTextStyleTo'], file);
+  const guard = method.body?.statements[0];
+  const condition = guard && ts.isIfStatement(guard) ? guard.expression : undefined;
+  if (!condition || !ts.isBinaryExpression(condition) || condition.operatorToken.kind !== ts.SyntaxKind.BarBarToken ||
+    !ts.isPrefixUnaryExpression(condition.left) || condition.left.operator !== ts.SyntaxKind.ExclamationToken ||
+    !ts.isIdentifier(condition.left.operand) || condition.left.operand.text !== '__WINDOWS__' ||
+    !ts.isReturnStatement(guard.thenStatement)) {
+    throw new Error('Review the rich-text style boundary: copyTextStyleTo is no longer Windows-only.');
+  }
+  return apply(file, [{ node: method }]);
+}

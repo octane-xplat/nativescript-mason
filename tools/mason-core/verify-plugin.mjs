@@ -27,7 +27,7 @@ try {
   assert.equal(manifest.dependencies, undefined);
   assert.equal(manifest.masonCorePrototype.nativeHosts, true);
   assert.equal(manifest.masonCorePrototype.ios.simulatorOnly, true);
-  assert.equal(manifest.masonCorePrototype.nativeTypes, false);
+  assert.equal(manifest.masonCorePrototype.nativeTypes, true);
   const inventory = JSON.parse(readFileSync(resolve(root, 'artifact-inventory.json'), 'utf8'));
   function files(directory) {
     return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

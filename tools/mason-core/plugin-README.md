@@ -40,9 +40,9 @@ pnpm exec nx run nativescript-mason-core:build.consumer.android
 The app creates Mason containers hosting ordinary NativeScript labels and
 writes geometry/ownership assertions to its documents folder as
 `mason-core-result.json`. Build success alone does not establish that they pass.
-The iOS build also requests native declaration generation into the consumer's
-`typings/ios` directory. Those generated declarations still need qualification
-before replacing the full-source build-only typings.
+The package includes independent native bridge declarations, generated from
+the core artifacts. Assembly rejects types whose recorded native hashes differ
+from the hosts being packaged. See [native type generation](native-types-README.md).
 
 Run the application assertions from the repository root:
 
@@ -59,7 +59,7 @@ runner verifies ownership before replacing an installed app.
 
 The prototype currently includes only an arm64 iOS **simulator** framework and
 an Android arm64-v8a AAR. It cannot build an iOS device application. Independent
-native declarations, OS input and release-size savings remain unqualified.
+OS input and release-size savings remain unqualified.
 The isolated apps pass bridge, native geometry and ownership assertions on an
 arm64 iOS simulator and an API 36 Android phone. They install only core and
 NativeScript core as runtime dependencies. The iOS app declares the scene

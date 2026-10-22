@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { resolveMobileConstants } from './mobile-constants.mjs';
+import { coreStyleSource } from './runtime-sources.mjs';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname, relative } from 'node:path';
 import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
-import { workspaceRoot, relocatedFiles } from './sources.mjs';
+import { workspaceRoot, coreSourceRoot, relocatedFiles } from './sources.mjs';
 
 const require = createRequire(import.meta.url);
 const output = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core');
@@ -59,9 +60,11 @@ try {
     'common', 'index.ios', 'index.android', 'tree/index.ios', 'tree/index.android',
   ];
   const expected = [
-    'LICENSE', 'README.md', 'ios-host-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
+    'LICENSE', 'README.md', 'ios-host-README.md', 'native-types-README.md', 'plugin-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
     'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts',
     ...modules.flatMap((name) => [`${name}.js`, `${name}.d.ts`]),
+    'typings/manifest.json',
+    ...JSON.parse(readFileSync(resolve(coreSourceRoot, 'typings/manifest.json'), 'utf8')).files.map(({ name }) => `typings/${name}`),
   ];
   assert.deepEqual(entries.sort(), expected.sort(), 'The runtime archive must contain only the declared core source closure.');
   const packageRoot = resolve(temporary, 'node_modules/@octane-xplat/nativescript-mason-core');
@@ -89,19 +92,29 @@ try {
     console.log(`Packed ${platform} entry closes over ${files.size} local JS modules and NativeScript core only.`);
   }
   // Compare both emissions under the prototype's iOS/Android platform constant.
-  // Every other difference still fails, including the type-only property seam.
+  // Only the Windows rich-text-only copy method is removed; every other
+  // difference still fails, including the type-only property seam.
   for (const name of relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.'))) {
     const emitted = name.replace(/\.ts$/, '.js');
     const clean = (text) => text.replace(/\n?\/\/# sourceMappingURL=.*\s*$/, '').trimEnd();
+    let full = readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8');
+    if (name === 'style.ts') full = coreStyleSource(full);
     assert.equal(clean(readFileSync(resolve(packageRoot, emitted), 'utf8')),
-      clean(resolveMobileConstants(readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8'), emitted)),
+      clean(resolveMobileConstants(full, emitted)),
       `Shared runtime changed: ${name}`);
   }
 
-  // Resolve the real peer from an otherwise isolated consumer. The native bridge
-  // declarations remain a build-only input until host metadata is extracted.
+  // Resolve the peer and standard SDK ambient platform types in an isolated
+  // consumer. The package supplies its own native bridge declarations.
   mkdirSync(resolve(temporary, 'node_modules/@nativescript'), { recursive: true });
   symlinkSync(resolve(workspaceRoot, 'node_modules/@nativescript/core'), resolve(temporary, 'node_modules/@nativescript/core'), 'dir');
+  for (const name of ['types-ios', 'types-android']) {
+    symlinkSync(resolve(workspaceRoot, 'node_modules/@nativescript', name), resolve(temporary, 'node_modules/@nativescript', name), 'dir');
+  }
+  writeFileSync(resolve(temporary, 'sdk.d.ts'), `/// <reference path="./node_modules/@nativescript/core/global-types.d.ts" />
+/// <reference path="./node_modules/@nativescript/types-ios/index.d.ts" />
+/// <reference path="./node_modules/@nativescript/types-android/index.d.ts" />
+`);
   writeFileSync(resolve(temporary, 'consumer.ts'), `
 import { Label } from '@nativescript/core';
 import { View, Scroll, type Length, type ScrollToOptions } from '@octane-xplat/nativescript-mason-core';
@@ -116,7 +129,20 @@ const scroll = new Scroll();
 scroll.addChild(root);
 const seek: ScrollToOptions = { top: 100, behavior: 'smooth' };
 scroll.scrollTo(seek);
+const iosContainer: MasonUIView = NSCMason.shared.createView();
+const iosScroll: MasonScroll = NSCMason.shared.createScrollView();
+declare const androidContext: android.content.Context;
+const androidTree = new org.nativescript.mason.masonkit.Mason();
+const androidContainer: org.nativescript.mason.masonkit.View = androidTree.createView(androidContext);
+const androidScroll: org.nativescript.mason.masonkit.Scroll = androidTree.createScrollView(androidContext);
+void [iosContainer, iosScroll, androidContainer, androidScroll];
+// @ts-expect-error Core has no iOS HTML parser bridge class.
+MasonHTMLParser;
+// @ts-expect-error Core has no Android HTML parser bridge class.
+org.nativescript.mason.masonkit.HTMLParser;
 void Style;
+// @ts-expect-error Windows rich-text run copying is outside the core style API.
+Style.prototype.copyTextStyleTo;
 // @ts-expect-error Core has no HTML parser API.
 root.innerHTML = '<div>hello</div>';
 // @ts-expect-error Core accepts NativeScript views, rather than raw text nodes.
@@ -126,7 +152,7 @@ import { Div } from '@octane-xplat/nativescript-mason-core';
 `);
   writeFileSync(resolve(temporary, 'tsconfig.json'), JSON.stringify({
     compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, target: 'ES2020', module: 'ESNext', moduleResolution: 'Bundler', lib: ['ES2020'], types: [] },
-    files: ['consumer.ts'],
+    files: ['sdk.d.ts', 'consumer.ts'],
   }, null, 2));
   run(process.execPath, [require.resolve('typescript/bin/tsc'), '-p', resolve(temporary, 'tsconfig.json')], temporary);
   console.log('Isolated consumer types accept containers, style and foreign controls; reject HTML and raw text.');

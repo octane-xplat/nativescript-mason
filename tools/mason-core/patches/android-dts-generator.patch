@@ -1,0 +1,173 @@
+--- a/DtsApi.java
++++ b/DtsApi.java
+@@ -277,19 +277,32 @@
+     }
+ 
+     private String replaceIgnoredNamespaces(String content) {
+-        String regexFormat = "(?<Replace>%s(?:(?:\\.[a-zA-Z\\d]*)|<[a-zA-Z\\d\\.<>]*>)*)(?<Suffix>[^a-zA-Z\\d]+)";
+-        // these namespaces are not known in some android api levels, so we cannot use them in android-support for instance, so we are replacing them with any
+-        for (String ignoredNamespace : this.getIgnoredNamespaces()) {
+-            String regexString = String.format(regexFormat, ignoredNamespace.replace(".", "\\."));
+-            content = content.replaceAll(regexString, "any$2");
+-            regexString = String.format(regexFormat, getGlobalAliasedClassName(ignoredNamespace).replace(".", "\\."));
+-            content = content.replaceAll(regexString, "any$2");
+-        }
+-
+-        // replace "extends any" with "extends java.lang.Object"
+-        content = content.replace(" extends any ", String.format(" extends %s ", DtsApi.JavaLangObject));
+-
+-        return content;
++        for (String namespace : getIgnoredNamespaces()) {
++            String[] names = { namespace, getGlobalAliasedClassName(namespace) };
++            for (String name : names) {
++                Matcher matcher = Pattern.compile("\\b" + Pattern.quote(name) + "(?:[.$][\\w$]+)*").matcher(content);
++                StringBuilder result = new StringBuilder();
++                int previous = 0;
++                while (matcher.find(previous)) {
++                    int end = matcher.end();
++                    if (end < content.length() && content.charAt(end) == '<') {
++                        int depth = 1;
++                        end++;
++                        while (end < content.length() && depth > 0) {
++                            char character = content.charAt(end++);
++                            if (character == '<') depth++;
++                            if (character == '>') depth--;
++                        }
++                        if (depth != 0) throw new IllegalStateException("Unbalanced ignored generic");
++                    }
++                    result.append(content, previous, matcher.start()).append("any");
++                    previous = end;
++                }
++                result.append(content, previous, content.length());
++                content = result.toString();
++            }
++        }
++        return content.replace(" extends any ", " extends java.lang.Object ");
+     }
+ 
+     public static String serializeGenerics() {
+@@ -502,101 +515,21 @@
+         return className;
+     }
+ 
+-    private int closePackage(JavaClass prevClass, JavaClass currClass) {
+-        int indent = 0;
+-
+-        if (prevClass == null) {
+-            return indent;
+-        }
+-
+-        String prevClassName = prevClass.getClassName();
+-        int prevDotCount = prevClassName.length() - prevClassName.replace(".", "").length();
+-        int prevDollarCount = prevClassName.length() - prevClassName.replace("$", "").length();
+-        int prevCount = prevDotCount + prevDollarCount;
+-
+-        if (currClass == null) {
+-            indent = prevCount;
+-            while (indent > 0) {
+-                String tabs = getTabs(--indent);
+-                sbContent.appendln(tabs + "}");
+-            }
+-            return indent;
+-        }
+-
+-        String currClassName = currClass.getClassName();
+-        int currDotCount = currClassName.length() - currClassName.replace(".", "").length();
+-        int currDollarCount = currClassName.length() - currClassName.replace("$", "").length();
+-        int currCount = currDotCount + currDollarCount;
+-
+-        while (prevCount > currCount) {
+-            String tabs = getTabs(--prevCount);
+-            sbContent.appendln(tabs + "}");
+-        }
+-
+-        boolean isNested = isNested(currClass);
+-
+-        if (!isNested) {
+-            throw new UnsupportedOperationException("TODO: implement");
+-            // String prevClassName = prevClass.getClassName();
+-            // int dotCount = prevClassName.length() -
+-            // prevClassName.replace(".", "").length();
+-            // int dollarCount = prevClassName.length() -
+-            // prevClassName.replace("$", "").length();
+-            // indent = dotCount + dollarCount;
+-            //
+-            // String[] prevParts = prevClassName.replace('$',
+-            // '.').split("\\.");
+-            // String[] currParts = currClass.getClassName().replace('$',
+-            // '.').split("\\.");
+-            //
+-            // int diffIdx = 0;
+-            // while ((diffIdx < prevParts.length) && (diffIdx <
+-            // currParts.length) &&
+-            // prevParts[diffIdx].equals(currParts[diffIdx])) {
+-            // ++diffIdx;
+-            // }
+-            //
+-            // int count = prevParts.length - diffIdx - 1;
+-            // while (count-- > 0) {
+-            // String tabs = getTabs(--indent);
+-            // ps.println(tabs + "}");
+-            // }
+-        }
+-
+-        return indent;
+-    }
+-
+-    private int openPackage(JavaClass prevClass, JavaClass currClass) {
+-        int indent = 0;
+-
+-        String prevClassName = (prevClass != null) ? prevClass.getClassName() : "";
+-        String[] prevParts = prevClassName.replace('$', '.').split("\\.");
+-        String[] currParts = currClass.getClassName().replace('$', '.').split("\\.");
+-
+-        int diffIdx = 0;
+-        while ((diffIdx < prevParts.length) && (diffIdx < currParts.length)
+-                && prevParts[diffIdx].equals(currParts[diffIdx])) {
+-            ++diffIdx;
+-        }
+-
+-        indent = diffIdx;
+-        for (int idx = diffIdx; idx < currParts.length - 1; idx++) {
+-            ++indent;
+-            String tabs = getTabs(idx);
+-            if (idx == 0) {
+-                sbContent.append(tabs + "declare ");
+-            } else {
+-                sbContent.append(tabs + "export ");
+-            }
+-            sbContent.appendln("module " + currParts[idx] + " {");
+-        }
+-
+-        if (isNested(currClass) && (prevParts.length < currParts.length)) {
+-            String tabs = getTabs(prevParts.length - 1);
+-            sbContent.appendln(tabs + "export module " + prevParts[prevParts.length - 1] + " {");
+-        }
+-
+-        return indent;
++    private int closePackage(JavaClass previous, JavaClass current) {
++        if (previous == null) return 0;
++        String[] parts = previous.getClassName().replace('$', '.').split("\\.");
++        for (int index = parts.length - 2; index >= 0; index--) {
++            sbContent.appendln(getTabs(index) + "}");
++        }
++        return 0;
++    }
++
++    private int openPackage(JavaClass previous, JavaClass current) {
++        String[] parts = current.getClassName().replace('$', '.').split("\\.");
++        for (int index = 0; index < parts.length - 1; index++) {
++            sbContent.appendln(getTabs(index) + (index == 0 ? "declare " : "export ") + "module " + parts[index] + " {");
++        }
++        return parts.length - 1;
+     }
+ 
+     private void processInterfaceConstructor(JavaClass classInterface, TypeDefinition typeDefinition, List<Method> allInterfacesMethods) {
+@@ -1062,6 +995,7 @@
+ 
+             if (localVariable != null) {
+                 String name = localVariable.getName();
++                if (!name.matches("[$A-Za-z_][$0-9A-Za-z_]*")) name = "param" + idx;
+                 if (reservedJsKeywords.contains(name)) {
+                     System.out.println(String.format("Appending _ to reserved JS keyword %s", name));
+                     sb.append(name + "_");
