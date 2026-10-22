@@ -1,4 +1,4 @@
-import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -82,6 +82,11 @@ const output = resolve(workspaceRoot, 'dist/native/mason-core/ios-host', configu
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 cpSync(resolve(products, 'MasonCore.framework'), resolve(output, 'MasonCore.framework'), { recursive: true });
+// SwiftPM resource bundles are siblings of the framework in Xcode's products.
+// Export them explicitly so consumers never reach back into our build tree.
+const resourceBundles = readdirSync(products).filter((name) => name.endsWith('.bundle')).sort();
+if (!resourceBundles.includes('SDWebImage_SDWebImage.bundle')) throw new Error('Missing SDWebImage resource bundle.');
+for (const name of resourceBundles) cpSync(resolve(products, name), resolve(output, 'resources', name), { recursive: true });
 const include = resolve(output, 'include');
 mkdirSync(include, { recursive: true });
 const headerFilter = (filename) => statSync(filename).isDirectory() || filename.endsWith('.h');
@@ -105,6 +110,7 @@ const manifest = {
   nativeFrameworkSha256: hash(resolve(output, 'MasonCore.framework/MasonCore')),
   engineSha256: hash(engine), dependencyLockSha256: hash(resolve(output, 'Package.resolved')),
   retainedDependencies: ['FontManager', 'SDWebImage'],
+  resourceBundles,
   sources,
 };
 writeFileSync(resolve(output, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
