@@ -84,6 +84,9 @@ jobs:
           if-no-files-found: error
 
   build-core:
+    # GitHub requires write access to read draft-release assets during validation.
+    permissions:
+      contents: write
     if: github.repository == 'octane-xplat/nativescript-mason' && ((github.event_name == 'release' && startsWith(github.event.release.tag_name, 'core-')) || (github.event_name == 'workflow_dispatch' && inputs.package == 'core'))
     runs-on: ubuntu-latest
     outputs:
