@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { nativeSource } from '../mason-core/native-sources.mjs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -54,7 +55,7 @@ describe('the TextType enum', () => {
   });
 
   it('agrees with the Kotlin TextType enum', () => {
-    const source = read(`${pkg}/src-native/mason-android/masonkit/src/main/java/org/nativescript/mason/masonkit/enums/TextType.kt`);
+    const source = read(nativeSource('android', 'enums/TextType.kt'));
     const block = /enum class TextType\(val value: Byte\) \{([\s\S]*?);/.exec(source);
     if (!block) throw new Error('no Kotlin TextType enum found');
     const declared = [...block[1].matchAll(/([A-Z][A-Za-z0-9]*)\s*\(\s*(\d+)\s*\)/g)].map((m) => [m[1], Number(m[2])] as [string, number]);

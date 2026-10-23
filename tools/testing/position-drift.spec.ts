@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { nativeSource } from '../mason-core/native-sources.mjs';
 import { relocatedFile } from '../mason-core/sources.mjs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -45,7 +46,7 @@ describe('the Position enum', () => {
   });
 
   it('agrees with the Kotlin Position enum', () => {
-    const source = read(`${pkg}/src-native/mason-android/masonkit/src/main/java/org/nativescript/mason/masonkit/enums/Position.kt`);
+    const source = read(nativeSource('android', 'enums/Position.kt'));
     const block = /enum class Position\(val value: Byte\) \{([\s\S]*?);/.exec(source);
     if (!block) throw new Error('no Kotlin Position enum found');
     const declared = [...block[1].matchAll(/([A-Z][A-Za-z0-9]*)\s*\(\s*(\d+)\s*\)/g)].map((m) => [m[1], Number(m[2])] as [string, number]);
@@ -56,7 +57,7 @@ describe('the Position enum', () => {
   });
 
   it('agrees with the Swift Position enum', () => {
-    const source = read(`${pkg}/src-native/mason-ios/Mason/Mason/Enums.swift`);
+    const source = read(nativeSource('ios', 'Enums.swift'));
     // Enums.swift holds many enums, so scope to this one before matching cases.
     const enumBlock = /@objc\(MasonPosition\)\npublic enum Position: Int, RawRepresentable \{([\s\S]*?)\n\}/.exec(source);
     if (!enumBlock) throw new Error('no Swift Position enum found');
