@@ -69,7 +69,25 @@ export function coreCommonSource() {
     if (found.length !== (name === 'innerHTML' ? 2 : 1)) throw new Error(`ViewBase boundary changed: ${name}`);
     edits.push(...found.map((node) => ({ node })));
   }
+  const [loaded] = required(view.members, ['onLoaded'], file);
+  const loadedEdit = edits.find((edit) => edit.node === loaded);
+  if (!loadedEdit) throw new Error('Review core host load boundary.');
+  loadedEdit.text = `
+  private _cssEnvironmentStop?: () => void;
+  onLoaded() {
+    super.onLoaded();
+    if (!this.parent?.[isMasonView_]) {
+      this._cssEnvironmentStop ??= registerAutomaticCssEnvironment(this, () => nativeCssEnvironmentSource(this));
+    }
+  }
+  onUnloaded() {
+    super.onUnloaded();
+    this._cssEnvironmentStop?.();
+    this._cssEnvironmentStop = undefined;
+  }
+`;
   let output = apply(file, edits);
+  output = "import { registerAutomaticCssEnvironment } from './css-environment';\nimport { nativeCssEnvironmentSource } from './native-environment';\n" + output;
   const before = 'return isCssLength(value) ? value.css : value;';
   if (output.split(before).length !== 2) throw new Error('Review core environment shorthand forwarding.');
   output = "import { isCssEnvironmentShorthand } from './css-environment';\n" +

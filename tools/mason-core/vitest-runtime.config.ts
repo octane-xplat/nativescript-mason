@@ -25,7 +25,7 @@ export default defineConfig({
     root: workspaceRoot,
     environment: 'node',
     setupFiles: [resolve(workspaceRoot, 'tools/testing/mason-test-kit/setup.ts')],
-    include: ['tools/mason-core/runtime.spec.ts', 'tools/mason-core/css-environment.spec.ts'],
+    include: ['tools/mason-core/runtime.spec.ts', 'tools/mason-core/css-environment.spec.ts', 'tools/mason-core/native-environment.spec.ts'],
     server: { deps: { inline: [/@nativescript[\\/]core/] } },
   },
 });

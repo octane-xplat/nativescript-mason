@@ -23,6 +23,35 @@ export interface CssEnvironmentSource {
 
 const environments = new WeakMap<object, CssSafeAreaInsets>();
 const bindings = new WeakMap<object, object>();
+interface AutomaticSource { create: () => CssEnvironmentSource; starting: boolean; stop?: () => void; }
+const automaticSources = new WeakMap<object, AutomaticSource>();
+
+/** Core host lifecycle adapter: observe lazily, only when a subtree actually uses env(). */
+export function registerAutomaticCssEnvironment(host: CssEnvironmentHost, create: () => CssEnvironmentSource): () => void {
+  const entry: AutomaticSource = { create, starting: false };
+  automaticSources.set(host, entry);
+  refreshCssEnvironment(host);
+  return () => {
+    if (automaticSources.get(host) !== entry) return;
+    automaticSources.delete(host);
+    entry.stop?.();
+  };
+}
+
+function ensureAutomaticEnvironment(owner?: CssEnvironmentHost): void {
+  for (let host = owner; host; host = host.parent ?? undefined) {
+    const entry = automaticSources.get(host);
+    if (entry) {
+      if (!entry.stop && !entry.starting && !bindings.has(host) && !environments.has(host)) {
+        entry.starting = true;
+        try { entry.stop = bindCssEnvironment(host, entry.create()); }
+        finally { entry.starting = false; }
+      }
+      return;
+    }
+    if (environments.has(host)) return;
+  }
+}
 const sides = ['top', 'right', 'bottom', 'left'] as const;
 const ENV = /\benv\(/i;
 const shorthand = Symbol('mason:environment-shorthand');
@@ -216,6 +245,7 @@ export function environmentStyleValue(target: object, name: string, value: unkno
     if (writes && !writes.values.size) releaseCssEnvironmentStyle(target);
     return value;
   }
+  ensureAutomaticEnvironment(owner);
   if (!writes) {
     writes = {
       target: new WeakRef(target as Target), owner: owner && new WeakRef(owner), values: new Map(), active: true,

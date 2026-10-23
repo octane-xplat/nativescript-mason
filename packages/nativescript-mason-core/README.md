@@ -29,7 +29,7 @@ pnpm pack --pack-destination /path/to/local-artifacts
 Install the resulting tarball in a NativeScript application:
 
 ```sh
-pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.0.tgz
+pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.1.tgz
 ```
 
 Use NativeScript controls inside a Mason container:
@@ -113,13 +113,22 @@ Source provenance and the byte-preserving module map live in
 `.agents/design/mason-core-extraction.md` in Octane Xplat. Upstream discussion:
 https://github.com/triniwiz/nativescript-mason/issues/160.
 
-## Safe-area CSS environment values (unreleased)
+## Safe-area CSS environment values
 
-The source runtime supports `env(safe-area-inset-top/right/bottom/left)` when
-its host supplies the current window's insets. This API is not in published
-`1.0.0-beta.0`. Bind one source per window or presentation root; the host reads
-logical pixels from that root's native window and notifies on inset changes.
-Call the returned function when the host is disposed.
+Starting in `1.0.0-beta.1`, loaded Mason container roots automatically supply
+`env(safe-area-inset-top/right/bottom/left)` from their owning native window.
+Observation starts only when a subtree uses `env()`, is shared within each
+window, and ends when the root unloads. The styles below need no app binding.
+
+```css
+.safe-area-content {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+```
+
+For a custom presentation viewport, install an explicit source before the root
+loads. It takes precedence over automatic observation. Call the returned
+function when that host is disposed.
 
 ```ts
 import {
@@ -176,7 +185,15 @@ export function nativeViewRecreated(root: View) {
 }
 ```
 
-Verification is headless: parser, style-buffer transport, actual NativeScript
-cascade and host lifecycle tests. No iOS/Android layout run qualifies this
-resolver yet. Xplat must keep its native `env()` warning until a release with
-this resolver is installed **and** its window host binds the inset source.
+The automatic iOS source observes the owning `UIWindow` through a transparent,
+non-interactive view. Android observes its native root before drawing, reads
+system-bar/cutout insets through the existing AndroidX dependency, and converts
+using that root's density. It excludes keyboard/IME insets and preserves other
+inset listeners. No process-global active window or activity selects values.
+
+Verification remains headless: parser, style-buffer transport, actual
+NativeScript cascade, platform-adapter substitutes and host lifecycle tests.
+Actual iOS/Android inset dispatch and layout remain unqualified. This resolver
+covers Mason style buffers; it does not add `env()` support to ordinary
+NativeScript controls or media queries. Xplat's qualification warning remains
+until native layout is verified.

@@ -31,7 +31,9 @@ for (const name of relocatedFiles.filter((name) => !name.includes('.windows.')))
   mkdirSync(dirname(filename), { recursive: true });
   copyFileSync(resolve(coreSourceRoot, name), filename);
 }
-write('css-environment.ts', readFileSync(resolve(coreSourceRoot, 'css-environment.ts'), 'utf8'));
+for (const name of ['css-environment.ts', 'native-environment.ios.ts', 'native-environment.android.ts', 'native-environment.d.ts']) {
+  write(name, readFileSync(resolve(coreSourceRoot, name), 'utf8'));
+}
 write('common.ts', coreCommonSource());
 write('properties.ts', corePropertiesSource());
 write('style.ts', coreStyleSource());
@@ -86,7 +88,7 @@ assert.ok(!compilerFiles.some((name) => /(?:^|[/\\])nativescript-masonkit[/\\]/.
   'Core runtime compilation loaded full MasonKit source or native declarations.');
 writeFileSync(resolve(runtimeSourceRoot, 'compiler-files.json'), JSON.stringify(compilerFiles, null, 2) + '\n');
 console.log('Core runtime compiler uses independent native declarations and SDK types, without full MasonKit typings.');
-for (const name of ['index.d.ts', 'layout-types.d.ts', 'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts']) {
+for (const name of ['index.d.ts', 'layout-types.d.ts', 'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts', 'native-environment.d.ts']) {
   mkdirSync(dirname(resolve(runtimeOutput, name)), { recursive: true });
   copyFileSync(resolve(runtimeSourceRoot, name), resolve(runtimeOutput, name));
 }

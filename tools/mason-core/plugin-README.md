@@ -225,10 +225,10 @@ HTML/text/widget declarations. This is build/metadata evidence only; no iOS
 physical-device runtime or distribution signing is qualified.
 
 
-## Unreleased safe-area environment resolver
+## Safe-area environment resolver
 
-The source runtime now exposes host-scoped `bindCssEnvironment` and
-`setCssEnvironment` APIs. See the package README's safe-area section for the
-host contract, CSS examples and headless coverage. Published `1.0.0-beta.0`
-does not include this implementation. A consuming framework must adopt a new
-release and bind its native window observer before removing its `env()` warning.
+Core `1.0.0-beta.1` automatically binds loaded Mason roots to their owning
+native window when a subtree first uses `env()`. See the package README for
+window ownership, explicit source overrides, fallback semantics and headless
+coverage. Actual native inset dispatch/layout remains unqualified; Xplat keeps
+a qualification warning for this beta.

@@ -4,7 +4,7 @@ import { Style as NativeStyle } from '@nativescript/core/ui/styling/style';
 import { widthProperty, heightProperty, minWidthProperty, minHeightProperty, paddingTopProperty, paddingRightProperty, paddingBottomProperty, paddingLeftProperty } from '@nativescript/core/ui/styling/style-properties';
 import { CssState, StyleScope } from '@nativescript/core/ui/styling/style-scope';
 import * as core from '../../tmp/nativescript-mason-core/index.android';
-import { resolveCssEnvironment, releaseCssEnvironmentStyle } from '../../tmp/nativescript-mason-core/css-environment';
+import { resolveCssEnvironment, releaseCssEnvironmentStyle, registerAutomaticCssEnvironment } from '../../tmp/nativescript-mason-core/css-environment';
 import { installMasonSizeUnits } from '../../tmp/nativescript-mason-core/properties';
 import { isMasonView_ } from '../../tmp/nativescript-mason-core/symbols';
 import { setScreenScale } from '../testing/mason-test-kit/ns-layout';
@@ -146,6 +146,30 @@ describe('core runtime environment ownership and effective style writes', () => 
     releaseCssEnvironmentStyle(child.helper);
     core.setCssEnvironment(second.view, { top: 30 });
     expect(child.read('PADDING_TOP_VALUE')).toBe(28);
+  });
+
+  it('starts automatic observation lazily and reconnects with the root lifecycle', () => {
+    const root = host(), child = host(root.view); const stop = vi.fn();
+    let changed = () => {}; let top = 62;
+    const create = vi.fn(() => ({ read: () => ({ top }), subscribe: (callback: () => void) => { changed = callback; return stop; } }));
+    const unload = registerAutomaticCssEnvironment(root.view, create);
+    expect(create).not.toHaveBeenCalled();
+    child.helper.paddingTop = 'env(safe-area-inset-top, 5px)';
+    expect(create).toHaveBeenCalledTimes(1); expect(child.read('PADDING_TOP_VALUE')).toBe(62);
+    top = 0; changed(); expect(child.read('PADDING_TOP_VALUE')).toBe(0);
+    child.view.notify({ eventName: 'unloaded', object: child.view }); unload();
+    expect(stop).toHaveBeenCalledTimes(1);
+    const reload = registerAutomaticCssEnvironment(root.view, create);
+    expect(create).toHaveBeenCalledTimes(1);
+    child.view.notify({ eventName: 'loaded', object: child.view });
+    expect(create).toHaveBeenCalledTimes(2); reload();
+  });
+
+  it('respects an explicit host source installed before the root loads', () => {
+    const h = host(); core.setCssEnvironment(h.view, { top: 12 });
+    const create = vi.fn(); const unload = registerAutomaticCssEnvironment(h.view, create);
+    h.helper.paddingTop = 'env(safe-area-inset-top)';
+    expect(create).not.toHaveBeenCalled(); expect(h.read('PADDING_TOP_VALUE')).toBe(12); unload();
   });
 
   it('queues the existing native style transport when host values change', async () => {

@@ -1,5 +1,5 @@
 {
-  "releaseTag": "core-v1.0.0-beta.0",
+  "releaseTag": "core-v1.0.0-beta.1",
   "asset": "core-native-inputs.tgz",
   "sha256": "672773770a873a87879951e83181eed074067e708124172ca98bb06588a2965d",
   "sourceCommit": "043dda2c8b1138e5bc307edb07ae6e5e88d228bb"

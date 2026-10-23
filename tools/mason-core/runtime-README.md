@@ -52,7 +52,7 @@ full source in `tmp/nativescript-mason-core`; it does not change the full
 package's text/HTML implementation. Core-only CSS environment adapters preserve safe-area expressions through
 length conversion and shorthand expansion; hosts supply per-window values
 through `bindCssEnvironment` or `setCssEnvironment`. See the package README for
-the unreleased API and its headless qualification. `properties.ts` also has a
+the API and its headless qualification. `properties.ts` also has a
 generated type adaptation. Apart from those explicit adapters, emitted
 JavaScript must match the full package under the same
 iOS/Android platform constant: this prototype resolves `__WINDOWS__` to `false`
@@ -93,3 +93,11 @@ button updates, effect cleanup and programmatic scrolling on both targets.
 Still required before Xplat adoption: OS scrolling and hit-testing, iOS device packaging,
 representative full-package native regressions and matching release-build size
 measurements. Windows is not qualified by this prototype.
+
+
+Loaded core roots register a lazy automatic native environment source. iOS
+selects the container's owning UIWindow; Android selects its own root view and
+density. Platform observers are shared by window/root and disposed on unload.
+The JS adapters ship independently of the pinned native framework/AAR inputs;
+this release reuses those native binaries unchanged. Headless adapter tests do
+not establish native callback or layout qualification.

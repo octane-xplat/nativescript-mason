@@ -56,13 +56,13 @@ try {
   const archive = resolve(artifacts, archives[0]);
   const entries = run('tar', ['-tzf', archive], temporary).trim().split('\n').map((name) => name.replace(/^package\//, ''));
   const modules = [
-    'css-environment',
+    'css-environment', 'native-environment.ios', 'native-environment.android',
     ...relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.')).map((name) => name.replace(/\.ts$/, '')),
     'common', 'index.ios', 'index.android', 'tree/index.ios', 'tree/index.android',
   ];
   const expected = [
     'LICENSE', 'README.md', 'ios-host-README.md', 'native-types-README.md', 'plugin-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
-    'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts',
+    'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts', 'native-environment.d.ts',
     ...modules.flatMap((name) => [`${name}.js`, `${name}.d.ts`]),
     'typings/manifest.json',
     ...JSON.parse(readFileSync(resolve(coreSourceRoot, 'typings/manifest.json'), 'utf8')).files.map(({ name }) => `typings/${name}`),
