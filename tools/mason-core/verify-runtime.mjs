@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import ts from 'typescript';
 import { resolveMobileConstants } from './mobile-constants.mjs';
-import { coreStyleSource, coreForeignLayoutSource } from './runtime-sources.mjs';
+import { coreStyleSource, coreForeignLayoutSource, coreEnvironmentPropertiesSource } from './runtime-sources.mjs';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, dirname, relative } from 'node:path';
@@ -56,6 +56,7 @@ try {
   const archive = resolve(artifacts, archives[0]);
   const entries = run('tar', ['-tzf', archive], temporary).trim().split('\n').map((name) => name.replace(/^package\//, ''));
   const modules = [
+    'css-environment',
     ...relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.')).map((name) => name.replace(/\.ts$/, '')),
     'common', 'index.ios', 'index.android', 'tree/index.ios', 'tree/index.android',
   ];
@@ -99,6 +100,7 @@ try {
     const clean = (text) => text.replace(/\n?\/\/# sourceMappingURL=.*\s*$/, '').trimEnd();
     let full = readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8');
     if (name === 'style.ts') full = coreStyleSource(full);
+    if (name === 'properties.ts') full = coreEnvironmentPropertiesSource(full);
     if (name === 'foreign-layout.ts') full = coreForeignLayoutSource(full);
     assert.equal(clean(readFileSync(resolve(packageRoot, emitted), 'utf8')),
       clean(resolveMobileConstants(full, emitted)),
@@ -118,9 +120,14 @@ try {
 `);
   writeFileSync(resolve(temporary, 'consumer.ts'), `
 import { Label } from '@nativescript/core';
-import { View, Scroll, type Length, type ScrollToOptions } from '@octane-xplat/nativescript-mason-core';
+import { View, Scroll, bindCssEnvironment, setCssEnvironment, refreshCssEnvironment, type Length, type ScrollToOptions, type CssEnvironmentSource } from '@octane-xplat/nativescript-mason-core';
 import { Style } from '@octane-xplat/nativescript-mason-core/style';
 const root = new View();
+const source: CssEnvironmentSource = { read: () => null, subscribe: () => () => {} };
+const disconnect = bindCssEnvironment(root, source);
+setCssEnvironment(root, { top: 0, right: 0, bottom: 0, left: 0 });
+refreshCssEnvironment(root);
+disconnect();
 const length: Length = '50%';
 root.style.width = length;
 root.style.display = 'grid';

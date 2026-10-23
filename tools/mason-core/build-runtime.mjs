@@ -31,6 +31,7 @@ for (const name of relocatedFiles.filter((name) => !name.includes('.windows.')))
   mkdirSync(dirname(filename), { recursive: true });
   copyFileSync(resolve(coreSourceRoot, name), filename);
 }
+write('css-environment.ts', readFileSync(resolve(coreSourceRoot, 'css-environment.ts'), 'utf8'));
 write('common.ts', coreCommonSource());
 write('properties.ts', corePropertiesSource());
 write('style.ts', coreStyleSource());
@@ -43,6 +44,8 @@ export { Scroll } from './scroll';
 export { ViewBase, Event } from './common';
 export type { ScrollBehavior, ScrollLogicalPosition, ScrollToOptions, ScrollIntoViewOptions } from './common';
 export { Style } from './style';
+export { setCssEnvironment, clearCssEnvironment, bindCssEnvironment, refreshCssEnvironment } from './css-environment';
+export type { CssSafeAreaInsets, CssEnvironmentHost, CssEnvironmentSource } from './css-environment';
 export { setCssDiagnostics, getCssDiagnostics, clearCssDiagnostics, formatCssDiagnostics, cssDiagnosticsEnabled } from './diagnostics';
 export { setCssUnitContext, cssUnits } from './units';
 export { registerAppFontsDirectory } from './fonts';

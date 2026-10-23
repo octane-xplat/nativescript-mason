@@ -49,15 +49,20 @@ child ownership using NativeScript's real JavaScript view classes.
 The unchanged sources live under `packages/nativescript-mason-core`. The
 prototype generates core-specific `common.ts`, `tree/`, and root types from the
 full source in `tmp/nativescript-mason-core`; it does not change the full
-package's text/HTML implementation. `properties.ts` has a generated type-only
-adaptation. Its emitted JavaScript must match the full package under the same
+package's text/HTML implementation. Core-only CSS environment adapters preserve safe-area expressions through
+length conversion and shorthand expansion; hosts supply per-window values
+through `bindCssEnvironment` or `setCssEnvironment`. See the package README for
+the unreleased API and its headless qualification. `properties.ts` also has a
+generated type adaptation. Apart from those explicit adapters, emitted
+JavaScript must match the full package under the same
 iOS/Android platform constant: this prototype resolves `__WINDOWS__` to `false`
 at build time because no Windows wrapper is shipped. Standard NativeScript
 webpack does not define that flag. The verifier applies the same constant to
 the full emission before comparison. The generated `style.ts` also omits
 `copyTextStyleTo`, which only copies Windows rich-text runs. Its Windows-only
-guard must retain the expected structure; every other shared implementation
-difference still fails comparison. The tracked style source remains unchanged.
+guard must retain the expected structure. Environment adapters are also
+applied to the full emission for comparison; every unaccounted shared
+implementation difference still fails comparison. The tracked style source remains unchanged.
 
 The generated foreign-view helper also cancels queued style writes on release.
 Without that cancellation, removing and destroying a label in the same turn as

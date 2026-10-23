@@ -190,3 +190,21 @@ Source references: NativeScript Vite `helpers/main-entry.ts`, NativeScript
 Android `JsV8InspectorClient.cpp::registerModules`, and NativeScript Webpack
 `configuration/base.ts`. This startup finding is separate from the passing
 core Webpack consumer and from native-host regression qualification.
+
+
+## Core-only CSS environment seam
+
+`packages/nativescript-mason-core/css-environment.ts` is new core-owned source,
+not a relocated full-package module. `build-runtime.mjs` copies it only into
+the core runtime. Its host binding owns per-subtree values and subscriptions;
+`runtime-sources.mjs` projects the style, size, shorthand and release adapters
+without changing the shared tracked modules. Full MasonKit gains no resolver
+or dependency through this change. The runtime verifier applies each explicit
+adapter when comparing shared emissions and rejects other divergence.
+
+```sh
+pnpm exec nx run nativescript-mason-core:verify.runtime
+```
+
+The package README documents the host contract. Native observation and device
+layout qualification remain separate from these headless parser/lifecycle tests.

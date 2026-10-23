@@ -223,3 +223,12 @@ disabled. It checks that the app selects the device framework, embeds the
 device privacy bundle and generates the core bridge classes without optional
 HTML/text/widget declarations. This is build/metadata evidence only; no iOS
 physical-device runtime or distribution signing is qualified.
+
+
+## Unreleased safe-area environment resolver
+
+The source runtime now exposes host-scoped `bindCssEnvironment` and
+`setCssEnvironment` APIs. See the package README's safe-area section for the
+host contract, CSS examples and headless coverage. Published `1.0.0-beta.0`
+does not include this implementation. A consuming framework must adopt a new
+release and bind its native window observer before removing its `env()` warning.

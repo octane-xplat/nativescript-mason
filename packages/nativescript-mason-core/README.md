@@ -112,3 +112,71 @@ Source provenance and the byte-preserving module map live in
 `tools/mason-core/README.md` in the source checkout. The agreed design is
 `.agents/design/mason-core-extraction.md` in Octane Xplat. Upstream discussion:
 https://github.com/triniwiz/nativescript-mason/issues/160.
+
+## Safe-area CSS environment values (unreleased)
+
+The source runtime supports `env(safe-area-inset-top/right/bottom/left)` when
+its host supplies the current window's insets. This API is not in published
+`1.0.0-beta.0`. Bind one source per window or presentation root; the host reads
+logical pixels from that root's native window and notifies on inset changes.
+Call the returned function when the host is disposed.
+
+```ts
+import {
+  View, bindCssEnvironment,
+  type CssEnvironmentSource,
+} from '@octane-xplat/nativescript-mason-core';
+
+export function connectWindow(root: View, source: CssEnvironmentSource) {
+  root.className = 'safe-area-content';
+  return bindCssEnvironment(root, source);
+}
+```
+
+`source.read()` returns `{ top, right, bottom, left }` in device-independent
+pixels, or `null` while unavailable. `source.subscribe(changed)` returns an
+unsubscribe function. Environment values are scoped to that root's descendants;
+a nested boundary may represent another window. Core owns substitution and
+style re-evaluation; the host owns native observation, correct window selection
+and disposal. It does not read a process-global screen or add a platform plugin.
+
+```ts
+import { setCssEnvironment, type View, type CssSafeAreaInsets } from '@octane-xplat/nativescript-mason-core';
+
+export function publishWindowInsets(root: View, insets: CssSafeAreaInsets | null) {
+  setCssEnvironment(root, insets);
+}
+```
+
+A fallback applies when the requested value is unavailable. A real zero remains
+zero. Nested math, box shorthands (`padding`, `margin`, `border-width`) and
+NativeScript-expanded CSS variables retain their authored expressions when
+insets change. Local overrides and removed declarations stop the replaced
+expression from being replayed.
+
+```css
+.safe-area-content {
+  --content-top: env(safe-area-inset-top, 0px);
+  padding: calc(var(--content-top) + 8px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+```
+
+Unknown names can use fallbacks; unsupported or unavailable values without a
+fallback go through the existing invalid-length/diagnostic path. This is not
+a general CSS invalid-at-computed-value or inheritance implementation. Loaded
+views re-evaluate after reparenting; hosts that replace native views without a
+load transition must explicitly refresh their subtree.
+
+```ts
+import { refreshCssEnvironment, type View } from '@octane-xplat/nativescript-mason-core';
+
+export function nativeViewRecreated(root: View) {
+  refreshCssEnvironment(root);
+}
+```
+
+Verification is headless: parser, style-buffer transport, actual NativeScript
+cascade and host lifecycle tests. No iOS/Android layout run qualifies this
+resolver yet. Xplat must keep its native `env()` warning until a release with
+this resolver is installed **and** its window host binds the inset source.
