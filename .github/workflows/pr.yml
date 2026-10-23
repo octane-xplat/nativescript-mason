@@ -40,7 +40,7 @@ jobs:
       - name: JSX intrinsics match the element registry
         run: pnpm test:jsx-types
       - name: Typecheck the plugin
-        run: pnpm exec tsc -p packages/nativescript-masonkit/tsconfig.json --noEmit
+        run: pnpm exec nx run nativescript-masonkit:typecheck
       - name: Type-check the public consumer API
         run: pnpm exec tsc -p tools/testing/consumer-types/tsconfig.json
 

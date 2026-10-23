@@ -158,6 +158,12 @@
       },
       "executor": "nx:run-commands"
     },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prepare.sources"],
+      "cache": false,
+      "options": { "command": "tsc -p tmp/nativescript-masonkit/tsconfig.json --noEmit" }
+    },
     "prepare.sources": {
       "executor": "nx:run-commands",
       "cache": false,

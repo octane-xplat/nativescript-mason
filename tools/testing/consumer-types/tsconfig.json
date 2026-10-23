@@ -1,7 +1,12 @@
 {
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@octane-xplat/nativescript-masonkit": [
+        "tmp/nativescript-masonkit/index.d.ts"
+      ]
+    }
   },
   "files": [
     "smoke.ts",

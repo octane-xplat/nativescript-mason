@@ -68,7 +68,7 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm exec ts-patch install
       - run: pnpm test:keys && pnpm test:jsx-types
-      - run: pnpm exec tsc -p packages/nativescript-masonkit/tsconfig.json --noEmit
+      - run: pnpm exec nx run nativescript-masonkit:typecheck
       - run: pnpm test --maxWorkers=2
       # Native binaries are checked in. Changes to Rust/Swift/Kotlin/C++ require
       # refreshing the corresponding artifacts before releasing this commit.
