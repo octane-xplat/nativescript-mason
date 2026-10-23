@@ -75,7 +75,7 @@ platform declarations that do not match the compiled Rust surface. It does not
 replace runtime ABI or lifecycle tests.
 
 Raw engine archives stay outside the portable helper proof. The normal core
-`build` packages the independent native host artifacts; this private package
+`build` packages the independent native host artifacts; this experimental package
 has no `build.all` release target. Do not add them to an app as a replacement for
 MasonKit yet, or combine the two engines in one process. Output paths and
 artifact names are prototype details, not a published contract.

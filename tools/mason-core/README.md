@@ -137,7 +137,7 @@ for the old plugin prototype targets remain.
 Native artifacts must be prepared explicitly. `prepare.native.sdk` installs
 pinned generators independently of consumers, avoiding a bootstrap dependency
 on an already assembled plugin. See the core package README for the complete
-sequence. The private core project has no `build.all` target, so the full
+sequence. The independent core project has no `build.all` target, so the full
 repository's release-oriented `build:all` remains independent of this native
 setup and publishing remains opt-in.
 
