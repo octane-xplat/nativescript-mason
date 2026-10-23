@@ -22,7 +22,12 @@ try {
   run('tar', ['-xzf', resolve(isolated, tarball[0])]);
   const root = resolve(isolated, 'package');
   const manifest = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
-  assert.equal(manifest.private, true);
+  assert.notEqual(manifest.private, true);
+  assert.equal(manifest.name, '@octane-xplat/nativescript-mason-core');
+  const sourceManifest = JSON.parse(readFileSync(resolve(workspaceRoot, 'packages/nativescript-mason-core/package.json'), 'utf8'));
+  assert.equal(manifest.version, sourceManifest.version);
+  assert.equal(manifest.publishConfig.access, 'public');
+  assert.deepEqual(manifest.repository, sourceManifest.repository);
   assert.deepEqual(Object.keys(manifest.peerDependencies), ['@nativescript/core']);
   assert.equal(manifest.dependencies, undefined);
   assert.equal(manifest.masonCorePrototype.nativeHosts, true);

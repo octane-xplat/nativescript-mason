@@ -57,6 +57,8 @@ SWIFT_INCLUDE_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/
 `);
 const manifest = json(resolve(runtime, 'package.json'));
 const sourceManifest = json(resolve(workspaceRoot, 'packages/nativescript-mason-core/package.json'));
+delete manifest.private;
+manifest.publishConfig = sourceManifest.publishConfig;
 manifest.description = sourceManifest.description;
 manifest.nativescript = sourceManifest.nativescript;
 manifest.masonCorePrototype = {
@@ -79,4 +81,4 @@ function files(directory) {
 }
 const inventory = files(output).sort().map((filename) => ({ name: relative(output, filename), sha256: hash(filename) }));
 writeFileSync(resolve(output, 'artifact-inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
-console.log('Built the private core-only NativeScript package; target qualification is documented in its README.');
+console.log('Built the core-only NativeScript package; target qualification is documented in its README.');

@@ -5,8 +5,14 @@ ordinary NativeScript controls. It excludes MasonKit's HTML elements, parser,
 rich-text renderer and optional widgets. The existing full MasonKit package
 remains independent.
 
-This is a private, unpublished package. Build and pack the output below; the raw
-source directory is not an installable plugin. Do not install core and full
+Install the experimental beta in a NativeScript app:
+
+```sh
+pnpm add @octane-xplat/nativescript-mason-core@next
+```
+
+The beta ships arm64 iOS device/Simulator and Android arm64-v8a artifacts.
+The raw source directory is not an installable plugin. Do not install core and full
 MasonKit in the same app: their native class and library names overlap.
 
 ## Build and install
@@ -23,7 +29,7 @@ pnpm pack --pack-destination /path/to/local-artifacts
 Install the resulting tarball in a NativeScript application:
 
 ```sh
-pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-0.0.0.tgz
+pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.0.tgz
 ```
 
 Use NativeScript controls inside a Mason container:
@@ -76,9 +82,9 @@ pnpm exec nx run nativescript-mason-core:verify
 SDK setup is independent of any consumer or plugin build. Bridge declarations
 are generated from the exported native artifacts; assembly verifies their
 hashes. Regenerate after a native rebuild. The normal `build` assembles these
-artifacts without silently starting native compilation. The private package is
-excluded from the full repository's `build:all` release workflow until its
-publishing and upstream boundaries are agreed.
+artifacts without silently starting native compilation. Core uses its own release track and remains excluded from the full
+repository's `build:all` release workflow. See `RELEASING.md` in the source
+checkout for publishing.
 
 ## Qualification and limits
 

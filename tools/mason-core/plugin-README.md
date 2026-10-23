@@ -1,6 +1,6 @@
 # Mason core NativeScript plugin proof
 
-This private artifact combines the container-only JavaScript runtime with the
+This experimental plugin combines the container-only JavaScript runtime with the
 independently built native hosts. It excludes MasonKit's HTML parser, rich-text
 renderer and optional widgets. The portable helper proof and existing full MasonKit package remain separate.
 The normal core build produces this plugin.

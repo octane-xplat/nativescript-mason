@@ -24,7 +24,7 @@ if (packed.error) throw packed.error;
 if (packed.status !== 0) throw new Error(`Plugin pack failed:\n${packed.stdout}\n${packed.stderr}`);
 const pluginManifest = JSON.parse(readFileSync(resolve(plugin, 'package.json'), 'utf8'));
 assert.equal(pluginManifest.name, '@octane-xplat/nativescript-mason-core');
-const tarball = 'octane-xplat-nativescript-mason-core-0.0.0.tgz';
+const tarball = `octane-xplat-nativescript-mason-core-${pluginManifest.version}.tgz`;
 assert.ok(existsSync(resolve(output, tarball)));
 write('package.json', JSON.stringify({
   name: 'mason-core-native-consumer', version: '0.0.0', private: true, main: './app/app.js',

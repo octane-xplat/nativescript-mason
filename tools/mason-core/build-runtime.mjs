@@ -104,6 +104,7 @@ const base = JSON.parse(readFileSync(resolve(coreSourceRoot, 'package.json'), 'u
 assert.notEqual(base.type, 'commonjs', 'The native runtime emits ES modules; CommonJS metadata belongs only to the portable helper proof.');
 const manifest = {
   ...base,
+  private: true,
   description: 'Mason core runtime intermediate; native host artifacts are not included',
   masonCorePrototype: { nativeHosts: false, nativeTypes: true, platforms: ['ios', 'android'] },
 };
