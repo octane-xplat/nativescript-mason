@@ -91,8 +91,8 @@ checkout for publishing.
 | Target | Evidence |
 | --- | --- |
 | iOS arm64 Simulator | Native regressions, compiled TSRX/hooks/styles, actual HID taps/swipes and cleanup pass |
-| iOS arm64 device | Framework clients link; unsigned NativeScript app builds with device metadata/resources; physical runtime unverified |
-| Android arm64-v8a | Native regressions and plain consumer pass on API 36 phone; compiled renderer and OS input pass on API 35 emulator |
+| iOS arm64 device | Framework clients link; signed development app and native UI-test runner build; physical runtime unqualified |
+| Android arm64-v8a | Native regressions, plain consumer, compiled TSRX/hooks/styles and real tap/swipe input pass on API 36 phone; API 35 emulator also passes |
 | Windows / web | Not provided by this package |
 
 NativeScript core 9.1.3 with Xplat's canonical patches is qualified through the

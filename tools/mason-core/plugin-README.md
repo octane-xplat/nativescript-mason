@@ -179,7 +179,35 @@ and separately for simulators, emulators and physical devices.
 
 OS-input checks pass on arm64 iOS 27 Simulator and the API 35 Android emulator.
 Native row movement matches the reported scroll offset (137.3 points on iOS,
-94.9 logical pixels on Android). Physical-device OS input is not yet qualified.
+94.9 logical pixels on Android). The actual-Vite consumer also passes on the
+API 36 physical Android phone
+with registry core `1.0.0-beta.0` and current Xplat patches: a real inspector
+WebSocket responds, an OS tap changes the hook-driven label width from about
+90 to 130, and an OS swipe moves its native row by the reported 99.38 logical
+pixels before cleanup. Run the prepared fixture with:
+
+```sh
+MASON_CORE_ANDROID_SERIAL=DEVICE_SERIAL pnpm exec nx run \
+  nativescript-mason-core:test.consumer.android.input.device --inspector
+```
+
+Replace `DEVICE_SERIAL` with the authorized physical phone's adb serial.
+The published beta also passes the actual-Vite fixture on arm64 iOS 27
+Simulator: native HID tap changes width from 90 to 130 points, swipe produces
+matching native row movement and scroll offset (169.29 points), and cleanup
+runs once. With the dedicated simulator shut down and its resource reservation
+held, run:
+
+```sh
+pnpm exec nx run nativescript-mason-core:build.consumer.ios
+pnpm exec nx run nativescript-mason-core:test.consumer.ios.input
+```
+
+iOS physical runtime and input remain unqualified. The signed development app
+and a native UI-test runner build successfully. A temporary device test
+passes its tap/count checks, but fails its final post-drag assertion; it has
+not produced a passing consumer result. This does not resolve the separate
+intermittent Android emulator cold-start failures.
 
 ## Build an unsigned iOS device app
 

@@ -46,7 +46,7 @@ async function stableInputPoint(view, horizontal, vertical) {
   const deadline = Date.now() + 20000;
   while (Date.now() < deadline) {
     const native = view.nativeViewProtected;
-    lastWindowGate = {
+    lastWindowGate = isIOS ? { loaded: !!view.isLoaded } : {
       attached: !!native?.isAttachedToWindow(), laidOut: !!native?.isLaidOut(),
       focused: !!native?.hasWindowFocus(), insets: native?.getRootWindowInsets() != null,
       layoutRequested: !!native?.isLayoutRequested(), loaded: !!view.isLoaded,
