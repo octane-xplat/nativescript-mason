@@ -39,6 +39,39 @@ function point(view, horizontal, vertical) {
   const size = view.getActualSize();
   return { x: origin.x + size.width * horizontal, y: origin.y + size.height * vertical };
 }
+let lastWindowGate;
+async function stableInputPoint(view, horizontal, vertical) {
+  let previous;
+  let stableSince = Date.now();
+  const deadline = Date.now() + 20000;
+  while (Date.now() < deadline) {
+    const native = view.nativeViewProtected;
+    lastWindowGate = {
+      attached: !!native?.isAttachedToWindow(), laidOut: !!native?.isLaidOut(),
+      focused: !!native?.hasWindowFocus(), insets: native?.getRootWindowInsets() != null,
+      layoutRequested: !!native?.isLayoutRequested(), loaded: !!view.isLoaded,
+    };
+    const windowReady = isIOS || (lastWindowGate.attached && lastWindowGate.laidOut &&
+      lastWindowGate.focused && lastWindowGate.insets && !lastWindowGate.layoutRequested);
+    if (!windowReady || !view.isLoaded) {
+      previous = undefined;
+      stableSince = Date.now();
+      await pause(40);
+      continue;
+    }
+    const next = point(view, horizontal, vertical);
+    const size = view.getActualSize();
+    const sample = { ...next, width: size.width, height: size.height };
+    if (size.width <= 0 || size.height <= 0 || !previous ||
+        Object.keys(sample).some((key) => !near(sample[key], previous[key]))) {
+      stableSince = Date.now();
+      previous = sample;
+    }
+    else if (Date.now() - stableSince >= 250) return next;
+    await pause(40);
+  }
+  throw new Error('The native input target did not reach stable window geometry.');
+}
 async function settleScroll(scroll) {
   let previous = scroll.scrollTop;
   let changed = Date.now();
@@ -73,13 +106,14 @@ Application.run({
     let mounts = 0;
     let disposals = 0;
     let root;
+    const buttonTouches = [];
     async function assertions() {
       const osInput = File.exists(path.join(knownFolders.documents().path, 'mason-core-os-input'));
       captureDiagnostics = () => ({
         labelText: label?.text, labelSize: label?.getActualSize(),
         buttonLoaded: button?.isLoaded, buttonEnabled: button?.isEnabled,
         buttonSize: button?.getActualSize(), buttonPoint: button && point(button, 0.5, 0.5),
-        mounts, disposals, scrollTop: scroll?.scrollTop,
+        buttonTouches, windowGate: lastWindowGate, mounts, disposals, scrollTop: scroll?.scrollTop,
       });
       if (isIOS) {
         const resources = NSBundle.bundleForClass(NSCMason).pathForResourceOfType('SDWebImage_SDWebImage', 'bundle');
@@ -89,10 +123,11 @@ Application.run({
       await waitFor(() => mounts === 1 && label?.text === 'Count 0' && near(label.getActualSize().width, 90) && near(label.getActualSize().height, 35),
         'compiled component CSS, native geometry and mount effect');
       check(button && scroll, 'Compiled native refs were not committed');
+      if (osInput) button.on('touch', (event) => { if (buttonTouches.length < 20) buttonTouches.push(event.action); });
       const original = label;
       const initialSize = label.getActualSize();
       phase = 'compiled tap handler and state update';
-      if (osInput) ready({ phase: 'tap', point: point(button, 0.5, 0.5) });
+      if (osInput) ready({ phase: 'tap', point: await stableInputPoint(button, 0.5, 0.5) });
       else button.notify({ eventName: 'tap', object: button });
       await waitFor(() => label?.text === 'Count 1' && near(label.getActualSize().width, 130), 'hook-driven native text and geometry update', osInput ? 30000 : 8000);
       check(label === original, 'A hook update recreated the foreign native label');
@@ -103,7 +138,8 @@ Application.run({
       const firstRow = scroll.getChildAt(0).getChildAt(0);
       const rowBefore = firstRow.getLocationOnScreen();
       if (osInput) {
-        ready({ phase: 'scroll', from: point(scroll, 0.5, 0.85), to: point(scroll, 0.5, 0.15) });
+        const from = await stableInputPoint(scroll, 0.5, 0.85);
+        ready({ phase: 'scroll', from, to: point(scroll, 0.5, 0.15) });
         await waitFor(() => scroll.scrollTop > 20, 'OS swipe moves the native scroll host', 30000);
         await settleScroll(scroll);
       } else {

@@ -71,6 +71,7 @@ write('App_Resources/iOS/Info.plist', `<?xml version="1.0" encoding="UTF-8"?>
 write('App_Resources/iOS/build.xcconfig', 'IPHONEOS_DEPLOYMENT_TARGET = 15.6\nTARGETED_DEVICE_FAMILY = 1,2\nARCHS = arm64\n');
 write('App_Resources/Android/src/main/AndroidManifest.xml', `<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET"/>
   <application android:name="com.tns.NativeScriptApplication" android:label="Mason core probe" android:theme="@style/AppTheme">
     <activity android:name="com.tns.NativeScriptActivity" android:exported="true"
       android:configChanges="keyboard|keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|locale|uiMode">

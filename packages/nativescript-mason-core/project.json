@@ -117,6 +117,10 @@
       "executor": "nx:run-commands", "cache": false,
       "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer --os-input" }
     },
+    "test.consumer.android.inspector.emulator": {
+      "executor": "nx:run-commands", "cache": false,
+      "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer --os-input --inspector" }
+    },
     "test.consumer.android.input.device": {
       "executor": "nx:run-commands", "cache": false,
       "options": { "command": "node tools/mason-core/run-android-consumer.mjs --os-input" }

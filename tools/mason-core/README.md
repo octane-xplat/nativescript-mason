@@ -163,17 +163,27 @@ scenario, so an older installed app cannot qualify the Vite path.
 
 The actual Vite scenario passes OS taps, hook/text/geometry updates, touch
 scrolling and cleanup on arm64 iOS 27 Simulator. Android's Vite bundle and debug
-APK build, but its app fails before mounting: Vite 8.0.20 eagerly imports Core's
-inspector modules before Android runtime 9.1.1 installs
-`__registerDomainDispatcher`. That runtime installs the global immediately
-before its own `RunModule("inspector_modules")` call. Webpack emits a separate
-`tns_modules/inspector_modules` entry instead of eagerly importing it. Preserve
-this failing Vite target while investigating; do not replace OS input with
-synthetic dispatch or disable its assertions to obtain a pass.
+APK build. Its initial startup failure came from this fixture's missing
+`INTERNET` permission: the inspector server threw socket `EPERM`, so native
+initialization never installed `__registerDomainDispatcher`. The ordinary
+permission restores the canonical Vite startup and real Runtime/DOM inspector
+responses. No separate inspector-entry workaround is required.
+
+Android input diagnostics also caught coordinates published before window
+insets finished applying. The fixture now waits for native window readiness
+and stable geometry, and the combined inspector/OS-input run passes on the
+API 35 emulator with real Runtime/DOM inspector responses. Cold-boot runs
+remain intermittent: one rerun timed out when the injected tap never reached
+the application despite correct coordinates and verified window focus, and
+another timed out while waiting for the window-readiness gate. Failure
+diagnostics now record the last readiness gate and the touch actions the
+native button observed. Keep one real OS action per phase and the existing
+assertions.
 
 ```sh
 pnpm exec nx run nativescript-mason-core:build.consumer.android
 pnpm exec nx run nativescript-mason-core:test.consumer.android.input.emulator
+pnpm exec nx run nativescript-mason-core:test.consumer.android.inspector.emulator
 ```
 
 Source references: NativeScript Vite `helpers/main-entry.ts`, NativeScript

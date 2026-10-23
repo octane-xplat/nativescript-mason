@@ -6,6 +6,7 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
 import { driveInputStep } from './input-driver.mjs';
+import { qualifyAndroidInspector } from './android-inspector.mjs';
 
 const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? resolve(homedir(), 'Library/Android/sdk');
 const adb = resolve(sdk, 'platform-tools/adb');
@@ -74,6 +75,7 @@ try {
   const running = spawnSync(adb, ['-s', serial, 'shell', 'pidof', applicationId], { encoding: 'utf8', timeout: 10000 });
   pid = running.stdout?.trim();
   assert.ok(!pid || /^\d+$/.test(pid), 'Unexpected consumer process identifier.');
+  if (process.argv.includes('--inspector')) await qualifyAndroidInspector(device, output, applicationId);
   const deadline = Date.now() + (osInput ? 90000 : 45000);
   let text;
   while (Date.now() < deadline) {
