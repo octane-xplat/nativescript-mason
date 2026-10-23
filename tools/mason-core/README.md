@@ -140,3 +140,43 @@ on an already assembled plugin. See the core package README for the complete
 sequence. The private core project has no `build.all` target, so the full
 repository's release-oriented `build:all` remains independent of this native
 setup and publishing remains opt-in.
+
+## Actual Xplat Vite consumer
+
+This scenario uses the canonical Xplat renderer patch, with engine selection
+owned by Xplat's native preset. It compiles the authored TSRX component through
+Vite rather than the standalone compiler step. Prepare the native artifacts
+first, and point the environment variable at the Xplat checkout to qualify:
+
+```sh
+export MASON_CORE_XPLAT_REPOSITORY=/path/to/octane-xplat
+pnpm exec nx run nativescript-mason-core:prepare.consumer.vite
+pnpm --dir tmp/mason-core-nativescript-consumer install --force
+pnpm exec nx run nativescript-mason-core:build.consumer.ios
+pnpm exec nx run nativescript-mason-core:test.consumer.ios.input
+```
+
+Native builds and input runs require the matching host resource reservations.
+The normal compiled/Webpack scenarios remain available; preparing one restores
+its configuration. The runner checks the reported bundler as well as the
+scenario, so an older installed app cannot qualify the Vite path.
+
+The actual Vite scenario passes OS taps, hook/text/geometry updates, touch
+scrolling and cleanup on arm64 iOS 27 Simulator. Android's Vite bundle and debug
+APK build, but its app fails before mounting: Vite 8.0.20 eagerly imports Core's
+inspector modules before Android runtime 9.1.1 installs
+`__registerDomainDispatcher`. That runtime installs the global immediately
+before its own `RunModule("inspector_modules")` call. Webpack emits a separate
+`tns_modules/inspector_modules` entry instead of eagerly importing it. Preserve
+this failing Vite target while investigating; do not replace OS input with
+synthetic dispatch or disable its assertions to obtain a pass.
+
+```sh
+pnpm exec nx run nativescript-mason-core:build.consumer.android
+pnpm exec nx run nativescript-mason-core:test.consumer.android.input.emulator
+```
+
+Source references: NativeScript Vite `helpers/main-entry.ts`, NativeScript
+Android `JsV8InspectorClient.cpp::registerModules`, and NativeScript Webpack
+`configuration/base.ts`. This startup finding is separate from the passing
+core Webpack consumer and from native-host regression qualification.

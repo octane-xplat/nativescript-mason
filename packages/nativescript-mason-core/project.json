@@ -88,6 +88,12 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/build-consumer.mjs android" }
     },
+    "prepare.consumer.vite": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["prepare.consumer.compiled"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/prepare-vite-consumer.mjs" }
+    },
     "test.consumer.ios": {
       "executor": "nx:run-commands",
       "cache": false,

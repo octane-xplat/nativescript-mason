@@ -107,7 +107,11 @@ try {
     assert.deepEqual(actions.map(({ phase }) => phase), ['tap', 'scroll']);
   }
   const scenarioPath = resolve(consumer, 'consumer-scenario.json');
-  if (existsSync(scenarioPath)) assert.equal(result.scenario, JSON.parse(readFileSync(scenarioPath, 'utf8')).scenario, 'The installed app does not match the prepared consumer scenario.');
+  if (existsSync(scenarioPath)) {
+    const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'));
+    assert.equal(result.scenario, scenario.scenario, 'The installed app does not match the prepared consumer scenario.');
+    if (scenario.bundler) assert.equal(result.bundler, scenario.bundler, 'The installed app does not match the prepared bundler.');
+  }
   console.log('The isolated NativeScript Android consumer passed its native bridge, layout and ownership assertions.');
 } finally {
   try {

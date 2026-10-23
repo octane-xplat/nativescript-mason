@@ -38,7 +38,13 @@ if (existsSync(scenarioPath)) {
     assert.equal(realpathSync(require.resolve('@nativescript/core/package.json')), realpathSync(peer.resolve('@nativescript/core/package.json')),
       'The renderer and Mason core must share the application NativeScript core.');
   }
-  if (scenario.scenario === 'xplat-compiled') {
+  if (scenario.bundler === 'vite') {
+    for (const [name, version] of Object.entries(scenario.bundlerVersions)) {
+      assert.equal(manifest.devDependencies[name], version);
+      assert.equal(JSON.parse(readFileSync(resolve(consumer, 'node_modules', name, 'package.json'), 'utf8')).version, version);
+    }
+    assert.equal(createHash('sha256').update(readFileSync(resolve(consumer, 'app/app.js'))).digest('hex'), scenario.bootstrapSha256);
+  } else if (scenario.scenario === 'xplat-compiled') {
     const compiled = spawnSync(process.execPath, [resolve(workspaceRoot, 'tools/mason-core/compile-consumer-component.mjs')], { cwd: workspaceRoot, stdio: 'inherit' });
     if (compiled.error) throw compiled.error;
     assert.equal(compiled.status, 0, 'The authored TSRX fixture failed compilation.');
@@ -62,6 +68,7 @@ checkDependencies(graph);
 // fixture's platform when its native dependency inputs change.
 const preparation = resolve(consumer, `platform-preparation-${platform}.json`);
 const inputs = {
+  bundler: existsSync(scenarioPath) ? JSON.parse(readFileSync(scenarioPath, 'utf8')).bundler ?? 'webpack' : 'webpack',
   dependencies: Object.entries(manifest.dependencies).sort(),
   runtime: manifest.devDependencies[`@nativescript/${platform}`],
   packagePaths: Object.keys(manifest.dependencies).sort().map((name) => realpathSync(resolve(consumer, 'node_modules', name))),
