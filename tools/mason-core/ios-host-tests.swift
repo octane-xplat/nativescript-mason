@@ -196,3 +196,24 @@ extension CoreLayoutInteropTests {
                    "Queued provisional work must not overwrite the final host measurement")
   }
 }
+
+extension CoreLayoutInteropTests {
+  @objc func test_coreSettledMeasurementRestoresItsRootLayout() {
+    let root = MasonUIView(mason: mason)
+    root.style.size = MasonSize(.Percent(1), .Percent(1))
+    let expected = CGSize(width: 357, height: 900)
+    _ = root.computeRoot(357, 900)
+    root.node.settledRootSizes.append(MasonRootSize(available: expected, size: expected))
+    _ = root.computeRoot(0, 0)
+    // An outer pass asks for an already-settled box after another intrinsic
+    // query changed the real layout. Returning the cached size is insufficient.
+    mason.inCompute = true
+    let measured = unpack(root.measure(spec(357, 1), spec(900, 1), root: true, viewport: false))
+    mason.inCompute = false
+    XCTAssertEqual(measured, expected)
+    XCTAssertFalse(root.settleDeferredSizes(), "The reported size was already correct")
+    XCTAssertEqual(root.node.computedLayout.width, 357, accuracy: 0.5)
+    XCTAssertEqual(root.node.computedLayout.height, 900, accuracy: 0.5)
+    root.node.settledRootSizes.removeAll()
+  }
+}

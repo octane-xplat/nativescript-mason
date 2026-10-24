@@ -769,10 +769,13 @@ extension MasonElement {
   /// when the outer one returns and report the current size until then.
   private func deferredRootSize(_ width: Float, _ height: Float) -> CGSize {
     let available = CGSize(width: CGFloat(width), height: CGFloat(height))
-    if let settled = node.settledRootSizes.first(where: { $0.available == available }) {
+    let settled = node.settledRootSizes.first(where: { $0.available == available })
+    if let settled = settled, !computeStale(width, height) {
       return settled.size
     }
-    let current = layoutSize
+    // Another intrinsic query may have changed the actual tree since this
+    // size settled. Keep its known result, but restore its layout off-lock.
+    let current = settled?.size ?? layoutSize
     let mason = node.mason
     if node.deferredRootSizes.isEmpty { mason.deferredRoots.append(node) }
     if !node.deferredRootSizes.contains(where: { $0.available == available }) {
