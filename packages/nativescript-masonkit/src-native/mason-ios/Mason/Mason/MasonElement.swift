@@ -542,6 +542,8 @@ extension MasonElement {
   /// bounds. Prefer `markRootComputeApplied(_:_:)` whenever the host has a size
   /// to give.
   public func markRootComputeApplied() {
+    // A synchronous host measurement supersedes any provisional queued pass.
+    node.nestedComputePending = false
     guard !MasonViewKind.isElement(uiView.superview) else { return }
     guard let parentSize = uiView.superview?.bounds.size else { return }
     _hostRootSize = .zero
@@ -555,6 +557,8 @@ extension MasonElement {
   /// without it the first style mutation redirties the node and the next
   /// `layoutSubviews` silently recomputes the whole subtree at the wrong size.
   public func markRootComputeApplied(_ width: Float, _ height: Float) {
+    // A synchronous host measurement supersedes any provisional queued pass.
+    node.nestedComputePending = false
     guard !MasonViewKind.isElement(uiView.superview) else { return }
     guard let parentSize = uiView.superview?.bounds.size else { return }
     _hostRootSize = CGSize(width: CGFloat(width), height: CGFloat(height))

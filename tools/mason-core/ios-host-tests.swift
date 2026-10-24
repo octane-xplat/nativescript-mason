@@ -176,3 +176,23 @@ extension CoreLayoutInteropTests {
     XCTAssertGreaterThan(label.frame.height, 0)
   }
 }
+
+extension CoreLayoutInteropTests {
+  @objc func test_coreFinalHostMeasureSupersedesQueuedNestedCompute() {
+    let scale = NSCMason.scale
+    let host = UIView(frame: CGRect(x: 0, y: 0, width: 119, height: 300))
+    let root = MasonUIView(mason: mason)
+    root.style.size = MasonSize(.Percent(1), .Percent(1))
+    host.addSubview(root)
+
+    // A provisional outer-tree pass schedules a zero-size compute. The host
+    // then supplies its final box before that main-queue work can execute.
+    root.computeNestedRootLater(0, 0)
+    _ = root.measure(spec(CGFloat(119 * scale), 1), spec(CGFloat(300 * scale), 1), root: true, viewport: false)
+    XCTAssertEqual(root.node.computedLayout.height, 300 * scale, accuracy: 0.5)
+    RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+    XCTAssertEqual(root.node.computedLayout.width, 119 * scale, accuracy: 0.5)
+    XCTAssertEqual(root.node.computedLayout.height, 300 * scale, accuracy: 0.5,
+                   "Queued provisional work must not overwrite the final host measurement")
+  }
+}
