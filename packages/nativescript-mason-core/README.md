@@ -29,7 +29,7 @@ pnpm pack --pack-destination /path/to/local-artifacts
 Install the resulting tarball in a NativeScript application:
 
 ```sh
-pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.1.tgz
+pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.2.tgz
 ```
 
 Use NativeScript controls inside a Mason container:
@@ -87,6 +87,12 @@ repository's `build:all` release workflow. See `RELEASING.md` in the source
 checkout for publishing.
 
 ## Qualification and limits
+
+The `1.0.0-beta.2` native artifacts correct percentage-sized bitmap images
+inflating nested grid minima on iOS/Android, and an iOS layout loop when a
+custom-measured foreign host returns zero. Explicit image minimum sizes remain
+effective. The Android foreign flex/stretch height correction remains covered
+by native resize and intrinsic-content regression tests.
 
 | Target | Evidence |
 | --- | --- |
