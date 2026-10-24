@@ -132,6 +132,42 @@ class ForeignFlexFrameInstrumentedTest {
   }
 
   @Test
+  fun nestedRootUsesItsAssignedFrameAfterAnIntrinsicMeasure() {
+    instrumentation.runOnMainSync {
+      val mason = Mason()
+      val root = mason.createView(context).apply {
+        style.display = Display.Flex
+        style.flexDirection = FlexDirection.Column
+        style.setSizeWidth(1f, Dimension.Kind.Percent.value)
+        style.setSizeHeight(1f, Dimension.Kind.Percent.value)
+      }
+      val content = mason.createView(context).apply {
+        style.display = Display.Flex
+        style.flexDirection = FlexDirection.Column
+        style.flexGrow = 1f
+      }
+      content.addView(label())
+      root.addView(content)
+      val foreign = android.widget.FrameLayout(context)
+      foreign.addView(root)
+      val width = MeasureSpec.makeMeasureSpec(107, MeasureSpec.EXACTLY)
+      root.measure(width, MeasureSpec.makeMeasureSpec(200, MeasureSpec.EXACTLY))
+      root.layout(0, 0, 107, 200)
+      assertEquals(200f, root.node.computedHeight, 0f)
+
+      // A foreign parent's intrinsic query can replace the cached engine
+      // layout before assigning its final frame. Android can reuse measured
+      // dimensions without invoking this root's onMeasure a second time.
+      root.forceLayout()
+      root.measure(width, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED))
+      assertTrue("intrinsic control must be shorter", root.node.computedHeight < 200f)
+      root.layout(0, 0, 107, 200)
+      assertEquals("root compute follows assigned frame", 200f, root.node.computedHeight, 0f)
+      assertEquals("descendant frame follows assigned frame", 200, content.height)
+    }
+  }
+
+  @Test
   fun foreignContainerKeepsStretchBoundsAcrossResizeAndChildRequests() {
     instrumentation.runOnMainSync {
       val content = label()

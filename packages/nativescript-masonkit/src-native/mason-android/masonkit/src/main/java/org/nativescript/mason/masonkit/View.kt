@@ -291,12 +291,18 @@ open class View @JvmOverloads constructor(
 
   override fun onLayout(changed: Boolean, l: Int, t: Int, r: Int, b: Int) {
     if (parent !is Element) {
-      // Only re-read the layout from Rust if we don't already have a
-      // valid cached layout tree (computeAndLayout populates it during
-      // onMeasure). Re-reading via layoutFlat() can pick up stale Rust
-      // state when spurious layout passes occur.
-      if (node.layoutTree.nodeCount == 0) {
-        layoutFlat()
+      // A foreign parent can measure intrinsically before assigning the
+      // final frame. Android's measure cache may restore exact dimensions
+      // without calling onMeasure again, leaving the intrinsic engine tree.
+      // Recompute descendants for the frame the parent actually assigned.
+      val widthArg = (r - l).toFloat()
+      val heightArg = (b - t).toFloat()
+      if (node.computeStale(widthArg, heightArg)) {
+        if (node.mason.inCompute) {
+          computeNestedRootLater(widthArg, heightArg)
+        } else {
+          computeAndLayout(widthArg, heightArg)
+        }
       }
       if (node.layoutTree.nodeCount != 0) {
         applyLayoutFlat(node, node.layoutTree)

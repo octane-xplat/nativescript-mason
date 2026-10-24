@@ -17,7 +17,7 @@ const consumer = process.argv.includes('--consumer');
 const fullBaseline = process.argv.includes('--full-baseline');
 assert.ok(!consumer || !fullBaseline);
 const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'dist/native/mason-core/full-android-baseline/manifest.json'), 'utf8')) : null;
-const expectedTests = baseline?.testCount ?? 19;
+const expectedTests = baseline?.testCount ?? 20;
 const apk = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-consumer/platforms/android/app/build/outputs/apk/debug/app-debug.apk' : fullBaseline ? 'dist/native/mason-core/full-android-baseline/MasonFull-tests.apk' : 'dist/native/mason-core/android-host/tests/MasonCore-tests.apk');
 if (fullBaseline) {
   assert.ok(Number.isInteger(expectedTests) && expectedTests > 0);
