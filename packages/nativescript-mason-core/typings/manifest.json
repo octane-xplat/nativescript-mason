@@ -1,6 +1,6 @@
 {
-  "androidHostSha256": "6fcba6c10289aeda86aee5f0ce331f1ee9b024f05e31f24ee00865a97afeb457",
-  "iosHostSha256": "b97ecc99ca360b2a19177ea29852b3747575c508e1a06e1bad7f39e6d2d8f6a7",
+  "androidHostSha256": "18934a659edb1a4d89196a14a1907d697f8461783c97cf509f705c1f767b7189",
+  "iosHostSha256": "96ac575ce195c4f71ee602886b3e60f77b27a6149cae2da0188b8031fcc09adb",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
@@ -18,7 +18,7 @@
   "files": [
     {
       "name": "android.d.ts",
-      "sha256": "7a4044b29b992bd21339fdf06fde930f1f4db4f1c02bf4602d68f597b6e588ce"
+      "sha256": "59a521d887362fbebe4c3c1f9c9a48c4061cdd6cdbdba3a808827cb628837c82"
     },
     {
       "name": "android-declarations.d.ts",

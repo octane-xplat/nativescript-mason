@@ -92,7 +92,19 @@ The `1.0.0-beta.2` native artifacts correct percentage-sized bitmap images
 inflating nested grid minima on iOS/Android, and an iOS layout loop when a
 custom-measured foreign host returns zero. Explicit image minimum sizes remain
 effective. The Android foreign flex/stretch height correction remains covered
-by native resize and intrinsic-content regression tests.
+by native resize and intrinsic-content regression tests. Android container
+roots also recompute stale descendant layouts for the final frame assigned
+by a foreign parent, rather than retaining a preceding intrinsic measurement.
+On iOS, completed host measurements cancel older queued provisional computes
+that could otherwise overwrite the final layout with zero dimensions. Reusing
+a settled root measurement also restores its matching layout if another
+intrinsic query has since changed the tree.
+
+For these corrections, native layout suites pass on iOS Simulator (19 tests)
+and the Android emulator (20 tests). Packed NativeScript image probes pass on
+both; the iOS collapsed-screen heartbeat checks also pass. The broader coverage
+below describes earlier extraction qualification, not new physical-device or
+OS-input verification of beta.2.
 
 | Target | Evidence |
 | --- | --- |
@@ -102,10 +114,9 @@ by native resize and intrinsic-content regression tests.
 | Windows / web | Not provided by this package |
 
 NativeScript core 9.1.3 with Xplat's canonical patches is qualified through the
-isolated renderer fixture; ordinary apps also pass separately. The Xplat renderer
-needs its two Mason imports retargeted to core. See `plugin-README.md` for
+isolated renderer fixture; ordinary apps also pass separately. The Xplat native
+preset retargets the renderer's Mason imports to core. See `plugin-README.md` for
 reproduction and `native-types-README.md` for ambient SDK type requirements.
-No production Xplat dependency has been switched.
 
 Core retains FontManager, SDWebImage, Glide, Gson, AndroidX and shared Rust
 inline-layout code used by the preserved engine/painting boundary. Artifact
