@@ -132,6 +132,35 @@ class ForeignFlexFrameInstrumentedTest {
   }
 
   @Test
+  fun foreignContainerKeepsStretchBoundsAcrossResizeAndChildRequests() {
+    instrumentation.runOnMainSync {
+      val content = label()
+      val leaf = android.widget.FrameLayout(context).apply {
+        addView(content, android.widget.FrameLayout.LayoutParams(
+          ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+      }
+      val root = fixture(leaf, FlexDirection.Column)
+      for (height in listOf(200, 120, 260)) {
+        root.style.setSizeHeight(height.toFloat(), Dimension.Kind.Points.value)
+        content.text = "height $height"
+        leaf.requestLayout()
+        assertTrue("the foreign container must have a pending request", leaf.isLayoutRequested)
+        // Check a single pass: a second parent-only pass used to hide the
+        // content-height frame that replaced Mason's grow/stretch result.
+        root.forceLayout()
+        root.measure(MeasureSpec.makeMeasureSpec(107, MeasureSpec.EXACTLY),
+          MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY))
+        root.layout(0, 0, 107, height)
+        val computed = root.node.mason.nodeForView(leaf).computedLayout
+        assertEquals("computed height after resize", height.toFloat(), computed.height, 0f)
+        assertEquals("native height after resize", height, leaf.height)
+        assertEquals("measured height after resize", height, leaf.measuredHeight)
+        assertEquals(107, leaf.width)
+      }
+    }
+  }
+
+  @Test
   fun intrinsicTextChangesStillReflowTheParentAndFollowingSibling() {
     instrumentation.runOnMainSync {
       val mason = Mason()

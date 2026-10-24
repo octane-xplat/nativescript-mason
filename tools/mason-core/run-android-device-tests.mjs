@@ -50,20 +50,20 @@ if (previousPath) {
   assert.equal(hash(installed), previous.apkSha256, 'The installed package changed outside this runner; refusing to replace it.');
   rmSync(installed);
 }
-console.log(`Running the 17 native core tests on physical ${model} (API ${api}).`);
+console.log(`Running the 19 native core tests on physical ${model} (API ${api}).`);
 device(['install', '-r', '-t', apk], 120000);
 writeFileSync(ownership, JSON.stringify({ applicationId, apkSha256: hash(apk) }) + '\n');
 try {
   const text = device(['shell', 'am', 'instrument', '-w', `${applicationId}/androidx.test.runner.AndroidJUnitRunner`], 240000);
   writeFileSync(resolve(output, 'instrumentation.log'), text);
   console.log(text);
-  assert.match(text, /OK \(17 tests\)/);
+  assert.match(text, /OK \(19 tests\)/);
   assert.doesNotMatch(text, /FAILURES!!!|INSTRUMENTATION_FAILED|INSTRUMENTATION_STATUS_CODE: -[34]\b/);
   writeFileSync(resolve(output, 'summary.json'), JSON.stringify({
-    device: model, api, physical: true, total: 17, passed: 17, failed: 0, skipped: 0,
+    device: model, api, physical: true, total: 19, passed: 19, failed: 0, skipped: 0,
     apkSha256: hash(apk), evidence: 'Native Android instrumentation; NativeScript lifecycle and OS input are separate gates.',
   }, null, 2) + '\n');
-  console.log('All 17 native Android core tests passed on the physical device with no skips.');
+  console.log('All 19 native Android core tests passed on the physical device with no skips.');
 } catch (error) {
   writeFileSync(resolve(output, 'failure.log'), String(error.stack ?? error));
   throw error;
