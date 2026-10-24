@@ -17,7 +17,7 @@ const selected = Object.values(devices.devices).flat().find((entry) => entry.udi
 if (!selected || selected.name !== 'Mason core extraction') throw new Error('Use the dedicated Mason core extraction simulator.');
 const fullBaseline = process.argv.includes('--full-baseline');
 const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'tmp/mason-full-ios-baseline/manifest.json'), 'utf8')) : null;
-const expectedTests = baseline?.testCount ?? 15;
+const expectedTests = baseline?.testCount ?? 16;
 const products = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-derived/Build/Products' : 'tmp/mason-core-ios-derived/Build/Products');
 const plans = readdirSync(products).filter((name) => name.endsWith('.xctestrun'));
 if (plans.length !== 1) throw new Error('Build the core iOS test bundle first; expected exactly one test plan.');

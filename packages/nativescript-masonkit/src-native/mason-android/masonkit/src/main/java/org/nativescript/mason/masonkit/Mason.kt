@@ -578,6 +578,9 @@ class Mason {
           // is leaf to ensure it triggers android's view measure
           val node = createNode().apply {
             this.view = view
+            if (view is android.widget.ImageView) {
+              style.values.put(StyleKeys.ITEM_IS_REPLACED, 1.toByte())
+            }
             setDefaultMeasureFunction()
           }
           viewNodes[view] = WeakReference(node)

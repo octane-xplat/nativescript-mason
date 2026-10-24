@@ -32,6 +32,62 @@ class MasonCoreHostInstrumentedTest {
   }
 
   @Test
+  fun percentageImagesDoNotInflateNestedStarTracks() {
+    instrumentation.runOnMainSync {
+      for (nested in listOf(false, true)) {
+        val mason = Mason().apply { setDeviceScale(1f) }
+        val root = mason.createView(context).apply {
+          style.display = Display.Grid
+          style.gridTemplateColumns = "1fr 1fr"
+          style.dimensions(402f, 402f)
+        }
+        val tiles = mutableListOf<android.view.View>()
+        val images = mutableListOf<android.widget.ImageView>()
+        repeat(2) {
+          val tile = mason.createView(context).apply {
+            style.display = Display.Flex
+            style.flexDirection = FlexDirection.Column
+            style.setSizeHeight(402f, Dimension.Kind.Points.value)
+          }
+          val image = android.widget.ImageView(context).apply {
+            // Match NativeScript's aspect-preserving intrinsic image measure.
+            adjustViewBounds = true
+            setImageBitmap(android.graphics.Bitmap.createBitmap(360, 640, android.graphics.Bitmap.Config.ARGB_8888))
+            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+          }
+          mason.nodeForView(image).style.apply {
+            setSizeWidth(1f, Dimension.Kind.Percent.value)
+            setSizeHeight(1f, Dimension.Kind.Percent.value)
+          }
+          if (nested) {
+            val grow = mason.createView(context).apply {
+              style.display = Display.Flex
+              style.flexDirection = FlexDirection.Column
+              style.flexGrow = 1f
+            }
+            grow.addView(image)
+            tile.addView(grow)
+          } else {
+            tile.addView(image)
+          }
+          root.addView(tile)
+          tiles.add(tile)
+          images.add(image)
+        }
+        layout(root, 402, 402)
+        for ((index, tile) in tiles.withIndex()) {
+          assertEquals("nested=$nested", 201, tile.width)
+          assertEquals(index * 201, tile.left)
+        }
+        for (image in images) {
+          assertEquals(201, image.width)
+          assertEquals(402, image.height)
+        }
+      }
+    }
+  }
+
+  @Test
   fun gridPlacesOrdinaryContainersInDeclaredTracks() {
     instrumentation.runOnMainSync {
       // Native frames and point dimensions in this case use physical pixels.

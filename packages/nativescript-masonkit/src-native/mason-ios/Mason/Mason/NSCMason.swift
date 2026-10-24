@@ -88,6 +88,11 @@ public class NSCMason: NSObject {
     }
     let node = MasonNode(mason: self)
     node.view = view
+    // Foreign bitmap views have CSS replaced-element intrinsic sizing.
+    // Ordinary labels and containers must retain their content minimum.
+    if view is UIImageView {
+      node.style.setUInt8(StyleKeys.ITEM_IS_REPLACED, 1)
+    }
     if isLeaf {
       // Set measure function for all leaf nodes (inline elements)
       node.setDefaultMeasureFunction()

@@ -313,6 +313,61 @@ pub(crate) fn leaf_layout_style(style: &Style) -> LeafStyle {
     }
 }
 
+/// A compressible replaced leaf (an image) resolves an indefinite percentage
+/// size or max size against zero for its min-content contribution, so it
+/// cannot hold a track or a flex container open at its intrinsic size
+/// (<https://drafts.csswg.org/css-sizing-3/#min-content-zero>). Taffy applies
+/// this only to a grid item's own automatic minimum; nested inside flex or
+/// grid ancestors, the leaf's measured size would otherwise propagate up.
+fn cap_replaced_min_content(output: &mut LayoutOutput, style: &LeafStyle, inputs: &LayoutInput) {
+    if !style.is_compressible_replaced() {
+        return;
+    }
+    let zero = |_: *const (), _: f32| 0.0;
+    let padding_border = (style
+        .padding()
+        .resolve_or_zero(inputs.parent_size.width, zero)
+        + style
+            .border()
+            .resolve_or_zero(inputs.parent_size.width, zero))
+    .sum_axes();
+    let content_box = style.box_sizing() == taffy::BoxSizing::ContentBox;
+    for axis in [
+        taffy::AbsoluteAxis::Horizontal,
+        taffy::AbsoluteAxis::Vertical,
+    ] {
+        if inputs.available_space.get_abs(axis) != AvailableSpace::MinContent
+            || inputs.known_dimensions.get_abs(axis).is_some()
+            || inputs.parent_size.get_abs(axis).is_some()
+        {
+            continue;
+        }
+        let pb = padding_border.get_abs(axis);
+        let cap = [
+            style.size().get_abs(axis),
+            style.max_size().get_abs(axis).into(),
+        ]
+        .into_iter()
+        .filter(|value| value.into_raw().uses_percentage())
+        .filter_map(|value| value.maybe_resolve(Some(0.0), zero))
+        .map(|value| if content_box { value + pb } else { value })
+        .reduce(f32::min);
+        if let Some(cap) = cap {
+            let min = style
+                .min_size()
+                .get_abs(axis)
+                .maybe_resolve(Some(0.0), zero)
+                .map(|value| if content_box { value + pb } else { value })
+                .unwrap_or(pb);
+            let size = output.size.get_abs(axis).min(cap).max(min).max(pb);
+            match axis {
+                taffy::AbsoluteAxis::Horizontal => output.size.width = size,
+                taffy::AbsoluteAxis::Vertical => output.size.height = size,
+            }
+        }
+    }
+}
+
 fn quantize_available(space: AvailableSpace) -> AvailableSpace {
     match space {
         AvailableSpace::Definite(w) => AvailableSpace::Definite(quantize_key(w)),
@@ -2910,7 +2965,7 @@ impl LayoutBlockContainer for Tree {
                         } else {
                             inputs
                         };
-                        compute_leaf_layout(
+                        let mut output = compute_leaf_layout(
                             inputs,
                             &style,
                             |_val, _basis| 0.0,
@@ -3093,7 +3148,9 @@ impl LayoutBlockContainer for Tree {
                                 }
                                 result
                             },
-                        )
+                        );
+                        cap_replaced_min_content(&mut output, &style, &inputs);
+                        output
                     }
                 },
                 DisplayMode::Inline => {

@@ -10,14 +10,14 @@ import { workspaceRoot } from './sources.mjs';
 const sdk = process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT ?? resolve(homedir(), 'Library/Android/sdk');
 const adb = resolve(sdk, 'platform-tools/adb');
 const emulator = resolve(sdk, 'emulator/emulator');
-const avd = 'mason-core-extraction';
+const avd = process.env.MASON_CORE_ANDROID_AVD ?? 'mason-core-extraction';
 const image = 'system-images;android-35;google_apis;arm64-v8a';
 const ownershipFile = resolve(workspaceRoot, 'tmp/mason-core-android-avd.json');
 const consumer = process.argv.includes('--consumer');
 const fullBaseline = process.argv.includes('--full-baseline');
 assert.ok(!consumer || !fullBaseline);
 const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'dist/native/mason-core/full-android-baseline/manifest.json'), 'utf8')) : null;
-const expectedTests = baseline?.testCount ?? 17;
+const expectedTests = baseline?.testCount ?? 18;
 const apk = resolve(workspaceRoot, consumer ? 'tmp/mason-core-nativescript-consumer/platforms/android/app/build/outputs/apk/debug/app-debug.apk' : fullBaseline ? 'dist/native/mason-core/full-android-baseline/MasonFull-tests.apk' : 'dist/native/mason-core/android-host/tests/MasonCore-tests.apk');
 if (fullBaseline) {
   assert.ok(Number.isInteger(expectedTests) && expectedTests > 0);
