@@ -1159,10 +1159,10 @@ class MasonElementHelpers: NSObject {
       }
     }
 
-    // Foreign (non-Mason) leaf with an empty auto-sized axis: remeasure via
-    // sizeThatFits (a plain UIKit call, safe mid-compute) in case a nested
-    // Mason root inside it hasn't laid itself out yet on this first pass.
-    if !MasonViewKind.isElement(view) {
+    // Default UIKit measurement can miss a nested root's first layout.
+    // A custom host measure is authoritative, including zero: replacing it
+    // with stale UIKit bounds can dirty the tree on every layout forever.
+    if !MasonViewKind.isElement(view) && !node.hasCustomMeasure {
       let styleSize = node.style.size
       let fallbackWidth = width <= 0 && styleSize.width == .Auto
       let fallbackHeight = height <= 0 && styleSize.height == .Auto

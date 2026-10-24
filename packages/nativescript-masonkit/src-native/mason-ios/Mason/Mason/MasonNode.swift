@@ -298,6 +298,8 @@ public class MasonNode: NSObject {
   internal var children: [MasonNode] = []
   
   internal var measureFunc: MeasureFunc? = nil
+  // A host callback owns its result, including a legitimately empty box.
+  @nonobjc internal var hasCustomMeasure = false
 
   // Storage for pseudo string properties (keyed by pseudo state value)
   // Example: pseudoStrings[active.rawValue] = ["filter": "brightness(0.88)"]
@@ -653,6 +655,7 @@ public class MasonNode: NSObject {
   
   internal init(mason doc : NSCMason, measureFunc function: @escaping MeasureFunc) {
     measureFunc = function
+    hasCustomMeasure = true
     mason = doc
     nativePtr = mason_node_new_node(mason.nativePtr, false)
     super.init()
@@ -669,6 +672,7 @@ public class MasonNode: NSObject {
   
   internal init(listItem doc : NSCMason, measureFunc function: @escaping MeasureFunc) {
     measureFunc = function
+    hasCustomMeasure = true
     mason = doc
     nativePtr = mason_node_new_list_item_node(mason.nativePtr)
     super.init()
@@ -1934,6 +1938,7 @@ extension MasonNode {
 
       // Clear measure function context on the Rust side.
       child.measureFunc = nil
+      child.hasCustomMeasure = false
       mason_node_remove_context(mason.nativePtr, childPtr)
 
       // Remove view from superview AFTER Rust-side refs are cleared.
@@ -1956,10 +1961,12 @@ extension MasonNode {
   func removeMeasureFunction(){
     mason_node_remove_context(mason.nativePtr, nativePtr)
     self.measureFunc = nil
+    hasCustomMeasure = false
   }
   
   func setMeasureFunction(_ measureFunc: @escaping MeasureFunc) {
     self.measureFunc = measureFunc
+    hasCustomMeasure = true
     mason_node_set_context(mason.nativePtr, nativePtr, Unmanaged.passUnretained(self).toOpaque(), measure)
   }
   
@@ -1969,6 +1976,7 @@ extension MasonNode {
       guard let self = self else { return .zero }
       return MasonNode.measureFunction(self, knownDimensions, availableSpace)
     }
+    hasCustomMeasure = false
   }
   
   enum MeasureMode {

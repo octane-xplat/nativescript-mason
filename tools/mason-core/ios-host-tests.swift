@@ -145,3 +145,34 @@ extension CoreLayoutInteropTests {
     }
   }
 }
+
+// Xplat #50: collapsed content can legitimately measure its foreign host at
+// zero while UIKit still has the old screen-sized bounds.
+extension CoreLayoutInteropTests {
+  @objc func test_coreCustomZeroMeasureIsNotReplacedByUIKitIntrinsicSize() {
+    let scale = NSCMason.scale
+    let root = MasonUIView(mason: mason)
+    root.display = .Flex
+    root.flexDirection = .Column
+    root.alignItems = .FlexStart
+    root.setSize(300 * scale, 200 * scale)
+    let label = UILabel(frame: CGRect(x: 0, y: 0, width: 300, height: 200))
+    label.text = "Collapsed host content"
+    root.addView(label)
+    var calls = 0
+    mason.setMeasure(for: label) { _, _, _, _ in
+      calls += 1
+      return .zero
+    }
+    root.computeWithSize(300 * scale, 200 * scale)
+    XCTAssertGreaterThan(calls, 0)
+    XCTAssertEqual(label.frame.size, .zero, "The host callback's zero size is authoritative")
+
+    let node = mason.nodeForView(label)
+    node.setDefaultMeasureFunction()
+    node.markDirty()
+    root.computeWithSize(300 * scale, 200 * scale)
+    XCTAssertGreaterThan(label.frame.width, 0, "Restoring UIKit measurement restores intrinsic size")
+    XCTAssertGreaterThan(label.frame.height, 0)
+  }
+}
