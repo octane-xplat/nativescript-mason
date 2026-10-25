@@ -1,5 +1,5 @@
 {
-  "androidHostSha256": "05d065414b7112870cf190fa81650262babb39134ca5d458960a0b0a2901b7c6",
+  "androidHostSha256": "53c2a456a72f634a58f1c33c4e431da5af17f089942a7fd809ef704cbb5cf8b8",
   "iosHostSha256": "98de2a3d7e4c66296c898f810557e0c6170ba9758b4bc85a81564e3ab04fe0a3",
   "androidGenerator": {
     "sdk": "9.1.1",
