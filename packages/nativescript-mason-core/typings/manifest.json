@@ -1,5 +1,5 @@
 {
-  "androidHostSha256": "a845dc9227f06e024bd378f218af7236856cb4bdcd25d4c53cdb32c979dc9fb1",
+  "androidHostSha256": "05d065414b7112870cf190fa81650262babb39134ca5d458960a0b0a2901b7c6",
   "iosHostSha256": "98de2a3d7e4c66296c898f810557e0c6170ba9758b4bc85a81564e3ab04fe0a3",
   "androidGenerator": {
     "sdk": "9.1.1",
@@ -18,7 +18,7 @@
   "files": [
     {
       "name": "android.d.ts",
-      "sha256": "a09895e8e3cd3cb23b0676bb0bd4c222df6d6a7f95a34cad2578cac920d78eed"
+      "sha256": "45da9a4106f43605bd6c107ad279fba101c101af1176de82b63eb3a04e933db9"
     },
     {
       "name": "android-declarations.d.ts",
