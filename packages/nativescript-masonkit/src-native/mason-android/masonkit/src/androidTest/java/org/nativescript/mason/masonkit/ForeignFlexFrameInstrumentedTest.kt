@@ -249,7 +249,8 @@ class ForeignFlexFrameInstrumentedTest {
         style.setSizeHeight(1f, Dimension.Kind.Percent.value)
       }
       nested.addView(mason.createView(context).apply {
-        style.setSizeHeight(80f, Dimension.Kind.Points.value)
+        style.setSizeWidth(1f, Dimension.Kind.Percent.value)
+        style.aspectRatio = 107f / 80f
       })
       val foreign = android.widget.FrameLayout(context).apply {
         addView(nested, android.widget.FrameLayout.LayoutParams(
@@ -264,10 +265,12 @@ class ForeignFlexFrameInstrumentedTest {
         alignSelf = AlignSelf.Stretch
       }
       root.addView(layer)
-      for (height in listOf(400, 300, 500)) {
+      for ((width, height) in listOf(107 to 400, 107 to 300, 107 to 500, 200 to 500, 107 to 300)) {
+        root.style.setSizeWidth(width.toFloat(), Dimension.Kind.Points.value)
         root.style.setSizeHeight(height.toFloat(), Dimension.Kind.Points.value)
         nested.requestLayout()
-        layout(root, size = 107 to height)
+        layout(root, size = width to height)
+        assertEquals("layer width after resize", width, layer.width)
         assertEquals("layer height after resize", height, layer.height)
         assertEquals("foreign height after resize", height, foreign.height)
         assertEquals("nested root height after resize", height, nested.height)

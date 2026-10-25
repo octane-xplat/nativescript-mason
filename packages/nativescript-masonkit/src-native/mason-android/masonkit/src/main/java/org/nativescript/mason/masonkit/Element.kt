@@ -1052,11 +1052,11 @@ private fun dirtyRequestedForeignLeaves(group: ViewGroup, mason: Mason): Boolean
         // This leaf hosts another root in the same engine. An intrinsic query
         // during compute cannot re-enter Rust and would report that root's
         // previous assigned frame as its new minimum. Refresh its intrinsic
-        // height outside the lock before invalidating Taffy's measurement.
-        val width = maxOf(child.width, child.measuredWidth)
+        // size outside the lock before invalidating Taffy's measurement. Neither
+        // axis may reuse the old assigned frame as an intrinsic constraint.
         child.forceLayout()
         child.measure(
-          MeasureSpec.makeMeasureSpec(width, if (width > 0) MeasureSpec.EXACTLY else MeasureSpec.UNSPECIFIED),
+          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED),
           MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
         )
       }
