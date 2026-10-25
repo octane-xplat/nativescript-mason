@@ -1,6 +1,6 @@
 {
   "name": "@octane-xplat/nativescript-mason-core",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "Independent NativeScript Mason layout, scrolling and foreign-view hosting",
   "license": "Apache-2.0",
   "main": "index",
@@ -25,6 +25,9 @@
   },
   "peerDependencies": {
     "@nativescript/core": "~9.1.2"
+  },
+  "dependencies": {
+    "@nativescript/font-manager": "1.0.20"
   },
   "nativescript": {
     "platforms": {

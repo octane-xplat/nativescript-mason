@@ -1,6 +1,6 @@
 {
   "androidHostSha256": "18934a659edb1a4d89196a14a1907d697f8461783c97cf509f705c1f767b7189",
-  "iosHostSha256": "96ac575ce195c4f71ee602886b3e60f77b27a6149cae2da0188b8031fcc09adb",
+  "iosHostSha256": "0d1984de417d4291d3903f3803eb0e299efbdf55ae6cee1f6e5f8944283dd3ab",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",

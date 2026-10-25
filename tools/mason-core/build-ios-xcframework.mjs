@@ -35,6 +35,8 @@ try {
     assert.equal(slice.manifest.platform, slice.platform);
     assert.equal(slice.manifest.architecture, 'arm64');
     assert.equal(slice.manifest.configuration, 'Release');
+    assert.equal(slice.manifest.linkage, 'static');
+    assert.deepEqual(slice.manifest.sharedNativeDependencies, ['FontManager']);
     assert.equal(hash(resolve(slice.input, 'MasonCore.framework/MasonCore')), slice.manifest.nativeFrameworkSha256);
     assert.deepEqual(slice.manifest.resourceBundles, ['SDWebImage_SDWebImage.bundle']);
     const framework = resolve(temporary, slice.name, 'MasonCore.framework');
@@ -72,9 +74,18 @@ try {
     copyFileSync(resolve(slice.input, 'manifest.json'), resolve(output, `${slice.name}-manifest.json`));
   }
   cpSync(resolve(simulator.input, 'include'), resolve(output, 'include'), { recursive: true });
+  // A static framework is linked into the app, so its resources must also be
+  // installed separately. This bundle contains no executable/platform code.
+  const resource = resolve(output, 'Resources/SDWebImage_SDWebImage.bundle');
+  cpSync(resolve(simulator.input, 'resources/SDWebImage_SDWebImage.bundle'), resource, { recursive: true });
+  const resourceInfo = jsonFromPlist(resolve(resource, 'Info.plist'));
+  delete resourceInfo.CFBundleSupportedPlatforms;
+  writeFileSync(resolve(resource, 'Info.plist'), JSON.stringify(resourceInfo));
+  run('plutil', ['-convert', 'xml1', resolve(resource, 'Info.plist')]);
   for (const name of ['LICENSE', 'FontManager.LICENSE', 'SDWebImage.LICENSE', 'Package.resolved']) copyFileSync(resolve(simulator.input, name), resolve(output, name));
   writeFileSync(resolve(output, 'manifest.json'), JSON.stringify({
     architectures: ['arm64'], platforms: ['iOS', 'iOS Simulator'],
+    linkage: 'static', sharedNativeDependencies: ['FontManager'],
     slices: slices.map(({ name, identifier, manifest }) => ({ name, identifier, nativeFrameworkSha256: manifest.nativeFrameworkSha256 })),
     files: files(xcframework).map((name) => ({ name, sha256: hash(resolve(xcframework, name)) })),
     qualification: 'Two native framework slices and platform-specific privacy bundles; NativeScript device application packaging and runtime require separate qualification.',

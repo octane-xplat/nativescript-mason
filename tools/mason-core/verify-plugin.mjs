@@ -29,7 +29,11 @@ try {
   assert.equal(manifest.publishConfig.access, 'public');
   assert.deepEqual(manifest.repository, sourceManifest.repository);
   assert.deepEqual(Object.keys(manifest.peerDependencies), ['@nativescript/core']);
-  assert.equal(manifest.dependencies, undefined);
+  assert.deepEqual(manifest.dependencies, { '@nativescript/font-manager': '1.0.20' });
+  assert.equal(manifest.masonCorePrototype.ios.linkage, 'static');
+  assert.deepEqual(manifest.masonCorePrototype.ios.sharedNativeDependencies, ['FontManager']);
+  assert.equal(existsSync(resolve(root, 'platforms/ios/include/FontManager')), false, 'The shared plugin owns FontManager headers.');
+  assert.doesNotMatch(readFileSync(resolve(root, 'platforms/ios/include/module.modulemap'), 'utf8'), /FontManager/);
   assert.equal(manifest.masonCorePrototype.nativeHosts, true);
   assert.equal(manifest.masonCorePrototype.ios.simulatorOnly, false);
   assert.equal(manifest.masonCorePrototype.nativeTypes, true);
@@ -49,6 +53,7 @@ try {
     'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/MasonCore',
     'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/MasonCore',
     'platforms/ios/include/module.modulemap',
+    'platforms/ios/Resources/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/android/MasonCore.aar', 'platforms/android/include.gradle',

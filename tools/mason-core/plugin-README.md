@@ -63,16 +63,19 @@ The prototype includes an arm64 iOS device/simulator XCFramework and an Android
 arm64-v8a AAR. Release-size savings remain unqualified.
 The isolated apps pass bridge, native geometry and ownership assertions on an
 arm64 iOS simulator and an API 36 Android phone. They install only core and
-NativeScript core as runtime dependencies. The iOS app declares the scene
+NativeScript core directly; the shared FontManager plugin is a transitive
+runtime dependency. The iOS app declares the scene
 lifecycle required by the current SDK; NativeScript provides its default scene
 delegate. Plain-app assertions and renderer assertions are qualified separately.
 The compiled scenario also passes OS input on the simulator and Android emulator
 as described below. Do not switch production consumers or publish
 this artifact.
 
-iOS retains embedded FontManager and SDWebImage code, dependency module headers,
-licenses and the SDWebImage resource/privacy bundle embedded in each matching
-framework slice. Android declares the same
+iOS links static core with the native library supplied by the shared FontManager
+plugin. Core excludes FontManager class implementations and module headers from
+its npm payload. SDWebImage remains compiled into core, with its module headers,
+licenses and separately installed privacy bundle in `platforms/ios/Resources`.
+Android declares the same
 direct Maven dependencies as the native host build; their transitive AndroidX
 cost remains. No app-size savings have been measured.
 

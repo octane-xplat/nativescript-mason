@@ -43,12 +43,18 @@ It exports `dist/native/mason-core/ios-host/universal`, embedding each platform'
 SDWebImage privacy bundle in its own framework slice. The plugin packages this
 XCFramework; resource paths no longer depend on a simulator-only global bundle.
 
-The exported framework retains FontManager for styling/font metrics and
-SDWebImage for container backgrounds and nine-slice images. Their code is
-linked into the framework. Their dependency headers and licenses accompany it;
-FontManager's Clang module is required even for a Swift client that imports
-only `MasonCore`. Removing image/text widgets does not remove these remaining
-callers. The export also carries SwiftPM's SDWebImage resource/privacy bundle.
+The exported framework is static. FontManager is linked once by the consuming
+app; core does not define its Objective-C classes. The npm plugin depends on
+`@nativescript/font-manager@1.0.20`, which supplies the shared library and module.
+The native SDK export includes its pinned headers and library for the isolated
+Swift/Objective-C link checks. Objective-C-only hosts also need the toolchain's
+Swift compatibility library search path; ordinary NativeScript apps already
+compile Swift sources and receive that path from Xcode.
+
+SDWebImage remains embedded for container backgrounds and nine-slice images.
+Its dependency headers and licenses accompany core. The npm plugin installs
+the SDWebImage privacy bundle separately through `platforms/ios/Resources`,
+because the static framework is not embedded in the application at runtime.
 The separate isolated NativeScript app verifies resource discovery, core class
 metadata, layout and ownership on an arm64 simulator. Independent public native
 declarations are generated independently; device app coverage remains a gate.

@@ -15,6 +15,21 @@ The beta ships arm64 iOS device/Simulator and Android arm64-v8a artifacts.
 The raw source directory is not an installable plugin. Do not install core and full
 MasonKit in the same app: their native class and library names overlap.
 
+## Shared iOS font support
+
+Core's iOS framework is static and uses the native FontManager library supplied
+by `@nativescript/font-manager@1.0.20`. The app links that library once. Core's
+npm dependency installs the plugin automatically; existing apps that also
+declare the plugin must align their direct pin:
+
+```sh
+pnpm add @nativescript/font-manager@1.0.20
+```
+
+Rebuild the native application after upgrading. No plugin exclusion or manual
+framework linking is needed in a normal NativeScript app. The native SDK build
+and its separate Swift/Objective-C link checks are documented below.
+
 ## Build and install
 
 After preparing the native artifacts described below, run from the repository
@@ -29,7 +44,7 @@ pnpm pack --pack-destination /path/to/local-artifacts
 Install the resulting tarball in a NativeScript application:
 
 ```sh
-pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.2.tgz
+pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.3.tgz
 ```
 
 Use NativeScript controls inside a Mason container:

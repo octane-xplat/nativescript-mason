@@ -16,6 +16,7 @@ const originalProject = resolve(iosSourceRoot, '../Mason.xcodeproj');
 const artifactRoot = resolve(workspaceRoot, 'dist/native/mason-core/ios');
 const engine = resolve(artifactRoot, device ? 'aarch64-apple-ios/libMasonCore.a' : 'aarch64-apple-ios-sim/libMasonCore.a');
 const tests = process.argv.includes('--tests');
+const fontHeaders = resolve(workspaceRoot, 'tmp/mason-core-ios-packages/artifacts/font-manager/FontManager/FontManager.xcframework', device ? 'ios-arm64' : 'ios-arm64_x86_64-simulator', 'Headers');
 if (tests && device) throw new Error('Native host tests require the dedicated simulator.');
 if (!existsSync(engine)) throw new Error('Build nativescript-mason-core:build.native.ios first.');
 rmSync(stage, { recursive: true, force: true });
@@ -47,13 +48,31 @@ if (tests) {
   write('MasonTests/CoreLayoutInteropTests.swift', originalTests + '\n' + readFileSync(resolve(workspaceRoot, 'tools/mason-core/ios-host-tests.swift'), 'utf8'));
 }
 pbx = pbx.split('\n').filter((line) => {
+  // Swift imports use the pinned package's headers. Its static objects belong
+  // to the consuming app, never to the MasonCore archive.
+  if (/^\s+[A-F0-9]+ \/\* FontManager in Frameworks \*\/,\s*$/.test(line)) return false;
   const source = line.match(/^\s+[A-F0-9]+ \/\* (\S+) in Sources \*\/,\s*$/);
   return !source || keep.has(source[1]);
 }).join('\n');
 pbx = pbx.replace(/\s*"OTHER_LDFLAGS\[[^\n]+\]" = \([\s\S]*?\);/g, '');
+pbx = pbx.replaceAll('MACH_O_TYPE = mh_dylib;', 'MACH_O_TYPE = staticlib;');
+if (tests) {
+  // The XCTest bundle is the final host and links the external library once.
+  const settings = `PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.MasonTests;
+                SWIFT_INCLUDE_PATHS = ("$(inherited)", "${fontHeaders}");
+                LIBRARY_SEARCH_PATHS = ("$(inherited)", "${resolve(fontHeaders, '..')}");
+                OTHER_LDFLAGS = ("$(inherited)", "-lFontManager", "-liconv", "-lresolv");`;
+  const key = 'PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.MasonTests;';
+  if (!pbx.includes(key)) throw new Error('Missing native test bundle configuration.');
+  pbx = pbx.replaceAll(key, settings);
+}
+
 pbx = pbx.replaceAll('MODULEMAP_FILE = "";', `MODULEMAP_FILE = "${resolve(stage, 'Mason/module.modulemap')}";
                 PRODUCT_MODULE_NAME = MasonCore;
                 BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+                SWIFT_SERIALIZE_DEBUGGING_OPTIONS = NO;
+                OTHER_LIBTOOLFLAGS = ("$(inherited)", "${engine}");
+                SWIFT_INCLUDE_PATHS = ("$(inherited)", "${fontHeaders}");
                 OTHER_LDFLAGS = ("$(inherited)", "${engine}", "-ObjC", "-liconv", "-lresolv");`);
 pbx = pbx.replaceAll('PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";', 'PRODUCT_NAME = MasonCore;');
 pbx = pbx.replaceAll('PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.Mason;', 'PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.MasonCore;');
@@ -76,9 +95,16 @@ const args = [
   '-derivedDataPath', derived,
   '-clonedSourcePackagesDirPath', resolve(workspaceRoot, 'tmp/mason-core-ios-packages'),
   '-disableAutomaticPackageResolution', '-onlyUsePackageVersionsFromResolvedFile',
+  'ENABLE_CODE_COVERAGE=NO', 'CLANG_COVERAGE_MAPPING=NO',
   'ARCHS=arm64', 'ONLY_ACTIVE_ARCH=YES', 'CODE_SIGNING_ALLOWED=NO',
   tests ? 'build-for-testing' : 'build',
 ];
+if (!existsSync(fontHeaders)) {
+  const resolution = spawnSync('xcodebuild', [...args.slice(0, -1), '-resolvePackageDependencies'], { cwd: workspaceRoot, stdio: 'inherit' });
+  if (resolution.error) throw resolution.error;
+  if (resolution.status !== 0) process.exit(resolution.status ?? 1);
+  if (!existsSync(fontHeaders)) throw new Error('Pinned FontManager package did not provide its native headers.');
+}
 const result = spawnSync('xcodebuild', args, { cwd: workspaceRoot, stdio: 'inherit' });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
@@ -88,6 +114,10 @@ const output = resolve(workspaceRoot, 'dist/native/mason-core/ios-host', ...(dev
 rmSync(output, { recursive: true, force: true });
 mkdirSync(output, { recursive: true });
 cpSync(resolve(products, 'MasonCore.framework'), resolve(output, 'MasonCore.framework'), { recursive: true });
+// Native SDK clients link the same external library as the NativeScript plugin.
+// This SDK-only copy is not included in the npm plugin.
+mkdirSync(resolve(output, 'dependencies/FontManager'), { recursive: true });
+copyFileSync(resolve(fontHeaders, '../libFontManager.a'), resolve(output, 'dependencies/FontManager/libFontManager.a'));
 // SwiftPM resource bundles are siblings of the framework in Xcode's products.
 // Export them explicitly so consumers never reach back into our build tree.
 const resourceBundles = readdirSync(products).filter((name) => name.endsWith('.bundle')).sort();
@@ -96,7 +126,7 @@ for (const name of resourceBundles) cpSync(resolve(products, name), resolve(outp
 const include = resolve(output, 'include');
 mkdirSync(include, { recursive: true });
 const headerFilter = (filename) => statSync(filename).isDirectory() || filename.endsWith('.h');
-cpSync(resolve(products, 'include'), resolve(include, 'FontManager'), { recursive: true, dereference: true, filter: headerFilter });
+cpSync(fontHeaders, resolve(include, 'FontManager'), { recursive: true, dereference: true, filter: headerFilter });
 cpSync(resolve(workspaceRoot, 'tmp/mason-core-ios-packages/checkouts/SDWebImage/SDWebImage/include/SDWebImage'), resolve(include, 'SDWebImage'), { recursive: true, dereference: true, filter: headerFilter });
 writeFileSync(resolve(include, 'module.modulemap'), `module FontManager { umbrella "FontManager" export * module * { export * } }
 module SDWebImage { umbrella "SDWebImage" export * module * { export * } }
@@ -112,6 +142,7 @@ const sources = iosHostFiles.map((name) => ({
 }));
 const manifest = {
   platform: device ? 'iOS' : 'iOS Simulator', architecture: 'arm64', configuration,
+  linkage: 'static', sharedNativeDependencies: ['FontManager'],
   qualification: 'Core-only native framework build; native client verification and target-specific application execution are separate checks.',
   nativeFrameworkSha256: hash(resolve(output, 'MasonCore.framework/MasonCore')),
   engineSha256: hash(engine), dependencyLockSha256: hash(resolve(output, 'Package.resolved')),

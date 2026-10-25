@@ -86,7 +86,7 @@ try {
   const manifest = JSON.parse(readFileSync(resolve(packageRoot, 'package.json'), 'utf8'));
   assert.equal(manifest.private, true);
   assert.equal(manifest.masonCorePrototype.nativeHosts, false);
-  assert.deepEqual(Object.keys(manifest.dependencies ?? {}), []);
+  assert.deepEqual(manifest.dependencies, { '@nativescript/font-manager': '1.0.20' });
   assert.deepEqual(Object.keys(manifest.peerDependencies), ['@nativescript/core']);
   for (const platform of ['ios', 'android']) {
     const files = graph(packageRoot, platform);

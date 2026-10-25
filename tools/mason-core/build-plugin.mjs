@@ -36,8 +36,11 @@ const androidOutput = resolve(output, 'platforms/android');
 mkdirSync(iosOutput, { recursive: true });
 mkdirSync(androidOutput, { recursive: true });
 cpSync(resolve(ios, 'MasonCore.xcframework'), resolve(iosOutput, 'MasonCore.xcframework'), { recursive: true });
-cpSync(resolve(ios, 'include'), resolve(iosOutput, 'include'), { recursive: true });
-// Privacy bundles are embedded in their matching framework slice.
+cpSync(resolve(ios, 'Resources'), resolve(iosOutput, 'Resources'), { recursive: true });
+mkdirSync(resolve(iosOutput, 'include'), { recursive: true });
+cpSync(resolve(ios, 'include/SDWebImage'), resolve(iosOutput, 'include/SDWebImage'), { recursive: true });
+writeFileSync(resolve(iosOutput, 'include/module.modulemap'), 'module SDWebImage { umbrella "SDWebImage" export * module * { export * } }\n');
+// Keep dependency licenses and native build provenance with the package.
 for (const name of ['FontManager.LICENSE', 'SDWebImage.LICENSE', 'Package.resolved', 'manifest.json', 'simulator-manifest.json', 'device-manifest.json']) {
   copyFileSync(resolve(ios, name), resolve(iosOutput, name));
 }
@@ -50,10 +53,12 @@ writeFileSync(resolve(androidOutput, 'include.gradle'), `dependencies {
   implementation 'org.nativescript:fontmanager:1.0.20'
 }
 `);
-writeFileSync(resolve(iosOutput, 'build.xcconfig'), `// The framework embeds FontManager and SDWebImage; these headers expose their modules.
+writeFileSync(resolve(iosOutput, 'build.xcconfig'), `// Core is static; the FontManager plugin supplies its shared native library.
+// SDWebImage remains embedded and exposes its retained headers here.
 FRAMEWORK_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/nativescript-mason-core/platforms/ios"
 HEADER_SEARCH_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/nativescript-mason-core/platforms/ios/include"
 SWIFT_INCLUDE_PATHS = $(inherited) "$(SRCROOT)/../../node_modules/@octane-xplat/nativescript-mason-core/platforms/ios/include"
+OTHER_LDFLAGS = $(inherited) -ObjC -liconv -lresolv
 `);
 const manifest = json(resolve(runtime, 'package.json'));
 const sourceManifest = json(resolve(workspaceRoot, 'packages/nativescript-mason-core/package.json'));
@@ -63,7 +68,7 @@ manifest.description = sourceManifest.description;
 manifest.nativescript = sourceManifest.nativescript;
 manifest.masonCorePrototype = {
   nativeHosts: true,
-  ios: { architectures: ['arm64'], simulatorOnly: false },
+  ios: { architectures: ['arm64'], simulatorOnly: false, linkage: 'static', sharedNativeDependencies: ['FontManager'] },
   android: { abis: ['arm64-v8a'] },
   nativeTypes: true,
   coinstallationWithFullMasonKit: false,
