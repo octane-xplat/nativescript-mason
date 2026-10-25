@@ -44,7 +44,7 @@ pnpm pack --pack-destination /path/to/local-artifacts
 Install the resulting tarball in a NativeScript application:
 
 ```sh
-pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.3.tgz
+pnpm add /path/to/local-artifacts/octane-xplat-nativescript-mason-core-1.0.0-beta.4.tgz
 ```
 
 Use NativeScript controls inside a Mason container:

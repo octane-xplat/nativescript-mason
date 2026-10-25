@@ -3877,6 +3877,7 @@ declare module org {
 					public static MIN_BITS: number = 2143289345;
 					public static MAX_BITS: number = 2143289346;
 					public static ZERO: number = 0;
+					public static BASELINE_QUERY: number = -4.0;
 					public static isMinContent(value: number): boolean;
 					public static isMaxContent(value: number): boolean;
 					public make(hBits: number, this_: number): number;
@@ -4734,7 +4735,8 @@ declare module org {
 					public static IS_MUTABLE: number = 2;
 					public static PSEUDO_FLAGS_INDEX: number = 3;
 					public static IS_HIDDEN: number = 5;
-					public static NODE_STATE_BUFFER_SIZE: number = 6;
+					public static BASELINE: number = 8;
+					public static NODE_STATE_BUFFER_SIZE: number = 12;
 				}
 			}
 		}
@@ -5088,7 +5090,7 @@ declare module org {
 					public removeViewAt(index: number): void;
 					public onMeasure(heightArg: number, stale: number): void;
 					public onAttachedToWindow(): void;
-					public onLayout(changed: boolean, l: number, t: number, r: number, b: number): void;
+					public onLayout(this_: boolean, changed: number, l: number, t: number, r: number): void;
 					public generateDefaultLayoutParams(): globalAndroid.widget.FrameLayout.LayoutParams;
 					public layout(): org.nativescript.mason.masonkit.Layout;
 					public getWritableStyleBuffer(): java.nio.ByteBuffer;
@@ -5565,6 +5567,10 @@ declare module org {
 						public getTEXT_INDENT(): org.nativescript.mason.masonkit.StateKeys;
 						public getLINE_CLAMP(): org.nativescript.mason.masonkit.StateKeys;
 						public getTRANSFORM_ORIGIN(): org.nativescript.mason.masonkit.StateKeys;
+						public getTEXT_ORIENTATION(): org.nativescript.mason.masonkit.StateKeys;
+						public getTEXT_COMBINE_UPRIGHT(): org.nativescript.mason.masonkit.StateKeys;
+						public getTEXT_SPACING_TRIM(): org.nativescript.mason.masonkit.StateKeys;
+						public getVISIBILITY(): org.nativescript.mason.masonkit.StateKeys;
 						public getALL_TEXT(): org.nativescript.mason.masonkit.StateKeys;
 						public getTEXT_LAYOUT(): org.nativescript.mason.masonkit.StateKeys;
 						public getLAYOUT_MASK(): org.nativescript.mason.masonkit.StateKeys;
@@ -6163,7 +6169,7 @@ declare module org {
 				export class StyleKeys {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.StyleKeys>;
 					public static INSTANCE: org.nativescript.mason.masonkit.StyleKeys;
-					public static STYLE_BUFFER_SIZE: number = 612;
+					public static STYLE_BUFFER_SIZE: number = 744;
 					public static DISPLAY: number = 0;
 					public static POSITION: number = 1;
 					public static DIRECTION: number = 2;
@@ -6381,6 +6387,54 @@ declare module org {
 					public static TRANSFORM_ORIGIN_X_VALUE: number = 600;
 					public static TRANSFORM_ORIGIN_Y_VALUE: number = 604;
 					public static TRANSFORM_ORIGIN_STATE: number = 608;
+					public static TEXT_ORIENTATION: number = 609;
+					public static TEXT_ORIENTATION_STATE: number = 610;
+					public static LOGICAL_SEQ: number = 611;
+					public static MARGIN_ORDER: number = 612;
+					public static MARGIN_BLOCK_START_TYPE: number = 620;
+					public static MARGIN_INLINE_END_TYPE: number = 621;
+					public static MARGIN_BLOCK_END_TYPE: number = 622;
+					public static MARGIN_INLINE_START_TYPE: number = 623;
+					public static MARGIN_BLOCK_START_VALUE: number = 624;
+					public static MARGIN_INLINE_END_VALUE: number = 628;
+					public static MARGIN_BLOCK_END_VALUE: number = 632;
+					public static MARGIN_INLINE_START_VALUE: number = 636;
+					public static PADDING_ORDER: number = 640;
+					public static PADDING_BLOCK_START_TYPE: number = 648;
+					public static PADDING_INLINE_END_TYPE: number = 649;
+					public static PADDING_BLOCK_END_TYPE: number = 650;
+					public static PADDING_INLINE_START_TYPE: number = 651;
+					public static PADDING_BLOCK_START_VALUE: number = 652;
+					public static PADDING_INLINE_END_VALUE: number = 656;
+					public static PADDING_BLOCK_END_VALUE: number = 660;
+					public static PADDING_INLINE_START_VALUE: number = 664;
+					public static INSET_ORDER: number = 668;
+					public static INSET_BLOCK_START_TYPE: number = 676;
+					public static INSET_INLINE_END_TYPE: number = 677;
+					public static INSET_BLOCK_END_TYPE: number = 678;
+					public static INSET_INLINE_START_TYPE: number = 679;
+					public static INSET_BLOCK_START_VALUE: number = 680;
+					public static INSET_INLINE_END_VALUE: number = 684;
+					public static INSET_BLOCK_END_VALUE: number = 688;
+					public static INSET_INLINE_START_VALUE: number = 692;
+					public static SIZE_ORDER: number = 696;
+					public static INLINE_SIZE_TYPE: number = 708;
+					public static BLOCK_SIZE_TYPE: number = 709;
+					public static MIN_INLINE_SIZE_TYPE: number = 710;
+					public static MIN_BLOCK_SIZE_TYPE: number = 711;
+					public static MAX_INLINE_SIZE_TYPE: number = 712;
+					public static MAX_BLOCK_SIZE_TYPE: number = 713;
+					public static INLINE_SIZE_VALUE: number = 714;
+					public static BLOCK_SIZE_VALUE: number = 718;
+					public static MIN_INLINE_SIZE_VALUE: number = 722;
+					public static MIN_BLOCK_SIZE_VALUE: number = 726;
+					public static MAX_INLINE_SIZE_VALUE: number = 730;
+					public static MAX_BLOCK_SIZE_VALUE: number = 734;
+					public static TEXT_COMBINE_UPRIGHT: number = 738;
+					public static TEXT_COMBINE_UPRIGHT_STATE: number = 739;
+					public static TEXT_SPACING_TRIM: number = 740;
+					public static TEXT_SPACING_TRIM_STATE: number = 741;
+					public static VISIBILITY: number = 742;
 					public static TRANSFORM_OP_SIZE: number = 12;
 					public static MAX_INLINE_TRANSFORM_OPS: number = 6;
 					public static TRANSFORM_FLAG_HAS_MATRIX: number = 1;
@@ -6796,6 +6850,28 @@ declare module org {
 	export module nativescript {
 		export module mason {
 			export module masonkit {
+				export class SvgBaseline {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgBaseline>;
+					public static ALPHABETIC: org.nativescript.mason.masonkit.SvgBaseline;
+					public static MIDDLE: org.nativescript.mason.masonkit.SvgBaseline;
+					public static CENTRAL: org.nativescript.mason.masonkit.SvgBaseline;
+					public static HANGING: org.nativescript.mason.masonkit.SvgBaseline;
+					public static TEXT_TOP: org.nativescript.mason.masonkit.SvgBaseline;
+					public static TEXT_BOTTOM: org.nativescript.mason.masonkit.SvgBaseline;
+					public static MATHEMATICAL: org.nativescript.mason.masonkit.SvgBaseline;
+					public static values(): androidNative.Array<org.nativescript.mason.masonkit.SvgBaseline>;
+					public static valueOf(value: string): org.nativescript.mason.masonkit.SvgBaseline;
+					public static getEntries(): any;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
 				export class SvgBuilder {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgBuilder>;
 					public constructor(tree: org.nativescript.mason.masonkit.SvgTree, vbW: number, vbH: number);
@@ -6803,6 +6879,7 @@ declare module org {
 					public getVbW(): number;
 					public getVbH(): number;
 					public getOps(): java.util.ArrayList<org.nativescript.mason.masonkit.SvgOp>;
+					public setOps(param0: java.util.ArrayList<org.nativescript.mason.masonkit.SvgOp>): void;
 					public getUsesCurrentColor(): boolean;
 					public setUsesCurrentColor(param0: boolean): void;
 					public cascade(it: org.nativescript.mason.masonkit.SvgNode): java.util.Map<string,string>;
@@ -6861,6 +6938,31 @@ declare module org {
 					public getUsesCurrentColor(): boolean;
 					public getShapes(): java.util.List<org.nativescript.mason.masonkit.SvgShape>;
 					public viewportTransform(this_: number, outW: number): androidNative.Array<number>;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgFont {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgFont>;
+					public constructor(families: java.util.List<string>, size: number, weight: number, italic: boolean);
+					public getFamilies(): java.util.List<string>;
+					public getSize(): number;
+					public getWeight(): number;
+					public getItalic(): boolean;
+					public component1(): java.util.List<string>;
+					public component2(): number;
+					public component3(): number;
+					public component4(): boolean;
+					public copy(families: java.util.List<string>, size: number, weight: number, italic: boolean): org.nativescript.mason.masonkit.SvgFont;
+					public toString(): string;
+					public hashCode(): number;
+					public equals(other: any): boolean;
 				}
 			}
 		}
@@ -6979,6 +7081,50 @@ declare module org {
 	export module nativescript {
 		export module mason {
 			export module masonkit {
+				export class SvgMarkerVertex {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgMarkerVertex>;
+					public constructor(x: number, y: number, inAngle: java.lang.Float | null, outAngle: java.lang.Float | null);
+					public getX(): number;
+					public getY(): number;
+					public getInAngle(): java.lang.Float | null;
+					public setInAngle(param0: java.lang.Float | null): void;
+					public getOutAngle(): java.lang.Float | null;
+					public setOutAngle(param0: java.lang.Float | null): void;
+					public getAutoAngle(): number;
+					public component1(): number;
+					public component2(): number;
+					public component3(): java.lang.Float | null;
+					public component4(): java.lang.Float | null;
+					public copy(x: number, y: number, inAngle: java.lang.Float | null, outAngle: java.lang.Float | null): org.nativescript.mason.masonkit.SvgMarkerVertex;
+					public toString(): string;
+					public hashCode(): number;
+					public equals(other: any): boolean;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgMask {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgMask>;
+					public constructor(ops: java.util.List<any>, region: org.nativescript.mason.masonkit.SvgClip, luminance: boolean);
+					public getOps(): java.util.List<org.nativescript.mason.masonkit.SvgOp>;
+					public getRegion(): org.nativescript.mason.masonkit.SvgClip;
+					public getLuminance(): boolean;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
 				export class SvgNode {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgNode>;
 					public constructor(name: string, attrs: java.util.Map<string,string>, parent: org.nativescript.mason.masonkit.SvgNode | null);
@@ -6989,6 +7135,8 @@ declare module org {
 					public getClasses(): java.util.Set<string>;
 					public getProps(): java.util.Map<string,string> | null;
 					public setProps(param0: java.util.Map<string,string> | null): void;
+					public getText(): string;
+					public setText(param0: string): void;
 					public getHref(): string | null;
 				}
 			}
@@ -7102,6 +7250,28 @@ declare module org {
 		export module mason {
 			export module masonkit {
 				export module SvgOp {
+					export class Masked extends org.nativescript.mason.masonkit.SvgOp {
+						public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgOp.Masked>;
+						public constructor(mask: org.nativescript.mason.masonkit.SvgMask, content: java.util.List<any>);
+						public getMask(): org.nativescript.mason.masonkit.SvgMask;
+						public getContent(): java.util.List<org.nativescript.mason.masonkit.SvgOp>;
+						public component1(): org.nativescript.mason.masonkit.SvgMask;
+						public component2(): java.util.List<org.nativescript.mason.masonkit.SvgOp>;
+						public copy(mask: org.nativescript.mason.masonkit.SvgMask, content: java.util.List<any>): org.nativescript.mason.masonkit.SvgOp.Masked;
+						public toString(): string;
+						public hashCode(): number;
+						public equals(other: any): boolean;
+					}
+				}
+			}
+		}
+	}
+}
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export module SvgOp {
 					export class Shape extends org.nativescript.mason.masonkit.SvgOp {
 						public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgOp.Shape>;
 						public constructor(shape: org.nativescript.mason.masonkit.SvgShape);
@@ -7193,6 +7363,40 @@ declare module org {
 						public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgPaint.None>;
 						public static INSTANCE: org.nativescript.mason.masonkit.SvgPaint.None;
 						public toString(): string;
+					}
+				}
+			}
+		}
+	}
+}
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export module SvgPaint {
+					export class Pattern extends org.nativescript.mason.masonkit.SvgPaint {
+						public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgPaint.Pattern>;
+						public constructor(pattern: org.nativescript.mason.masonkit.SvgPattern);
+						public getPattern(): org.nativescript.mason.masonkit.SvgPattern;
+						public component1(): org.nativescript.mason.masonkit.SvgPattern;
+						public copy(pattern: org.nativescript.mason.masonkit.SvgPattern): org.nativescript.mason.masonkit.SvgPaint.Pattern;
+						public toString(): string;
+						public hashCode(): number;
+						public equals(other: any): boolean;
+					}
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export module SvgParserKt {
+					export class WhenMappings {
+						public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgParserKt.WhenMappings>;
 					}
 				}
 			}
@@ -7331,6 +7535,23 @@ declare module org {
 	export module nativescript {
 		export module mason {
 			export module masonkit {
+				export class SvgPattern {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgPattern>;
+					public constructor(width: number, height: number, transform: androidNative.Array<number>, ops: java.util.List<any>);
+					public getWidth(): number;
+					public getHeight(): number;
+					public getTransform(): androidNative.Array<number>;
+					public getOps(): java.util.List<org.nativescript.mason.masonkit.SvgOp>;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
 				export class SvgShape {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgShape>;
 					public constructor(commands: java.util.List<any>, transform: androidNative.Array<number>, fill: org.nativescript.mason.masonkit.SvgPaint, fillOpacity: number, evenOdd: boolean, stroke: org.nativescript.mason.masonkit.SvgPaint, strokeOpacity: number, strokeWidth: number, lineCap: org.nativescript.mason.masonkit.SvgLineCap, lineJoin: org.nativescript.mason.masonkit.SvgLineJoin, miterLimit: number, dashArray: androidNative.Array<number> | null, dashOffset: number);
@@ -7396,7 +7617,7 @@ declare module org {
 			export module masonkit {
 				export class SvgStyleState {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgStyleState>;
-					public constructor(fill: org.nativescript.mason.masonkit.SvgPaint, fillOpacity: number, evenOdd: boolean, stroke: org.nativescript.mason.masonkit.SvgPaint, strokeOpacity: number, strokeWidth: number, lineCap: org.nativescript.mason.masonkit.SvgLineCap, lineJoin: org.nativescript.mason.masonkit.SvgLineJoin, miterLimit: number, dashArray: androidNative.Array<number> | null, dashOffset: number, color: java.lang.Integer | null, visible: boolean, clipEvenOdd: boolean);
+					public constructor(fill: org.nativescript.mason.masonkit.SvgPaint, fillOpacity: number, evenOdd: boolean, stroke: org.nativescript.mason.masonkit.SvgPaint, strokeOpacity: number, strokeWidth: number, lineCap: org.nativescript.mason.masonkit.SvgLineCap, lineJoin: org.nativescript.mason.masonkit.SvgLineJoin, miterLimit: number, dashArray: androidNative.Array<number> | null, dashOffset: number, color: java.lang.Integer | null, visible: boolean, clipEvenOdd: boolean, fontFamilies: java.util.List<string>, fontSize: number, fontWeight: number, italic: boolean, textAnchor: org.nativescript.mason.masonkit.SvgTextAnchor, baseline: org.nativescript.mason.masonkit.SvgBaseline, letterSpacing: number, wordSpacing: number, preserveSpace: boolean, markerStart: string | null, markerMid: string | null, markerEnd: string | null);
 					public getFill(): org.nativescript.mason.masonkit.SvgPaint;
 					public setFill(param0: org.nativescript.mason.masonkit.SvgPaint): void;
 					public getFillOpacity(): number;
@@ -7425,6 +7646,32 @@ declare module org {
 					public setVisible(param0: boolean): void;
 					public getClipEvenOdd(): boolean;
 					public setClipEvenOdd(param0: boolean): void;
+					public getFontFamilies(): java.util.List<string>;
+					public setFontFamilies(param0: java.util.List<string>): void;
+					public getFontSize(): number;
+					public setFontSize(param0: number): void;
+					public getFontWeight(): number;
+					public setFontWeight(param0: number): void;
+					public getItalic(): boolean;
+					public setItalic(param0: boolean): void;
+					public getTextAnchor(): org.nativescript.mason.masonkit.SvgTextAnchor;
+					public setTextAnchor(param0: org.nativescript.mason.masonkit.SvgTextAnchor): void;
+					public getBaseline(): org.nativescript.mason.masonkit.SvgBaseline;
+					public setBaseline(param0: org.nativescript.mason.masonkit.SvgBaseline): void;
+					public getLetterSpacing(): number;
+					public setLetterSpacing(param0: number): void;
+					public getWordSpacing(): number;
+					public setWordSpacing(param0: number): void;
+					public getPreserveSpace(): boolean;
+					public setPreserveSpace(param0: boolean): void;
+					public getMarkerStart(): string | null;
+					public setMarkerStart(param0: string | null): void;
+					public getMarkerMid(): string | null;
+					public setMarkerMid(param0: string | null): void;
+					public getMarkerEnd(): string | null;
+					public setMarkerEnd(param0: string | null): void;
+					public getFont(): org.nativescript.mason.masonkit.SvgFont;
+					public getHasMarkers(): boolean;
 					public component1(): org.nativescript.mason.masonkit.SvgPaint;
 					public component2(): number;
 					public component3(): boolean;
@@ -7439,11 +7686,155 @@ declare module org {
 					public component12(): java.lang.Integer | null;
 					public component13(): boolean;
 					public component14(): boolean;
-					public copy(fill: org.nativescript.mason.masonkit.SvgPaint, fillOpacity: number, evenOdd: boolean, stroke: org.nativescript.mason.masonkit.SvgPaint, strokeOpacity: number, strokeWidth: number, lineCap: org.nativescript.mason.masonkit.SvgLineCap, lineJoin: org.nativescript.mason.masonkit.SvgLineJoin, miterLimit: number, dashArray: androidNative.Array<number> | null, dashOffset: number, color: java.lang.Integer | null, visible: boolean, clipEvenOdd: boolean): org.nativescript.mason.masonkit.SvgStyleState;
+					public component15(): java.util.List<string>;
+					public component16(): number;
+					public component17(): number;
+					public component18(): boolean;
+					public component19(): org.nativescript.mason.masonkit.SvgTextAnchor;
+					public component20(): org.nativescript.mason.masonkit.SvgBaseline;
+					public component21(): number;
+					public component22(): number;
+					public component23(): boolean;
+					public component24(): string | null;
+					public component25(): string | null;
+					public component26(): string | null;
+					public copy(fill: org.nativescript.mason.masonkit.SvgPaint, fillOpacity: number, evenOdd: boolean, stroke: org.nativescript.mason.masonkit.SvgPaint, strokeOpacity: number, strokeWidth: number, lineCap: org.nativescript.mason.masonkit.SvgLineCap, lineJoin: org.nativescript.mason.masonkit.SvgLineJoin, miterLimit: number, dashArray: androidNative.Array<number> | null, dashOffset: number, color: java.lang.Integer | null, visible: boolean, clipEvenOdd: boolean, fontFamilies: java.util.List<string>, fontSize: number, fontWeight: number, italic: boolean, textAnchor: org.nativescript.mason.masonkit.SvgTextAnchor, baseline: org.nativescript.mason.masonkit.SvgBaseline, letterSpacing: number, wordSpacing: number, preserveSpace: boolean, markerStart: string | null, markerMid: string | null, markerEnd: string | null): org.nativescript.mason.masonkit.SvgStyleState;
 					public toString(): string;
 					public hashCode(): number;
 					public equals(other: any): boolean;
 					public constructor();
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextAnchor {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextAnchor>;
+					public static START: org.nativescript.mason.masonkit.SvgTextAnchor;
+					public static MIDDLE: org.nativescript.mason.masonkit.SvgTextAnchor;
+					public static END: org.nativescript.mason.masonkit.SvgTextAnchor;
+					public static values(): androidNative.Array<org.nativescript.mason.masonkit.SvgTextAnchor>;
+					public static valueOf(value: string): org.nativescript.mason.masonkit.SvgTextAnchor;
+					public static getEntries(): any;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextChar {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextChar>;
+					public constructor(codePoint: number, owner: org.nativescript.mason.masonkit.SvgNode, style: org.nativescript.mason.masonkit.SvgStyleState);
+					public getCodePoint(): number;
+					public setCodePoint(param0: number): void;
+					public getOwner(): org.nativescript.mason.masonkit.SvgNode;
+					public getStyle(): org.nativescript.mason.masonkit.SvgStyleState;
+					public getX(): java.lang.Float | null;
+					public setX(param0: java.lang.Float | null): void;
+					public getY(): java.lang.Float | null;
+					public setY(param0: java.lang.Float | null): void;
+					public getDx(): number;
+					public setDx(param0: number): void;
+					public getDy(): number;
+					public setDy(param0: number): void;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextChunk {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextChunk>;
+					public constructor(first: number, startX: number, endX: number, anchor: org.nativescript.mason.masonkit.SvgTextAnchor);
+					public getFirst(): number;
+					public getStartX(): number;
+					public getEndX(): number;
+					public setEndX(param0: number): void;
+					public getAnchor(): org.nativescript.mason.masonkit.SvgTextAnchor;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextPiece {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextPiece>;
+					public constructor(commands: java.util.List<any>, style: org.nativescript.mason.masonkit.SvgStyleState);
+					public getCommands(): java.util.List<org.nativescript.mason.masonkit.SvgPathCommand>;
+					public setCommands(param0: java.util.List<any>): void;
+					public getStyle(): org.nativescript.mason.masonkit.SvgStyleState;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextRange {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextRange>;
+					public constructor(node: org.nativescript.mason.masonkit.SvgNode, start: number, end: number);
+					public getNode(): org.nativescript.mason.masonkit.SvgNode;
+					public getStart(): number;
+					public getEnd(): number;
+					public setEnd(param0: number): void;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextRun {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextRun>;
+					public constructor(commands: java.util.List<any>, advance: number, ascent: number, descent: number, xHeight: number);
+					public getCommands(): java.util.List<org.nativescript.mason.masonkit.SvgPathCommand>;
+					public getAdvance(): number;
+					public getAscent(): number;
+					public getDescent(): number;
+					public getXHeight(): number;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class SvgTextShaping {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.SvgTextShaping>;
+					/**
+					 * Constructs a new instance of the org.nativescript.mason.masonkit.SvgTextShaping interface with the provided implementation. An empty constructor exists calling super() when extending the interface class.
+					 */
+					public constructor(implementation: {
+						shape(param0: string, param1: org.nativescript.mason.masonkit.SvgFont, param2: number, param3: number): org.nativescript.mason.masonkit.SvgTextRun;
+					});
+					public constructor();
+					public shape(param0: string, param1: org.nativescript.mason.masonkit.SvgFont, param2: number, param3: number): org.nativescript.mason.masonkit.SvgTextRun;
 				}
 			}
 		}
@@ -8085,56 +8476,56 @@ declare module org {
 					public checkLayoutParams(p: globalAndroid.view.ViewGroup.LayoutParams | null): boolean;
 					public layout(): org.nativescript.mason.masonkit.Layout;
 					public getWritableStyleBuffer(): java.nio.ByteBuffer;
-					public addChildAt(element: org.nativescript.mason.masonkit.Element, index: number): void;
-					public addChildAt(node: org.nativescript.mason.masonkit.Node, index: number): void;
 					public addEventListener(type: string, listener: any): java.util.UUID;
-					public append(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
-					public append(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
-					public append(nodes: java.util.List<any>): void;
-					public append(element: org.nativescript.mason.masonkit.Element): void;
-					public append(node: org.nativescript.mason.masonkit.Node): void;
-					public appendView(view: globalAndroid.view.View): void;
-					public appendView(views: androidNative.Array<globalAndroid.view.View>): void;
-					public attachAndApply(): void;
-					public compute(): void;
-					public compute(widthArg: number, heightArg: number): void;
-					public computeAndLayout(): org.nativescript.mason.masonkit.MasonLayoutTree;
-					public computeAndLayout(width: number, height: number): org.nativescript.mason.masonkit.MasonLayoutTree;
-					public computeMaxContent(): void;
-					public computeMinContent(): void;
-					public computeNestedRootLater(widthArg: number, heightArg: number): void;
-					public computeOrDeferNested(widthArg: number, heightArg: number): boolean;
-					public computeWithMaxContent(): void;
-					public computeWithMinContent(): void;
-					public computeWithSize(width: number, height: number): void;
-					public computeWithViewSize(): void;
-					public computeWithViewSize(layout: boolean): void;
-					public configure(block: any): org.nativescript.mason.masonkit.Element;
-					public dispatch(event: org.nativescript.mason.masonkit.events.Event): void;
-					public elementFromPoint(x: number, y: number): globalAndroid.view.View | null;
 					public ensureNativeClickDispatch(): void;
-					public invalidateForeignHost(): void;
-					public invalidateLayout(): void;
-					public invalidateLayout(invalidateRoot: boolean): void;
-					public isNodeDirty(): boolean;
-					public layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
-					public markNodeDirty(): void;
+					public syncStyleParts(lowLow: number, lowHigh: number, highLow: number, highHigh: number): void;
+					public syncStyle(low: number, high: number): void;
 					public onNodeAttached(): void;
 					public onNodeDetached(): void;
-					public prepend(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
-					public prepend(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
+					public markNodeDirty(): void;
+					public isNodeDirty(): boolean;
+					public configure(block: any): org.nativescript.mason.masonkit.Element;
+					public elementFromPoint(x: number, y: number): globalAndroid.view.View | null;
+					public layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
+					public compute(): void;
+					public compute(widthArg: number, heightArg: number): void;
+					public computeMaxContent(): void;
+					public computeMinContent(): void;
+					public computeWithViewSize(): void;
+					public computeWithViewSize(layout: boolean): void;
+					public computeNestedRootLater(widthArg: number, heightArg: number): void;
+					public computeOrDeferNested(widthArg: number, heightArg: number): boolean;
+					public invalidateForeignHost(): void;
+					public computeAndLayout(): org.nativescript.mason.masonkit.MasonLayoutTree;
+					public computeAndLayout(width: number, height: number): org.nativescript.mason.masonkit.MasonLayoutTree;
+					public computeWithSize(width: number, height: number): void;
+					public computeWithMaxContent(): void;
+					public computeWithMinContent(): void;
+					public attachAndApply(): void;
+					public append(element: org.nativescript.mason.masonkit.Element): void;
+					public append(node: org.nativescript.mason.masonkit.Node): void;
+					public append(nodes: java.util.List<any>): void;
+					public append(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
+					public append(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
 					public prepend(element: org.nativescript.mason.masonkit.Element): void;
 					public prepend(node: org.nativescript.mason.masonkit.Node): void;
+					public prepend(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
+					public prepend(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
+					public invalidateLayout(): void;
+					public invalidateLayout(invalidateRoot: boolean): void;
+					public recomputeRoot(): void;
+					public appendView(view: globalAndroid.view.View): void;
+					public appendView(views: androidNative.Array<globalAndroid.view.View>): void;
 					public prependView(view: globalAndroid.view.View): void;
 					public prependView(views: androidNative.Array<globalAndroid.view.View>): void;
-					public recomputeRoot(): void;
-					public removeChild(node: org.nativescript.mason.masonkit.Node): void;
-					public removeChildAt(index: number): void;
-					public removeEventListener(type: string, id: java.util.UUID): void;
+					public addChildAt(element: org.nativescript.mason.masonkit.Element, index: number): void;
+					public addChildAt(node: org.nativescript.mason.masonkit.Node, index: number): void;
 					public replaceChildAt(element: org.nativescript.mason.masonkit.Element, index: number): void;
 					public replaceChildAt(node: org.nativescript.mason.masonkit.Node, index: number): void;
-					public syncStyle(low: number, high: number): void;
-					public syncStyleParts(lowLow: number, lowHigh: number, highLow: number, highHigh: number): void;
+					public removeChildAt(index: number): void;
+					public removeChild(node: org.nativescript.mason.masonkit.Node): void;
+					public removeEventListener(type: string, id: java.util.UUID): void;
+					public dispatch(event: org.nativescript.mason.masonkit.events.Event): void;
 					public constructor(context: globalAndroid.content.Context, attrs: globalAndroid.util.AttributeSet | null, defStyleAttr: number);
 					public constructor(context: globalAndroid.content.Context, attrs: globalAndroid.util.AttributeSet | null);
 					public constructor(context: globalAndroid.content.Context);
@@ -8294,7 +8685,7 @@ declare module org {
 				export class WebScroll {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.WebScroll>;
 					public static INSTANCE: org.nativescript.mason.masonkit.WebScroll;
-					public static scrollLeft(view: globalAndroid.view.View): number;
+					public static scrollLeft(param0: globalAndroid.view.View): number;
 					public static scrollTop(view: globalAndroid.view.View): number;
 					public static clientWidth(view: globalAndroid.view.View): number;
 					public static clientHeight(view: globalAndroid.view.View): number;

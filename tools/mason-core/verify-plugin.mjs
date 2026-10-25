@@ -59,7 +59,7 @@ try {
     'platforms/android/MasonCore.aar', 'platforms/android/include.gradle',
   ]) assert.ok(existsSync(resolve(root, name)), `Missing native plugin input: ${name}`);
   const javascript = inventory.filter(({ name }) => name.endsWith('.js'));
-  assert.equal(javascript.length, 33);
+  assert.equal(javascript.length, 34);
   for (const { name } of javascript) {
     const source = readFileSync(resolve(root, name), 'utf8');
     for (const dependency of ts.preProcessFile(source).importedFiles) {

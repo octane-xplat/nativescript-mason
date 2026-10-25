@@ -52,7 +52,7 @@ try {
   const sdk = run('xcrun', ['--sdk', sdkName, '--show-sdk-path']).trim();
   const cHeader = run('xcrun', ['clang', '-isysroot', sdk, '-target', target, '-E', '-P', '-x', 'c', resolve(artifact, 'MasonCore.framework/Headers/mason_native.h')]);
   const functions = [...cHeader.matchAll(/\b(mason_\w+)\s*\([^;{}]*\)\s*;/g)].map((match) => match[1]);
-  assert.equal(new Set(functions).size, 99);
+  assert.equal(new Set(functions).size, 103);
   for (const name of functions) assert.ok(new RegExp(`\\b_${name}\\b`).test(symbols), `Missing exported C function: ${name}`);
   for (const name of ['MasonCoreVersionNumber', 'MasonCoreVersionString']) {
     assert.ok(header.includes(name) || readFileSync(resolve(artifact, 'MasonCore.framework/Headers/Mason.h'), 'utf8').includes(name));
@@ -84,7 +84,7 @@ int main(void) { checkCore(); return MasonCoreVersionNumber >= 0 ? 0 : 1; }
 `);
   run('xcrun', ['clang', '-isysroot', sdk, '-target', target, '-F', artifact, '-I', resolve(artifact, 'include'),
     '-fmodules', `-fmodules-cache-path=${resolve(temporary, 'clang-cache')}`, '-fobjc-arc', '-Werror', resolve(temporary, 'consumer.m'), ...link, '-L', swiftRuntime, '-o', resolve(temporary, 'objc-consumer')]);
-  console.log('Isolated Swift and Objective-C clients link static core with external FontManager; all 99 C declarations are exported.');
+  console.log('Isolated Swift and Objective-C clients link static core with external FontManager; all 103 C declarations are exported.');
   console.log('Core native symbols and public headers exclude HTML, rich-text rendering and widget classes.');
 } finally {
   rmSync(temporary, { recursive: true, force: true });

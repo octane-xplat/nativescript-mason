@@ -2341,7 +2341,15 @@ declare function mason_node_get_state_buffer(mason: interop.Pointer | interop.Re
 
 declare function mason_node_get_state_buffer_mut(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
 
+declare function mason_node_get_text_combine_upright(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
+
+declare function mason_node_get_text_orientation(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
+
+declare function mason_node_get_text_spacing_trim(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
+
 declare function mason_node_get_unrounded_size(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, width: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null, height: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): void;
+
+declare function mason_node_get_white_space(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
 
 declare function mason_node_get_writing_mode(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
 
