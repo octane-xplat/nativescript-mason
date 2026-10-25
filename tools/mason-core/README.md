@@ -10,8 +10,10 @@ separate AAR and verifies an isolated Java client. The
 [plugin proof](plugin-README.md) packages both native hosts and independently
 qualifies compiled NativeScript consumers.
 Separate native targets package the existing shared Rust C interface as
-independent engine archives; see the
-[native proof](../../packages/nativescript-mason-core/src-native/README.md).
+independent engine archives, including the pinned per-triple desktop contract
+(`build.native.desktop`/`verify.native.desktop`); see the
+[native proof](../../packages/nativescript-mason-core/src-native/README.md) and
+the [desktop qualification fixture](desktop/README.md).
 
 The design is tracked in the Octane Xplat repository at
 `.agents/design/mason-core-extraction.md`; upstream discussion is

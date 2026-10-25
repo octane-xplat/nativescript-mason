@@ -121,7 +121,9 @@ bool mason_get_preflight(void);
 
 bool mason_ua_default_for_tag(const char *tag, struct CMasonUaDefault *out);
 
+#if defined(__APPLE__)
 void *mason_get_buffer(struct CMason *mason, int handle);
+#endif
 
 void mason_node_set_segments(struct CMason *mason,
                              struct CMasonNode *node,
@@ -383,9 +385,11 @@ const uint8_t *mason_node_get_pseudo_style_buffer(struct CMason *mason,
                                                   uint16_t flags,
                                                   uintptr_t *out_len);
 
+#if defined(__APPLE__)
 void *mason_node_get_pseudo_style_buffer_apple(struct CMason *mason,
                                                struct CMasonNode *node,
                                                uint16_t flags);
+#endif
 
 /**
  * Prepare (create if needed) and return a mutable pseudo style buffer.
@@ -397,9 +401,11 @@ uint8_t *mason_node_prepare_pseudo_style_buffer(struct CMason *mason,
                                                 uint16_t flags,
                                                 uintptr_t *out_len);
 
+#if defined(__APPLE__)
 void *mason_node_prepare_pseudo_style_buffer_apple(struct CMason *mason,
                                                    struct CMasonNode *node,
                                                    uint16_t flags);
+#endif
 
 bool mason_node_is_children_same(struct CMason *mason,
                                  struct CMasonNode *node,
@@ -429,7 +435,9 @@ void mason_node_set_context(struct CMason *mason,
 void mason_node_remove_context(struct CMason *mason, struct CMasonNode *node);
 #endif
 
+#if defined(__APPLE__)
 void mason_node_set_apple_node(struct CMason *mason, struct CMasonNode *node, void *apple_node);
+#endif
 
 void mason_style_update_non_buffer_data(struct CMason *mason,
                                         struct CMasonNode *node,
@@ -565,7 +573,9 @@ const uint8_t *mason_style_get_style_data(struct CMason *mason,
 
 struct CMasonBuffer *mason_style_get_style_buffer(struct CMason *mason, struct CMasonNode *node);
 
+#if defined(__APPLE__)
 void *mason_style_get_style_buffer_apple(struct CMason *mason, struct CMasonNode *node);
+#endif
 
 char *mason_style_get_grid_area_css(struct CMason *mason, struct CMasonNode *node);
 

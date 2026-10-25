@@ -110,19 +110,23 @@
       "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer" }
     },
     "test.consumer.ios.input": {
-      "executor": "nx:run-commands", "cache": false,
+      "executor": "nx:run-commands",
+      "cache": false,
       "options": { "command": "node tools/mason-core/run-ios-consumer.mjs --os-input" }
     },
     "test.consumer.android.input.emulator": {
-      "executor": "nx:run-commands", "cache": false,
+      "executor": "nx:run-commands",
+      "cache": false,
       "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer --os-input" }
     },
     "test.consumer.android.inspector.emulator": {
-      "executor": "nx:run-commands", "cache": false,
+      "executor": "nx:run-commands",
+      "cache": false,
       "options": { "command": "node tools/mason-core/run-android-tests.mjs --consumer --os-input --inspector" }
     },
     "test.consumer.android.input.device": {
-      "executor": "nx:run-commands", "cache": false,
+      "executor": "nx:run-commands",
+      "cache": false,
       "options": { "command": "node tools/mason-core/run-android-consumer.mjs --os-input" }
     },
     "verify.helpers": {
@@ -260,6 +264,17 @@
       "dependsOn": ["build.native.ios"],
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-native-ios.mjs" }
+    },
+    "build.native.desktop": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-native.mjs desktop" }
+    },
+    "verify.native.desktop": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.native.desktop"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-desktop.mjs" }
     }
   }
 }

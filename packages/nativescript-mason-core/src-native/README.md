@@ -24,7 +24,8 @@ and UA-default helpers; this proof does not remove all text-related engine code.
 ## Build and verify
 
 Run on macOS with Xcode, Rustup's stable toolchain, and the corresponding Rust
-targets already installed. Android inspection also needs an NDK; set
+targets already installed (`rustup target add x86_64-unknown-linux-gnu
+x86_64-pc-windows-msvc` for the desktop set). Android inspection also needs an NDK; set
 `ANDROID_NDK_HOME`, or use the newest installed NDK under `ANDROID_HOME` /
 `ANDROID_SDK_ROOT` (default: `~/Library/Android/sdk`).
 
@@ -57,22 +58,42 @@ pnpm exec nx run nativescript-mason-core:verify.native.ios
 pnpm exec nx run nativescript-mason-core:build.native.android
 ```
 
+Desktop engine artifacts build and qualify with:
+
+```sh
+pnpm exec nx run nativescript-mason-core:verify.native.desktop
+```
+
 | Target | Artifact under `dist/native/mason-core/` | Qualification boundary |
 | --- | --- | --- |
 | macOS host | `host/<host-triple>/libMasonCore.a` | C consumer executes layout and measurement |
 | iOS arm64 device + arm64 simulator | `ios/MasonCore.xcframework` | Engine compilation and packaging; isolated Swift simulator consumer link; no app runtime |
 | Android arm64 | `android/aarch64-linux-android/libMasonCore.a` | Engine compilation; no JNI host or runtime |
-| Windows and other architectures | No new artifact | Unqualified by this prototype |
+| macOS arm64 | `desktop/aarch64-apple-darwin/libMasonCore.a` + `include/mason_native.h` | Declared/exported symbol check; C consumer executes layout and measurement |
+| Linux x86_64 | `desktop/x86_64-unknown-linux-gnu/libMasonCore.a` + `include/mason_native.h` | Cross-compilation plus declared/exported symbol check |
+| Windows x86_64 | `desktop/x86_64-pc-windows-msvc/MasonCore.lib` + `include/mason_native.h` | Cross-compilation plus declared/exported symbol check |
 
 `verify.native.ios` builds the XCFramework, then imports its C module and links
 a Swift simulator executable outside the workspace. It does not launch that
 executable or a simulator. Use `build.native.ios` when only the artifact is
 needed.
 
-Every target preprocesses the staged header using its actual C toolchain and
-checks that all declared Mason functions exist in its archive. This catches
+Every mobile target preprocesses the staged header using its actual C toolchain
+and checks that all declared Mason functions exist in its archive. This catches
 platform declarations that do not match the compiled Rust surface. It does not
 replace runtime ABI or lifecycle tests.
+
+The desktop mode pins one `mason-c` archive per target triple beside a C header
+flattened to that target's preprocessor state: each `include/mason_native.h`
+declares exactly what its archive exports — Apple-only functions appear only in
+the `aarch64-apple-darwin` header. This is the contract desktop host adapters
+consume instead of compiling the crate from a checkout or hand-declaring
+`mason_*` externs. `verify.native.desktop` additionally re-checks the recorded
+hashes, asserts the facade-facing surface (engine lifecycle, node and children
+management, callback-measured leaves, `mason_style_set_with_values`, compute
+and layout calls, teardown) against each archive, and compiles, links, and runs
+`tools/mason-core/desktop/engine-consumer.c` on the target matching the build
+host.
 
 Raw engine archives stay outside the portable helper proof. The normal core
 `build` packages the independent native host artifacts; this experimental package
@@ -87,11 +108,17 @@ and stages a copy in the native artifact. The full package's header is unchanged
 There is no runtime dependency on MasonKit. Once the source boundary is ready,
 header generation should belong beside the shared C interface.
 
-The existing generated header does not guard declarations corresponding to
-Rust's `cfg(target_vendor = "apple")`. Staging adds those guards and derives
-`TARGET_OS_ANDROID` from the compiler's `__ANDROID__` macro so it cannot advertise
-Apple-only functions or foreign-measure callbacks on Android. These adaptations
-live in the build tool, not in a hand-edited copy of the upstream module.
+`crates/mason-c/cbindgen.toml` maps `cfg(target_vendor = "apple")` to
+`__APPLE__`, so the generated header guards the five Apple-only functions at
+generation time instead of declaring them unconditionally. Staging verifies
+those guards survived and derives `TARGET_OS_ANDROID` from the compiler's
+`__ANDROID__` macro so it cannot advertise foreign-measure callbacks on
+Android. For the desktop contract the build evaluates the guarded header under
+each target's preprocessor state — the real SDK toolchain for
+`aarch64-apple-darwin`, the host compiler with `__APPLE__`/`__ANDROID__`
+cleared for Linux and Windows — and ships the flattened result per target, so
+downstream consumers get a header that matches the compiled surface with no
+conditional left to resolve.
 
 ## Boundaries still to extract
 
