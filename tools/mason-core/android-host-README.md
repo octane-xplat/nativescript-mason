@@ -46,8 +46,8 @@ boots that emulator without a window, installs only its test APK, runs the
 tests, and stops its emulator afterward. Reserve resident-device capacity
 through the host's resource broker before running it on a shared machine.
 
-The suite contains 12 unchanged foreign-view tests and five core tests. The
-runner requires all 17 to pass without skips. It covers intrinsic content and
+The suite contains 18 foreign-view tests and six core tests. The
+runner requires all 24 to pass without skips. It covers intrinsic content and
 width changes, style-buffer invalidation, flex-assigned frames, grid placement,
 percentage reset, child order/reparenting, cycle rejection, nested roots, and
 programmatic scroll bounds. Logs and a passing summary stay under
@@ -56,7 +56,7 @@ NativeScript lifecycle or OS input.
 
 ## Use a connected physical device
 
-The same 17 tests can run on an authorized arm64 Android phone without an
+The same 24 tests can run on an authorized arm64 Android phone without an
 emulator. Build the APK first, then run:
 
 ```sh
@@ -72,7 +72,7 @@ identifiers are not included in the result summary. On a shared host, reserve
 an exclusive USB-device lock, such as `android-usb:<serial>`; no emulator is
 started or counted as a resident VM.
 
-The API 36 physical-device run passes all 17 tests, including all 12 unchanged
+An earlier API 36 physical-device run passed 17 tests, including the original 12
 foreign-view tests, the direct grid setter regression, and percentage sizing,
 resize, and reset. NativeScript application lifecycle and OS input remain
 separate qualification gates.

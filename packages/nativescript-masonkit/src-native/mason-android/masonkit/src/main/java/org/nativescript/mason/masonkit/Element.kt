@@ -1048,6 +1048,18 @@ private fun dirtyRequestedForeignLeaves(group: ViewGroup, mason: Mason): Boolean
     }
     val leaf = mason.foreignNode(child)
     if (leaf != null) {
+      if (child is ViewGroup && containsIndependentRoot(child, mason)) {
+        // This leaf hosts another root in the same engine. An intrinsic query
+        // during compute cannot re-enter Rust and would report that root's
+        // previous assigned frame as its new minimum. Refresh its intrinsic
+        // height outside the lock before invalidating Taffy's measurement.
+        val width = maxOf(child.width, child.measuredWidth)
+        child.forceLayout()
+        child.measure(
+          MeasureSpec.makeMeasureSpec(width, if (width > 0) MeasureSpec.EXACTLY else MeasureSpec.UNSPECIFIED),
+          MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+        )
+      }
       leaf.dirty()
       leaf.leafRequestDirtied = true
       found = true
@@ -1057,6 +1069,15 @@ private fun dirtyRequestedForeignLeaves(group: ViewGroup, mason: Mason): Boolean
     }
   }
   return found
+}
+
+private fun containsIndependentRoot(group: ViewGroup, mason: Mason): Boolean {
+  for (i in 0 until group.childCount) {
+    val child = group.getChildAt(i)
+    if (child is Element && child.node.mason === mason && child.node.parent == null) return true
+    if (child is ViewGroup && containsIndependentRoot(child, mason)) return true
+  }
+  return false
 }
 
 internal fun Element.applyLayoutFlat(rootNode: Node, tree: MasonLayoutTree) {

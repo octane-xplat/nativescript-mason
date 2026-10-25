@@ -229,6 +229,54 @@ class ForeignFlexFrameInstrumentedTest {
   }
 
   @Test
+  fun gridLayerContainingAnIndependentRootCanShrinkAfterAChildRequest() {
+    instrumentation.runOnMainSync {
+      val mason = Mason().apply { setDeviceScale(1f) }
+      val root = mason.createView(context).apply {
+        style.display = Display.Grid
+        style.gridTemplateColumns = "1fr"
+        style.gridTemplateRows = "1fr"
+        style.setSizeWidth(107f, Dimension.Kind.Points.value)
+      }
+      val layer = mason.createView(context).apply {
+        style.display = Display.Flex
+        style.flexDirection = FlexDirection.Column
+      }
+      val nested = mason.createView(context).apply {
+        style.display = Display.Flex
+        style.flexDirection = FlexDirection.Column
+        style.setSizeWidth(1f, Dimension.Kind.Percent.value)
+        style.setSizeHeight(1f, Dimension.Kind.Percent.value)
+      }
+      nested.addView(mason.createView(context).apply {
+        style.setSizeHeight(80f, Dimension.Kind.Points.value)
+      })
+      val foreign = android.widget.FrameLayout(context).apply {
+        addView(nested, android.widget.FrameLayout.LayoutParams(
+          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+      }
+      layer.addView(foreign)
+      mason.nodeForView(foreign).style.apply {
+        flexGrow = 1f
+        flexShrink = 1f
+        setFlexBasis(0f, Dimension.Kind.Points.value)
+        setMinSizeHeight(0f, Dimension.Kind.Points.value)
+        alignSelf = AlignSelf.Stretch
+      }
+      root.addView(layer)
+      for (height in listOf(400, 300, 500)) {
+        root.style.setSizeHeight(height.toFloat(), Dimension.Kind.Points.value)
+        nested.requestLayout()
+        layout(root, size = 107 to height)
+        assertEquals("layer height after resize", height, layer.height)
+        assertEquals("foreign height after resize", height, foreign.height)
+        assertEquals("nested root height after resize", height, nested.height)
+        assertEquals("nested layout height after resize", height.toFloat(), nested.node.computedHeight, 0f)
+      }
+    }
+  }
+
+  @Test
   fun rowAutoWidthTextGrowthReachesTaffy() {
     instrumentation.runOnMainSync {
       val mason = Mason()
