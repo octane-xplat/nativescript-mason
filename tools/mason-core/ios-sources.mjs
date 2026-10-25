@@ -15,7 +15,7 @@ export const iosHostFiles = Object.freeze([
   'MasonStyle.swift', 'MasonUIView.swift', 'Mask.swift', 'MaxSizing.swift',
   'MeasureOutput.swift', 'MinMax.swift', 'MinSizing.swift', 'NativeHelpers.swift',
   'NineSlice.swift', 'NodeUtils.swift', 'NSCMason.swift', 'Scroll.swift',
-  'Shadow.swift', 'SvgParser.swift', 'SwiftHelpers.swift', 'TrackSizingFunction.swift',
+  'Shadow.swift', 'SvgParser.swift', 'SvgText.swift', 'SwiftHelpers.swift', 'TrackSizingFunction.swift',
 ]);
 
 function declarationText(source, name) {

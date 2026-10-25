@@ -116,6 +116,13 @@ func ctFont(from cgFont: CGFont, fontSize: CGFloat, weight: UIFont.Weight, style
   return font
 }
 
+private func systemFontDesign(_ postScriptName: String) -> UIFontDescriptor.SystemDesign? {
+  if postScriptName.contains("Mono") { return .monospaced }
+  if postScriptName.contains("NewYork") { return .serif }
+  if postScriptName.contains("Rounded") { return .rounded }
+  return nil
+}
+
 private func makeCTFont(from cgFont: CGFont, fontSize: CGFloat, weight: UIFont.Weight, style: NSCFontStyle) -> CTFont {
   // UIFont.Weight → CoreText weight value
   let weightValue: CGFloat
@@ -175,8 +182,12 @@ private func makeCTFont(from cgFont: CGFont, fontSize: CGFloat, weight: UIFont.W
   ]
 
   if isSystemFont {
-    let uiFont = UIFont.systemFont(ofSize: fontSize, weight: weight)
-    return CTFontCreateWithFontDescriptor(uiFont.fontDescriptor as CTFontDescriptor, fontSize, nil)
+    // Keep the system design ui-monospace, ui-serif and ui-rounded resolved to.
+    var descriptor = UIFont.systemFont(ofSize: fontSize, weight: weight).fontDescriptor
+    if let design = systemFontDesign(postScriptName), let designed = descriptor.withDesign(design) {
+      descriptor = designed
+    }
+    return CTFontCreateWithFontDescriptor(descriptor as CTFontDescriptor, fontSize, nil)
   } else {
     // Resolve by FAMILY name + traits, not the exact PostScript name: pinning a
     // face makes CoreText ignore the weight trait. Fall back to the PostScript
@@ -1065,11 +1076,12 @@ class MasonElementHelpers: NSObject {
       // native view is built lazily), so reassert it here where every laid-out
       // node passes through — otherwise a hidden subtree keeps painting at
       // whatever frame it last had, on top of the content that replaced it.
-      let hidden = node.style.display == .None || MasonDetails.isHidden(node)
+      let removed = node.style.display == .None || MasonDetails.isHidden(node)
+      let hidden = removed || node.style.hidesView
       if view.isHidden != hidden {
         view.isHidden = hidden
       }
-      if hidden {
+      if removed {
         return
       }
       // Same box, style and view as the last pass: only the children can need work.
@@ -1290,6 +1302,12 @@ class MasonElementHelpers: NSObject {
     let clipY = overflow.y == .Hidden || overflow.y == .Scroll || overflow.y == .Clip
       || (overflow.y == .Auto && realLayout.contentHeight > realLayout.height)
       || (overflow.y == .Visible && _isScrollContainer && realLayout.contentHeight > realLayout.height)
+    // A scroll container clips both axes (CSS turns the other axis' visible into auto), as
+    // Android does. Only clip + visible clips one axis: that needs a mask, rendered offscreen.
+    let scrollAxisX = overflow.x == .Hidden || overflow.x == .Scroll || overflow.x == .Auto
+    let scrollAxisY = overflow.y == .Hidden || overflow.y == .Scroll || overflow.y == .Auto
+      || (overflow.y == .Visible && _isScrollContainer)
+    let clipBoth = (clipX && clipY) || ((clipX || clipY) && (scrollAxisX || scrollAxisY))
 
     let borderRender = node.style.mBorderRender
     borderRender.resolve(for: view.bounds)
@@ -1307,11 +1325,16 @@ class MasonElementHelpers: NSObject {
     if clipWork {
       CATransaction.begin()
       CATransaction.setDisableActions(true)
-      if clipX && clipY {
+      var cornerClip: (radius: CGFloat, corners: CACornerMask)? = nil
+      if clipBoth {
         // Both axes clip — use clipsToBounds (+ border-radius mask if needed)
         view.clipsToBounds = true
         if MasonStyle.routeOverflowClip(view, hasRadii ? borderRender.getClipPath(rect: localBounds, radius: borderRender.radius).cgPath : nil) {
           // The CSS mask clips to the rounded box.
+        } else if hasRadii, let corner = masonView?.layerCornerRadius(borderRender.radius) {
+          // One circular radius: the layer's own corners clip it, no mask needed.
+          cornerClip = corner
+          if view.layer.mask is CAShapeLayer { view.layer.mask = nil }
         } else if hasRadii {
           let clipPath = borderRender.getClipPath(rect: localBounds, radius: borderRender.radius)
           let newCGPath = clipPath.cgPath
@@ -1364,6 +1387,10 @@ class MasonElementHelpers: NSObject {
           view.layer.mask = nil
         }
       }
+      if let masonView, masonView.overflowCornerClip?.radius != cornerClip?.radius
+          || masonView.overflowCornerClip?.corners != cornerClip?.corners {
+        masonView.overflowCornerClip = cornerClip
+      }
       CATransaction.commit()
     }
 
@@ -1397,19 +1424,30 @@ class MasonElementHelpers: NSObject {
       default:      scrollHeight = bh
       }
       let newContentSize = CGSize(width: scrollWidth, height: scrollHeight)
+      // vertical-rl content starts at the right (mason-core moves its left overflow into the
+      // content box): the horizontal offset keeps its distance from the end, starting there.
+      let fromEnd = node.style.resolvedWritingMode == 1
 
       if let scroll = node.view as? Scroll {
+        let oldEnd = max(0, scroll.contentSize.width - bw) - scroll.contentOffset.x
         if scroll.contentSize != newContentSize { scroll.contentSize = newContentSize }
         MasonElementHelpers.handleOverflow(_overflow.x, scroll)
         MasonElementHelpers.handleOverflow(_overflow.y, scroll, true)
         // A shrinking contentSize can leave contentOffset past the new range.
         let maxX = max(0, newContentSize.width - scroll.bounds.width)
         let maxY = max(0, newContentSize.height - scroll.bounds.height)
-        let off = scroll.contentOffset
+        var off = scroll.contentOffset
+        if fromEnd { off.x = maxX - oldEnd }
         let clamped = CGPoint(x: min(max(0, off.x), maxX), y: min(max(0, off.y), maxY))
-        if clamped != off { scroll.setContentOffset(clamped, animated: false) }
+        if clamped != scroll.contentOffset { scroll.setContentOffset(clamped, animated: false) }
       } else if let masonView = masonView {
-        if masonView.contentSize != newContentSize { masonView.contentSize = newContentSize }
+        if masonView.contentSize != newContentSize {
+          let oldEnd = max(0, masonView.contentSize.width - bw) - masonView.contentOffset.x
+          masonView.contentSize = newContentSize
+          if fromEnd {
+            masonView.contentOffset = CGPoint(x: max(0, newContentSize.width - bw) - oldEnd, y: masonView.contentOffset.y)
+          }
+        }
       }
     }
     // Reassigning through the setter re-clamps a scrolled view after a content size

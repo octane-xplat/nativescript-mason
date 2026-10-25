@@ -123,6 +123,17 @@ pub struct NodeMeasure {
 }
 
 impl NodeMeasure {
+    /// Asks a text leaf for its last line's baseline from the top of a content box `size` big. A leaf
+    /// answers with the query in the height, so a measure that doesn't know it gives `None`.
+    pub(crate) fn baseline(&self, size: taffy::Size<f32>) -> Option<f32> {
+        let query = AvailableSpace::Definite(BASELINE_QUERY);
+        let answer = self.measure(
+            taffy::Size { width: Some(size.width), height: Some(size.height) },
+            taffy::Size { width: query, height: query },
+        );
+        (answer.height == BASELINE_QUERY && answer.width.is_finite()).then_some(answer.width)
+    }
+
     #[cfg(target_os = "android")]
     pub fn measure(
         &self,
@@ -433,9 +444,15 @@ pub enum NodeStateKeys {
     PSEUDO_FLAGS_HIGH = 4,
     // 1 while the node is hidden by a closed <details> (see `Tree::sync_details`).
     IS_HIDDEN = 5,
+    // f32 (8-11): an inline-level box's baseline from its bottom edge, set when its line is laid out.
+    BASELINE = 8,
 }
 
-pub const NODE_STATE_BUFFER_SIZE: usize = 6;
+pub const NODE_STATE_BUFFER_SIZE: usize = 12;
+
+/// `available_width` of a measure call that asks a text leaf for its last line's baseline, from
+/// the top of a content box the known size; it answers in the width.
+pub const BASELINE_QUERY: f32 = -4.0;
 
 /// HTML `<details>`/`<summary>` roles, set by the platform.
 pub const DETAILS_ROLE_NONE: u8 = 0;
@@ -585,6 +602,8 @@ pub struct Node {
     pub(crate) cache: LayoutCache,
     /// Resolved writing mode `cache` was built for; see `Tree::sync_writing_mode`.
     pub(crate) cached_writing_mode: WritingMode,
+    /// text-orientation in the low 2 bits, text-combine-upright above them.
+    pub(crate) cached_text_orientation: u8,
     pub(crate) inline_measure_cache: InlineMeasureCache,
     pub(crate) subtree_analysis: Option<SubtreeAnalysis>,
     pub(crate) unrounded_layout: Layout,
@@ -611,6 +630,7 @@ impl Node {
             style: Style::new(arena),
             cache: Default::default(),
             cached_writing_mode: WritingMode::HorizontalTb,
+            cached_text_orientation: 0,
             inline_measure_cache: InlineMeasureCache::new(),
             subtree_analysis: None,
             unrounded_layout: Default::default(),
@@ -634,6 +654,7 @@ impl Node {
             style: Style::new_with_handle(arena, handle),
             cache: Default::default(),
             cached_writing_mode: WritingMode::HorizontalTb,
+            cached_text_orientation: 0,
             inline_measure_cache: InlineMeasureCache::new(),
             subtree_analysis: None,
             unrounded_layout: Default::default(),
@@ -732,6 +753,11 @@ impl Node {
             NodeStateKeys::IS_NODE_DIRTY as usize,
             if value { 1 } else { 0 },
         );
+    }
+
+    pub(crate) fn set_baseline(&mut self, from_bottom: f32) {
+        let at = NodeStateKeys::BASELINE as usize;
+        self.state[at..at + 4].copy_from_slice(&from_bottom.to_ne_bytes());
     }
 
     #[inline]

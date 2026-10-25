@@ -42,6 +42,57 @@ describe('the .css stylesheet path reaches the mason style buffer', () => {
   });
 });
 
+describe('an inherited keyword reaches the buffer even when it is the initial value', () => {
+  // These inherit, so `writing-mode: horizontal-tb` inside a vertical-rl parent is a real
+  // change. A CssProperty skips a value equal to its default, which dropped it.
+  const CASES: Array<[string, string, string]> = [
+    ['writing-mode', 'horizontal-tb', 'WRITING_MODE_STATE'],
+    ['text-orientation', 'mixed', 'TEXT_ORIENTATION_STATE'],
+    ['text-combine-upright', 'none', 'TEXT_COMBINE_UPRIGHT_STATE'],
+    ['text-spacing-trim', 'normal', 'TEXT_SPACING_TRIM_STATE'],
+    ['hyphens', 'manual', 'HYPHENS_STATE'],
+    ['white-space', 'normal', 'WHITE_SPACE_STATE'],
+    ['word-spacing', 'normal', 'WORD_SPACING_STATE'],
+    ['font-stretch', 'normal', 'FONT_STRETCH_STATE'],
+  ];
+
+  it.each(CASES)('%s: %s', (cssName, value, state) => {
+    setScreenScale(1);
+    const { under, style } = masonHost();
+    (style as any)[cssName] = value;
+    expect(under.getUint8(styleKey(state))).toBe(1);
+  });
+
+  it.each(CASES)('%s goes back to inheriting when the declaration goes away', (cssName, value, state) => {
+    setScreenScale(1);
+    const { under, style } = masonHost();
+    (style as any)[cssName] = value;
+    (style as any)[cssName] = undefined;
+    expect(under.getUint8(styleKey(state))).toBe(0);
+  });
+});
+
+describe('display', () => {
+  // `block` is no CssProperty default: on an element that is inline on its own (img, span)
+  // core would otherwise drop it as unchanged.
+  it('block reaches an element that is inline on its own', () => {
+    const { under, style } = masonHost();
+    under.style.display = 'inline';
+    (style as any).display = 'block';
+    expect(under.getInt8(styleKey('DISPLAY'))).toBe(3);
+    expect(under.getInt8(styleKey('DISPLAY_MODE'))).toBe(0);
+  });
+
+  it("unsetting it restores the element's own display", () => {
+    const { under, style } = masonHost();
+    under.style.display = 'inline';
+    (style as any).display = 'none';
+    expect(under.getInt8(styleKey('DISPLAY'))).toBe(0);
+    (style as any).display = undefined;
+    expect(under.style.display).toBe('inline');
+  });
+});
+
 describe('a mason view writes each declaration once', () => {
   it('leaves the write to setNative when the view has one', () => {
     setScreenScale(1);
@@ -309,6 +360,7 @@ describe('every CSS name mason claims is actually registered', () => {
     'mask-mode',
     'word-spacing',
     'hyphens',
+    'text-orientation',
     'caret-color',
     'background-clip',
     'background-origin',

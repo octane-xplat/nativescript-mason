@@ -50,6 +50,14 @@ const FEATURES = [
     count: 'Playground',
   },
   {
+    id: 'Svg',
+    label: 'SVG',
+    desc: 'Patterns, masks, markers, text & <img>',
+    bg: '#0984e3',
+    glyph: 'Sv',
+    count: 'Tests',
+  },
+  {
     id: 'Position',
     label: 'Position',
     desc: 'Absolute insets, stretch, centering & badges',
@@ -79,6 +87,14 @@ const FEATURES = [
     desc: 'details/summary: toggling, name groups, toggle events',
     bg: '#0984e3',
     glyph: 'Dt',
+    count: 'Playground',
+  },
+  {
+    id: 'Vertical',
+    label: 'Vertical Writing',
+    desc: 'writing-mode, text-orientation, spacing trim & logical borders',
+    bg: '#6c5ce7',
+    glyph: '縦',
     count: 'Playground',
   },
   {

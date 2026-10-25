@@ -3,6 +3,7 @@
 import {
   AddChildFromBuilder,
   CustomLayoutView,
+  ProxyViewContainer,
   Utils,
   View as NSView,
   ViewBase as NSViewBase,
@@ -47,10 +48,11 @@ import { alignItemsProperty, alignSelfProperty, flexDirectionProperty, flexGrowP
 // The per-corner radius and per-side colour longhands core's `border-radius`
 // / `border-color` shorthands expand into. They live in the styling module
 // rather than core's root export, unlike the border *width* longhands above.
-import { fontInternalProperty, backgroundInternalProperty, borderTopLeftRadiusProperty, borderTopRightRadiusProperty, borderBottomRightRadiusProperty, borderBottomLeftRadiusProperty, borderTopColorProperty, borderRightColorProperty, borderBottomColorProperty, borderLeftColorProperty } from '@nativescript/core/ui/styling/style-properties';
+import { fontInternalProperty, backgroundInternalProperty, borderTopLeftRadiusProperty, borderTopRightRadiusProperty, borderBottomRightRadiusProperty, borderBottomLeftRadiusProperty, borderTopColorProperty, borderRightColorProperty, borderBottomColorProperty, borderLeftColorProperty, visibilityProperty, translateXProperty, translateYProperty, scaleXProperty, scaleYProperty, rotateProperty, rotateXProperty, rotateYProperty } from '@nativescript/core/ui/styling/style-properties';
 import { _forceStyleUpdate, _setGridAutoRows } from './utils';
 import { borderRadiusCorners, composeBorderRadius, isCssLength, parseCornerRadius, toCamelCase } from './css-shorthands';
 import type { CornerIndex, CornerRadius } from './css-shorthands';
+import { installLogicalBoxes } from './logical-boxes';
 import type { EventData, TouchGestureEventData } from '@nativescript/core';
 import { originXProperty, originYProperty } from '@nativescript/core/ui/core/view';
 import { animateTransforms } from './css-keyframes';
@@ -69,6 +71,7 @@ import {
   columnGapProperty,
   cornerShapeProperty,
   displayProperty,
+  applyDisplay,
   filterProperty,
   flexBasisProperty,
   floatProperty,
@@ -115,9 +118,10 @@ import {
   listStylePositionProperty,
   installMasonSizeUnits,
   masonRawDeclaration,
+  logicalLonghands,
 } from './properties';
 import { masonLayout } from './display-density';
-import { isMasonView_, isTextChild_, isText_, isPlaceholder_, text_, native_, textNode_, textNodeIndex_, textNodeProxied_, pseudoStyles_, emptyTextNode_, breakRun_, anonymousText_, windowsFontSource_, hostsRuns_, needsAnonymousText_, borderRadiusCorners_, borderSideColors_, eventType_, runMember_, runsInline_, runsSettled_, blockified_, touchAction_ } from './symbols';
+import { isMasonView_, isTextChild_, isText_, isPlaceholder_, text_, native_, textNode_, textNodeIndex_, textNodeProxied_, pseudoStyles_, emptyTextNode_, breakRun_, anonymousText_, windowsFontSource_, hostsRuns_, needsAnonymousText_, borderRadiusCorners_, borderSideColors_, eventType_, remapLogicalBoxes_, runMember_, runsInline_, runsSettled_, blockified_, touchAction_ } from './symbols';
 import { Tree } from './tree';
 import { masonEngine, removeNativeChild } from './panel-helpers';
 import { TextNode } from './text-node';
@@ -1552,6 +1556,11 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
         group = anonymous;
         continue;
       }
+      if (c instanceof ProxyViewContainer) {
+        index += c._getNativeViewsCount();
+        group = undefined;
+        continue;
+      }
       if (c[textNode_] || c instanceof TextNode || text_ in c || (c[isPlaceholder_] && c[native_]) || c._isMasonChild) {
         index++;
         group = undefined;
@@ -1562,7 +1571,26 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
 
   private _attachCursor: { child: any; jsIndex: number; nativeIndex: number } | undefined;
 
+  private _hoistingProxy(child: any): any {
+    let proxy;
+    let p = child?.parent;
+    while (p instanceof ProxyViewContainer) {
+      proxy = p;
+      p = p.parent;
+    }
+    return p === this ? proxy : undefined;
+  }
+
   _nativeAttachIndex(child: any, atIndex: number): { jsIndex: number; nativeIndex: number } {
+    const proxy = this._hoistingProxy(child);
+    if (proxy) {
+      // Core offsets a passthrough host's children by the host's own slot only under a
+      // LayoutBase, so `atIndex` is the child's native index inside the host.
+      this._attachCursor = undefined;
+      const jsIndex = this._children.indexOf(proxy);
+      const inside = atIndex >= 0 ? atIndex : proxy._getNativeViewsCount();
+      return { jsIndex, nativeIndex: jsIndex <= -1 ? -1 : this._nativeIndexFor(jsIndex) + inside };
+    }
     const cur = this._attachCursor;
     let jsIndex: number;
     let nativeIndex: number;
@@ -1589,6 +1617,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   // Windows attaches element children on load with no index, after text runs that attached
   // straight away, so an append would land them after text that comes later.
   _windowsNativeIndexOf(child: any, atIndex: number): number {
+    if (this._hoistingProxy(child)) return this._nativeAttachIndex(child, atIndex).nativeIndex;
     if (atIndex >= 0) return atIndex;
     const slot = this._children.indexOf(child);
     return slot >= 0 ? this._nativeIndexFor(slot) : atIndex;
@@ -1843,7 +1872,10 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     // @ts-ignore
     super[directionProperty.setNative]?.(value);
     const style = (this as any)._styleHelper;
-    if (style) style.direction = value === 'rtl' || value === 'ltr' ? value : 'inherit';
+    if (style) {
+      style.direction = value === 'rtl' || value === 'ltr' ? value : 'inherit';
+      (this as any)[remapLogicalBoxes_](false);
+    }
   }
 
   set verticalAlign(value) {
@@ -2961,13 +2993,17 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     this.style.display = value;
   }
 
+  [visibilityProperty.setNative](value) {
+    super[visibilityProperty.setNative]?.(value);
+    // @ts-ignore
+    const style = this._styleHelper;
+    if (style) style.visibility = value;
+  }
+
   [displayProperty.setNative](value) {
     // @ts-ignore
     const style = this._styleHelper;
-    if (style) {
-      // @ts-ignore
-      style.display = value;
-    }
+    if (style) applyDisplay(style, value);
   }
 
   get overflow() {
@@ -3870,6 +3906,15 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
 
 textProperty.register(ViewBase);
 
+for (const property of [translateXProperty, translateYProperty, scaleXProperty, scaleYProperty, rotateProperty, rotateXProperty, rotateYProperty]) {
+  const coreSetNative = Object.getPrototypeOf(ViewBase.prototype)[property.setNative];
+  if (!coreSetNative) continue;
+  ViewBase.prototype[property.setNative] = function (this: ViewBase, value: unknown) {
+    if ((this.style as any).masonTransformDeclaration) return;
+    coreSetNative.call(this, value);
+  };
+}
+
 // Core's Windows Font resolves app/fonts files to an ms-appx URI (and generics to system fonts);
 // the bare family name only finds installed fonts.
 export function windowsFontSource(font: any): string {
@@ -3879,6 +3924,17 @@ export function windowsFontSource(font: any): string {
   } catch (_) {}
   return String((font && typeof font === 'object' ? font.fontFamily : '') ?? '');
 }
+
+// Logical margins, padding, insets and sizes: see properties.ts.
+for (const { property, group, slot } of logicalLonghands) {
+  ViewBase.prototype[property.setNative] = function (this: ViewBase, value: unknown) {
+    // @ts-ignore
+    this._styleHelper?.setLogical(group, slot, value === property.defaultValue ? undefined : value);
+  };
+}
+
+// Logical borders, corners and overflow: see logical-boxes.ts.
+installLogicalBoxes(ViewBase.prototype);
 
 export class TextBase extends ViewBase {
   textContent: string;

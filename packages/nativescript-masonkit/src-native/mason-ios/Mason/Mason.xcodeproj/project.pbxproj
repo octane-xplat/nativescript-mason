@@ -13,6 +13,7 @@
 		A1B2C3D4E5F60001AABBCD05 /* AuthorChildrenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AABBCD06 /* AuthorChildrenTests.swift */; };
 		A1B2C3D4E5F60001AABBCD03 /* BorderBufferSyncTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60001AABBCD04 /* BorderBufferSyncTests.swift */; };
 		5A7E0C1DB0A15F6E00C0FE01 /* SvgParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E0C1DB0A15F6E00C0FE02 /* SvgParser.swift */; };
+		5A7E0C1DB0A15F6E00C0FE11 /* SvgText.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E0C1DB0A15F6E00C0FE12 /* SvgText.swift */; };
 		5A7E0C1DB0A15F6E00C0FE03 /* SvgParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A7E0C1DB0A15F6E00C0FE04 /* SvgParserTests.swift */; };
 		7C3A9E51D2B84F06000A5C01 /* Mask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3A9E51D2B84F06000A5C02 /* Mask.swift */; };
 		7C3A9E51D2B84F06000A5C03 /* MaskTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C3A9E51D2B84F06000A5C04 /* MaskTests.swift */; };
@@ -23,6 +24,7 @@
 		6D1F0A7E2B5C4E9100AA1101 /* InputAppearanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D1F0A7E2B5C4E9100AA1102 /* InputAppearanceTests.swift */; };
 		4DC21EC3531201553DA17260 /* WritableStyleValuesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B55F84D7B17D9CB15F6971C6 /* WritableStyleValuesTests.swift */; };
 		7E1A2B3C4D5E6F7081920A02 /* TextIndentLineClampTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E1A2B3C4D5E6F7081920A01 /* TextIndentLineClampTests.swift */; };
+		7E1A2B3C4D5E6F7081920B02 /* TextOrientationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E1A2B3C4D5E6F7081920B01 /* TextOrientationTests.swift */; };
 		1B0E7A11C4F2D6E8A9B3C501 /* InlineBoxAfterTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B0E7A11C4F2D6E8A9B3C502 /* InlineBoxAfterTextTests.swift */; };
 		1AF2FF69B11149D230637010 /* ApplyToViewPerfTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD5459FF307D3F16D85FCF73 /* ApplyToViewPerfTests.swift */; };
 		AA904E4B2DAF0EE300F22BE4 /* Mason.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F184838C293534D800EC35F4 /* Mason.framework */; };
@@ -161,6 +163,7 @@
 		A1B2C3D4E5F60001AABBCD06 /* AuthorChildrenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorChildrenTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F60001AABBCD04 /* BorderBufferSyncTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BorderBufferSyncTests.swift; sourceTree = "<group>"; };
 		5A7E0C1DB0A15F6E00C0FE02 /* SvgParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SvgParser.swift; path = "../../../../nativescript-mason-core/src-native/ios/SvgParser.swift"; sourceTree = SOURCE_ROOT; };
+		5A7E0C1DB0A15F6E00C0FE12 /* SvgText.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SvgText.swift; sourceTree = "<group>"; };
 		5A7E0C1DB0A15F6E00C0FE04 /* SvgParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SvgParserTests.swift; sourceTree = "<group>"; };
 		7C3A9E51D2B84F06000A5C02 /* Mask.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = Mask.swift; path = "../../../../nativescript-mason-core/src-native/ios/Mask.swift"; sourceTree = SOURCE_ROOT; };
 		7C3A9E51D2B84F06000A5C04 /* MaskTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MaskTests.swift; sourceTree = "<group>"; };
@@ -171,6 +174,7 @@
 		6D1F0A7E2B5C4E9100AA1102 /* InputAppearanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputAppearanceTests.swift; sourceTree = "<group>"; };
 		B55F84D7B17D9CB15F6971C6 /* WritableStyleValuesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WritableStyleValuesTests.swift; sourceTree = "<group>"; };
 		7E1A2B3C4D5E6F7081920A01 /* TextIndentLineClampTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextIndentLineClampTests.swift; sourceTree = "<group>"; };
+		7E1A2B3C4D5E6F7081920B01 /* TextOrientationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextOrientationTests.swift; sourceTree = "<group>"; };
 		1B0E7A11C4F2D6E8A9B3C502 /* InlineBoxAfterTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InlineBoxAfterTextTests.swift; sourceTree = "<group>"; };
 		AD5459FF307D3F16D85FCF73 /* ApplyToViewPerfTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplyToViewPerfTests.swift; sourceTree = "<group>"; };
 		F1047C662EDE8E0E00599B56 /* Button.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Button.swift; sourceTree = "<group>"; };
@@ -380,6 +384,7 @@
 				F134016E2ECE04DC00D6CFD9 /* Border.swift */,
 				F134016C2ECE04CB00D6CFD9 /* Background.swift */,
 				5A7E0C1DB0A15F6E00C0FE02 /* SvgParser.swift */,
+				5A7E0C1DB0A15F6E00C0FE12 /* SvgText.swift */,
 				7C3A9E51D2B84F06000A5C02 /* Mask.swift */,
 				8D4B1F62E3C95A17000B6D02 /* ClipPath.swift */,
 				8D4B1F62E3C95A17000B6D04 /* NineSlice.swift */,
@@ -432,6 +437,7 @@
 				6D1F0A7E2B5C4E9100AA1102 /* InputAppearanceTests.swift */,
 				B55F84D7B17D9CB15F6971C6 /* WritableStyleValuesTests.swift */,
 				7E1A2B3C4D5E6F7081920A01 /* TextIndentLineClampTests.swift */,
+				7E1A2B3C4D5E6F7081920B01 /* TextOrientationTests.swift */,
 				1B0E7A11C4F2D6E8A9B3C502 /* InlineBoxAfterTextTests.swift */,
 				AD5459FF307D3F16D85FCF73 /* ApplyToViewPerfTests.swift */,
 				B4D8E1F2A3C60011AABBCD10 /* CoreLayoutInteropTests.swift */,
@@ -758,6 +764,7 @@
 				F12BE0252F544160008C6B6B /* MasonShadowLayer.swift in Sources */,
 				F134016D2ECE04CE00D6CFD9 /* Background.swift in Sources */,
 				5A7E0C1DB0A15F6E00C0FE01 /* SvgParser.swift in Sources */,
+				5A7E0C1DB0A15F6E00C0FE11 /* SvgText.swift in Sources */,
 				7C3A9E51D2B84F06000A5C01 /* Mask.swift in Sources */,
 				8D4B1F62E3C95A17000B6D01 /* ClipPath.swift in Sources */,
 				8D4B1F62E3C95A17000B6D03 /* NineSlice.swift in Sources */,
@@ -785,6 +792,7 @@
 				6D1F0A7E2B5C4E9100AA1101 /* InputAppearanceTests.swift in Sources */,
 				4DC21EC3531201553DA17260 /* WritableStyleValuesTests.swift in Sources */,
 				7E1A2B3C4D5E6F7081920A02 /* TextIndentLineClampTests.swift in Sources */,
+				7E1A2B3C4D5E6F7081920B02 /* TextOrientationTests.swift in Sources */,
 				1B0E7A11C4F2D6E8A9B3C501 /* InlineBoxAfterTextTests.swift in Sources */,
 				1AF2FF69B11149D230637010 /* ApplyToViewPerfTests.swift in Sources */,
 				B4D8E1F2A3C60011AABBCD11 /* CoreLayoutInteropTests.swift in Sources */,

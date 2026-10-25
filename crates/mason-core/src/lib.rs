@@ -38,6 +38,7 @@ pub mod style;
 mod tree;
 mod tree_inline;
 pub mod utils;
+mod writing_mode;
 
 #[inline]
 pub(crate) fn scrollable_overflow_rect_from_size(size: Size<f32>) -> Rect<f32> {
@@ -800,6 +801,28 @@ impl Mason {
         crate::tree::resolved_writing_mode(&self.0.inner(), node_id)
     }
 
+    /// `text-orientation` for `node_id`'s vertical text, inherited like the writing mode:
+    /// 0 mixed, 1 upright, 2 sideways.
+    pub fn resolved_text_orientation(&self, node_id: Id) -> u8 {
+        crate::tree::resolved_text_orientation(&self.0.inner(), node_id)
+    }
+
+    /// `white-space` for `node_id`, inherited: 0 normal, 1 pre, 2 pre-wrap, 3 pre-line, 4 nowrap.
+    pub fn resolved_white_space(&self, node_id: Id) -> u8 {
+        crate::tree::resolved_white_space(&self.0.inner(), node_id)
+    }
+
+    /// `text-spacing-trim` for `node_id`, inherited: 0 normal, 1 space-all, 2 space-first,
+    /// 3 trim-start, 4 trim-both, 5 trim-all, 6 auto.
+    pub fn resolved_text_spacing_trim(&self, node_id: Id) -> u8 {
+        crate::tree::resolved_text_spacing_trim(&self.0.inner(), node_id)
+    }
+
+    /// `text-combine-upright` for `node_id`, inherited: 0 none, 1 all, 2-4 digits.
+    pub fn resolved_text_combine_upright(&self, node_id: Id) -> u8 {
+        crate::tree::resolved_text_combine_upright(&self.0.inner(), node_id)
+    }
+
     pub fn is_rtl(&self, node_id: Id) -> bool {
         matches!(
             crate::tree::resolved_direction(&self.0.inner(), node_id),
@@ -1370,6 +1393,60 @@ mod tests {
         );
     }
 
+    extern "C" fn image_measure_2x1(
+        _data: *const c_void,
+        known_w: c_float,
+        known_h: c_float,
+        _avail_w: c_float,
+        _avail_h: c_float,
+    ) -> c_longlong {
+        if !known_w.is_nan() && known_h.is_nan() {
+            return MeasureOutput::make(known_w, known_w / 2.0);
+        }
+        MeasureOutput::make(120.0, 60.0)
+    }
+
+    #[test]
+    fn inline_image_with_a_width_keeps_its_ratio() {
+        let mut mason = Mason::new();
+        let root = mason.create_node();
+        let bx = mason.create_text_node();
+        let img = mason.create_image_node();
+        mason.with_style_mut(root.id(), |s| s.set_display(Display::Block));
+        mason.with_style_mut(bx.id(), |s| {
+            s.set_display(Display::Block);
+            s.set_size(Size {
+                width: Dimension::length(110.0),
+                height: Dimension::auto(),
+            });
+        });
+        mason.with_style_mut(img.id(), |s| {
+            s.set_size(Size {
+                width: Dimension::length(110.0),
+                height: Dimension::auto(),
+            })
+        });
+        mason.set_segments(
+            bx.id(),
+            vec![InlineSegment::InlineChild {
+                id: Some(img.id()),
+                baseline: 0.0,
+            }],
+        );
+        mason.append_node(root.id(), &[bx.id()]);
+        mason.append_node(bx.id(), &[img.id()]);
+        mason.set_measure(img.id(), Some(image_measure_2x1), std::ptr::null_mut());
+        mason.set_measure(
+            bx.id(),
+            Some(test_measure_parent_text),
+            std::ptr::null_mut(),
+        );
+        mason.compute_wh(root.id(), 400.0, -2.0);
+        let out = mason.layout(img.id());
+        assert!((out[3] - 110.0).abs() < 0.01, "width {}", out[3]);
+        assert!((out[4] - 55.0).abs() < 0.01, "height {}", out[4]);
+    }
+
     #[test]
     fn inline_child_with_measure_function() {
         let mut mason = Mason::new();
@@ -1545,6 +1622,55 @@ mod tests {
                 "b must be unchanged after mutating a"
             );
         });
+    }
+
+    // A 40x20 text leaf whose last baseline is 15 from its content top.
+    extern "C" fn text_leaf_40x20(
+        _data: *const std::ffi::c_void,
+        _known_w: f32,
+        _known_h: f32,
+        avail_w: f32,
+        _avail_h: f32,
+    ) -> i64 {
+        if avail_w == crate::node::BASELINE_QUERY {
+            return MeasureOutput::make(15.0, crate::node::BASELINE_QUERY);
+        }
+        MeasureOutput::make(40.0, 20.0)
+    }
+
+    fn text_leaf(mason: &mut Mason) -> NodeRef {
+        let leaf = mason.create_text_node();
+        mason.set_measure(leaf.id(), Some(text_leaf_40x20), std::ptr::null_mut());
+        leaf
+    }
+
+    #[test]
+    fn inline_block_takes_its_last_lines_baseline_and_inline_flex_its_first() {
+        for (display, expected) in [(Display::Block, 5.0), (Display::Flex, 25.0)] {
+            let mut mason = Mason::new();
+            let ib = mason.create_node();
+            let first = text_leaf(&mut mason);
+            let last = text_leaf(&mut mason);
+            mason.with_style_mut(ib.id(), |s| {
+                s.set_display(display);
+                s.set_display_mode(crate::style::DisplayMode::Box);
+                s.set_flex_direction(taffy::FlexDirection::Column);
+            });
+            mason.append_node(ib.id(), &[first.id(), last.id()]);
+            mason.compute(ib.id());
+
+            assert_eq!(mason.0.get_child_baseline(ib.id()), expected, "{display:?}");
+        }
+    }
+
+    #[test]
+    fn text_leaf_answers_its_own_baseline() {
+        let mut mason = Mason::new();
+        let leaf = text_leaf(&mut mason);
+        mason.with_style_mut(leaf.id(), |s| s.set_display_mode(crate::style::DisplayMode::Box));
+        mason.compute(leaf.id());
+
+        assert_eq!(mason.0.get_child_baseline(leaf.id()), 5.0);
     }
 
     #[test]

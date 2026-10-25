@@ -344,6 +344,14 @@ public class MasonNode: NSObject {
     return low | (high << 8)
   }
 
+  /// A baseline-aligned inline box's baseline from its bottom edge in pixels, set by mason-core
+  /// when its line is laid out.
+  var inlineBaseline: Float {
+    var len: Int = 0
+    guard let ptr = mason_node_get_state_buffer(mason.nativePtr, nativePtr, &len), len >= 12 else { return 0 }
+    return UnsafeRawPointer(ptr).loadUnaligned(fromByteOffset: 8, as: Float.self)
+  }
+
   public func hasPseudo(_ state: PseudoState) -> Bool {
     if state == .default { return pseudoMask == 0 }
     return (pseudoMask & state.rawValue) != 0
@@ -903,7 +911,17 @@ public class MasonNode: NSObject {
       let scaleF = CGFloat(NSCMason.scale)
       attrs[.kern] = CGFloat(letterSpacing) / scaleF
     }
-    
+
+    let spacingTrim = style.resolvedTextSpacingTrim
+    if spacingTrim != 0 && spacingTrim != 6 { attrs[Constants.SPACING_TRIM_KEY] = spacingTrim }
+
+    // Vertical text reads text-orientation per run, as an inline element can set its own.
+    if style.resolvedWritingMode != 0 {
+      attrs[Constants.TEXT_ORIENTATION_KEY] = style.resolvedTextOrientation
+      let combine = style.resolvedTextCombineUpright
+      if combine != 0 { attrs[Constants.TEXT_COMBINE_KEY] = combine }
+    }
+
     let lineHeightType = style.resolvedLineHeightType
     let lineHeight = style.resolvedLineHeight
     // Absolute line-height is a dip value (dip == pt on iOS); a unitless one is
@@ -917,8 +935,9 @@ public class MasonNode: NSObject {
       lineBox = CGFloat(lineHeight) * CGFloat(style.resolvedFontSize)
     }
     // `normal` on block text: every line gets the box a single line is measured with
-    // (TextEngine.measureUncached), not CoreText's tighter natural line pitch.
-    if lineBox == 0 && !TextEngine.isInlineTextType(type) {
+    // (TextEngine.measureUncached), not CoreText's tighter natural line pitch. An anonymous
+    // container is the block box around a div's own text.
+    if lineBox == 0 && (!TextEngine.isInlineTextType(type) || isAnonymous) {
       lineBox = normalBlockLineHeight
     }
     if lineBox > 0 {

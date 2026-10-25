@@ -65,7 +65,7 @@ On a text element (`p`, `span`, headings and the like) it clips to the element's
 
 - a remote `http://` or `https://` URL,
 - a `data:` URL (PNG, JPEG and other raster formats),
-- an inline SVG as `data:image/svg+xml,...` (see below),
+- an inline SVG as `data:image/svg+xml,...`, or a local `.svg` file (see below),
 - an app-relative path such as `url('~/images/bg.png')`, resolved against the app folder.
 
 ### SVG backgrounds
@@ -82,9 +82,16 @@ Inline SVG is drawn as vectors, so it stays sharp at any size and is a convenien
 ```
 
 - `currentColor` inside the SVG is the element's CSS `color`, so the icon follows theme changes.
-- Supported: paths (including arcs), basic shapes, `<g>` with inherited attributes, `transform`, inline `style=""`, fill and stroke paint, `fill-rule`, opacity, line caps, joins, miter limit, dashes, `preserveAspectRatio`, linear and radial gradients (`gradientUnits`, `gradientTransform`, `spreadMethod`, `href` inheritance), `<use>` and `<symbol>`, `<clipPath>`, and `<image>` with a raster data URL.
+- Shapes and paint: paths (including arcs), basic shapes, `<g>` with inherited attributes, `transform`, inline `style=""`, fill and stroke paint, `fill-rule`, opacity, line caps, joins, miter limit, dashes, `preserveAspectRatio`, `<use>` and `<symbol>`, `<clipPath>`, and `<image>` with a raster data URL.
+- Gradients: linear and radial, with `gradientUnits`, `gradientTransform`, `spreadMethod` and `href` inheritance.
+- Patterns: `<pattern>` fills and strokes, with `patternUnits`, `patternContentUnits`, `viewBox`, `patternTransform` and `href` inheritance. A pattern with no size or content uses the paint's fallback color, as in browsers.
+- Masks: `mask="url(#id)"` on shapes, groups, text and images, with `maskUnits`, `maskContentUnits` and `mask-type` (`luminance` or `alpha`).
+- Markers: `marker-start`, `marker-mid`, `marker-end` and the `marker` shorthand on paths, lines, polylines and polygons, with `orient` (`auto`, `auto-start-reverse` or an angle), `markerUnits`, `refX`, `refY` and `viewBox`.
+- Text: `<text>` and `<tspan>` with `x`, `y`, `dx` and `dy` lists, `text-anchor`, `dominant-baseline`, `font-family`, `font-size`, `font-weight`, `font-style`, the `font` shorthand, `letter-spacing`, `word-spacing` and `xml:space`. Text takes any fill or stroke, gradients and patterns included, and works inside `<clipPath>` and `<mask>`. As in browsers, it defaults to a serif font.
 - `<style>` sheets with simple selectors (type, `.class`, `#id`).
-- Not supported: `<text>`, patterns (a `url(#id)` paint uses its fallback color), masks, filters and markers.
+- Not supported: filters, `<textPath>`, `rotate` and `textLength` on text, nested `<svg>`, SVG images inside an SVG, and references to other files.
+
+The same SVG support applies to `mask-image`, `border-image` and `mask-border` sources, and to an [`Img`](/elements/widgets#img) whose `src` is an SVG.
 
 The data URL does not need to be percent encoded: quotes, parentheses and commas inside it are handled.
 
@@ -128,7 +135,7 @@ Every CSS border shorthand is supported and expands into width, style and color 
 | Color | `border-color` (1 to 4 values), `border-top-color`, `border-right-color`, `border-bottom-color`, `border-left-color` |
 | Logical | `border-inline`, `border-block`, `border-inline-start`, `border-inline-end`, `border-block-start`, `border-block-end`, and their `-width`, `-style`, `-color` forms |
 
-Logical borders map for horizontal left-to-right text: inline is left and right, block is top and bottom.
+Logical borders map by the writing mode and direction, as the other [logical properties](/styling/box-model#logical-properties) do: in horizontal left-to-right text inline is left and right and block is top and bottom, in `vertical-rl` inline is top and bottom and block-start is the right. The later of a physical and a logical declaration wins a side.
 
 Border styles: `none`, `hidden`, `dotted`, `dashed`, `solid`, `double`, `groove`, `ridge`, `inset`, `outset`. Border widths take lengths and the `thin`, `medium` and `thick` keywords.
 
@@ -145,7 +152,7 @@ Border styles: `none`, `hidden`, `dotted`, `dashed`, `solid`, `double`, `groove`
 .blob { border-radius: 40% 60% 60% 40% / 60% 30% 70% 40%; }
 ```
 
-The 1 to 4 value shorthand, the elliptical `/` form, and the per-corner longhands (`border-top-left-radius`, ...) are supported, with lengths or percentages. The logical corners `border-start-start-radius`, `border-start-end-radius`, `border-end-end-radius` and `border-end-start-radius` map to top-left, top-right, bottom-right and bottom-left.
+The 1 to 4 value shorthand, the elliptical `/` form, and the per-corner longhands (`border-top-left-radius`, ...) are supported, with lengths or percentages. The logical corners `border-start-start-radius`, `border-start-end-radius`, `border-end-end-radius` and `border-end-start-radius` name the block side then the inline side: top-left, top-right, bottom-right and bottom-left in horizontal left-to-right text, and top-right, bottom-right, bottom-left and top-left in `vertical-rl`.
 
 A radius rounds the element's own background and border. As in CSS, children are clipped to the rounded shape only when `overflow` is not `visible`.
 

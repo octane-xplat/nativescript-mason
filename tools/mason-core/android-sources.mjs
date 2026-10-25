@@ -19,7 +19,7 @@ export const androidHostFiles = Object.freeze([
   'MeasureFunc.kt', 'MeasureOutput.kt', 'MinMax.kt', 'MinSizing.kt', 'NativeHelpers.java',
   'NativeObject.kt', 'NineSlice.kt', 'Node.kt', 'NodeHelper.kt', 'NodeType.kt', 'NodeUtils.kt',
   'ObjectManager.kt', 'Point.kt', 'Rect.kt', 'Scroll.kt', 'Shadow.kt', 'SharedBoxShadowCache.kt',
-  'Size.kt', 'Style.kt', 'StyleHelpers.kt', 'Styles.kt', 'SvgParser.kt', 'TextDefaultAttributes.kt',
+  'Size.kt', 'Style.kt', 'StyleHelpers.kt', 'Styles.kt', 'SvgParser.kt', 'SvgText.kt', 'TextDefaultAttributes.kt',
   'Transform.kt', 'TwoDScrollView.kt', 'Utils.kt', 'View.kt', 'ViewLayoutFactory.kt',
   'ViewUtils.kt', 'WebScroll.kt', 'CSSFilters.kt',
   ...nativeFiles('android').filter((name) => name.startsWith('enums/')),

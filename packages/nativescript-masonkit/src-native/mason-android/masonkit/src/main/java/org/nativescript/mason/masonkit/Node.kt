@@ -23,7 +23,9 @@ object NodeStateKeys {
   const val PSEUDO_FLAGS_INDEX = 3
   // 1 while a closed <details> hides the node.
   const val IS_HIDDEN = 5
-  const val NODE_STATE_BUFFER_SIZE = 6
+  // f32: an inline-level box's baseline from its bottom edge, set by mason-core with its line.
+  const val BASELINE = 8
+  const val NODE_STATE_BUFFER_SIZE = 12
 }
 
 enum class PseudoState(val mask: Int) {
@@ -62,6 +64,8 @@ open class Node internal constructor(
 
 
   internal var computeCacheDirty = false
+  // A foreign leaf's pending requestLayout was handed to Taffy before the compute.
+  internal var leafRequestDirtied = false
   internal var nestedComputePending = false
   internal var nestedComputeWidth = 0f
   internal var nestedComputeHeight = 0f
@@ -209,6 +213,7 @@ open class Node internal constructor(
 
   // position: fixed / sticky state — see MasonPositioning.kt.
   internal var fixedOriginalParent: ViewGroup? = null
+  internal var fixedFollowsParent: android.view.View.OnAttachStateChangeListener? = null
   internal var stickyLocalX: Int = 0
   internal var stickyLocalY: Int = 0
   internal var stickyNaturalX: Int = 0
@@ -792,6 +797,9 @@ open class Node internal constructor(
   fun getLayoutChildren(): List<Node> {
     return children
   }
+
+  internal val inlineBaseline: Float
+    get() = stateValue.let { if (it.capacity() >= NodeStateKeys.NODE_STATE_BUFFER_SIZE) it.getFloat(NodeStateKeys.BASELINE) else 0f }
 
   private var stateValueOrNull: ByteBuffer? = null
   internal val stateValue: ByteBuffer
