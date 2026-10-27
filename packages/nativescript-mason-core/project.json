@@ -264,6 +264,32 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-windows-host.mjs" }
     },
+    "test.windows.runtime": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.runtime"],
+      "cache": false,
+      "options": { "command": "vitest run --config tools/mason-core/vitest-windows.config.ts" }
+    },
+    "test.windows.prerequisites": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/mason-core/test-windows-prerequisites.ps1" }
+    },
+    "prepare.consumer.windows": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/prepare-windows-consumer.mjs" }
+    },
+    "build.consumer.windows": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "cwd": "tmp/mason-core-windows-consumer", "command": "pnpm exec ns build windows --release" }
+    },
+    "test.consumer.windows.input": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/mason-core/consumer/windows/invoke-session.ps1 -Consumer tmp/mason-core-windows-consumer" }
+    },
     "verify.native": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.native.host"],

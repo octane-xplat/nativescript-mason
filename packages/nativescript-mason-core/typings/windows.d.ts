@@ -306,3 +306,13 @@ declare const NSWinRT: {
   asDelegate(typeName: string, fn: (...args: any[]) => any): any;
   asDelegate(fn: (...args: any[]) => any): any;
 };
+
+// Package-owned transport for preview bridges that coerce JS arrays as strings.
+declare namespace NativeScript.MasonCore {
+  class StyleTransport {
+    static GetStyle(element: NativeScript.Mason.IMasonElement): NativeScript.Mason.Style;
+    static WriteStyleValues(element: NativeScript.Mason.IMasonElement, json: string): void;
+    static WriteForeignStyleValuesPtr(pointer: number, json: string): void;
+    static WritePseudoStyleValues(node: NativeScript.Mason.Node, flags: number, json: string): void;
+  }
+}

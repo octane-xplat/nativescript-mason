@@ -210,3 +210,13 @@ pnpm exec nx run nativescript-mason-core:verify.runtime
 
 The package README documents the host contract. Native observation and device
 layout qualification remain separate from these headless parser/lifecycle tests.
+
+## Windows consumer qualification
+
+Use [the maintained Windows consumer](consumer/windows/README.md) to verify a
+relocated core tarball through a fresh MSIX build, native assertions and OS click
+and wheel input. Its package prerequisites live in
+`packages/nativescript-mason-core/platforms/windows`; app-local lab repairs are
+not required. The source assembler requires the x64 DLL and WinMD and validates
+Windows leaves in the packed inventory. This does not add files to registry
+betas `.4` or `.5`, and does not qualify other Windows architectures.

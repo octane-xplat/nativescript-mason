@@ -149,7 +149,7 @@ export function coreEnvironmentPropertiesSource(text) {
   return "import { environmentStyleValue, cssEnvironmentShorthand } from './css-environment';\n" + output;
 }
 
-/** Windows rich-text run copying belongs to full MasonKit, not mobile containers. */
+/** Core omits rich-text run copying and adapts Windows copied style buffers. */
 export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 'style.ts'), 'utf8')) {
   const file = ts.createSourceFile('style.ts', source, ts.ScriptTarget.Latest, true);
   const [style] = required(file.statements, ['Style'], file);
@@ -163,6 +163,36 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
     throw new Error('Review the rich-text style boundary: copyTextStyleTo is no longer Windows-only.');
   }
   let output = apply(file, [{ node: method }]);
+  // CsWinRT projects the Mason Style as an explicit interface property while
+  // XAML's unrelated FrameworkElement.Style remains public on View.
+  const gridStyle = 'const s = nativeView?.Style;';
+  if (output.split(gridStyle).length !== 2) throw new Error('Review the Windows grid style receiver.');
+  output = output.replace(gridStyle, "const s = typeof nativeView?.NodeKind === 'number' ? NativeScript.MasonCore.StyleTransport.GetStyle(nativeView) : undefined;");
+  const gridGetters = /(?:\(this\.nativeView as any\)|this\.nativeView)\?\.Style/g;
+  if ([...output.matchAll(gridGetters)].length !== 12) throw new Error('Review Windows grid CSS getters.');
+  output = output.replace(gridGetters, "(typeof this.nativeView?.NodeKind === 'number' ? NativeScript.MasonCore.StyleTransport.GetStyle(this.nativeView) : undefined)");
+  // The Windows bridge copies bytes rather than exposing arena memory. The
+  // local mirror is uniquely owned, regardless of the native buffer's share
+  // count. Re-fetching before each setter would discard earlier writes.
+  const windowsBuffer = 'this.setBuffer(new Uint8Array(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_])).buffer);';
+  if (output.split(windowsBuffer).length !== 2) throw new Error('Review Windows copied style-buffer ownership.');
+  output = output.replace(windowsBuffer, windowsBuffer + '\n      this._sv.setUint32(StyleKeys.REF_COUNT, 1, true);');
+  // alpha.144 coerces both typed and ordinary JS arrays as strings when a
+  // projected signature expects byte[]. The package's managed adapter decodes
+  // explicit JSON locally, then invokes the unchanged native WinRT methods.
+  const writes = [
+    ['WriteForeignStyleValuesPtr(ptr, bytes)', 'WriteForeignStyleValuesPtr(ptr, JSON.stringify(Array.from(bytes)))'],
+    ['WriteStyleValues(nativeView, bytes)', 'WriteStyleValues(nativeView, JSON.stringify(Array.from(bytes)))'],
+    ['WriteForeignStyleValuesPtr(ptr, this.u8View)', 'WriteForeignStyleValuesPtr(ptr, JSON.stringify(Array.from(this.u8View)))'],
+    ['WritePseudoStyleValues(this.nativeNode, this._pseudo, this.u8View)', 'WritePseudoStyleValues(this.nativeNode, this._pseudo, JSON.stringify(Array.from(this.u8View)))'],
+    ['WriteStyleValues(view, this.u8View)', 'WriteStyleValues(view, JSON.stringify(Array.from(this.u8View)))'],
+  ];
+  for (const [before, after] of writes) {
+    const original = `masonEngine().${before}`;
+    if (output.split(original).length !== 2) throw new Error(`Review Windows byte-array transport: ${before}`);
+    output = output.replace(original, `NativeScript.MasonCore.StyleTransport.${after}`);
+  }
+
   // Shorthands/aliases delegate to leaf setters. Resolve there so later longhand
   // overrides replace only that edge, rather than replaying a stale shorthand.
   const setterName = (node) => ts.isStringLiteral(node.name) ? node.name.text : nameOf(node, file);
@@ -220,5 +250,33 @@ export function coreForeignLayoutSource(source = readFileSync(resolve(coreSource
   }
   const prefix = file.text.slice(clear[0].getFullStart(), clear[0].getStart(file));
   if (!/^\s+$/.test(prefix)) throw new Error('Review comments at the foreign helper release boundary.');
-  return "import { releaseCssEnvironmentStyle } from './css-environment';\n" + apply(file, [{ node: clear[0], text: `${prefix}releaseCssEnvironmentStyle(view[foreignStyle_]);${prefix}view[foreignStyle_].resetState();${clear[0].getFullText(file)}` }]);
+  const [adopt] = required(file.statements, ['adoptForeignLayout'], file);
+  const attach = adopt.body.statements.filter((node) => node.getText(file).replace(/\s/g, '') === 'view[foreignStyle_]=helper;');
+  if (attach.length !== 1) throw new Error('Review Windows foreign flex ownership.');
+  const [symbol] = required(file.statements, ['foreignInvalidate_'], file);
+  // Attached flex properties belong to Mason while adopted. alpha.144's
+  // Widgets setters cannot marshal these ordinary native controls, and would
+  // also update an unrelated NativeScript FlexboxLayout representation.
+  const ownSetters = `
+  if (__WINDOWS__ && !view[foreignWindowsSetters_]) {
+    view[foreignWindowsSetters_] = [alignSelfProperty, flexGrowProperty, flexShrinkProperty].map((property) => {
+      const key = property.setNative;
+      const own = Object.getOwnPropertyDescriptor(view, key);
+      Object.defineProperty(view, key, { configurable: true, writable: true, value() {} });
+      return [key, own];
+    });
+  }`;
+  const restoreSetters = `
+  if (__WINDOWS__ && view[foreignWindowsSetters_]) {
+    for (const [key, own] of view[foreignWindowsSetters_]) {
+      if (own) Object.defineProperty(view, key, own);
+      else delete view[key];
+    }
+    view[foreignWindowsSetters_] = undefined;
+  }`;
+  return "import { releaseCssEnvironmentStyle } from './css-environment';\n" + apply(file, [
+    { node: symbol, text: symbol.getFullText(file) + "\nconst foreignWindowsSetters_ = Symbol('mason:foreignWindowsSetters');" },
+    { node: attach[0], text: attach[0].getFullText(file) + ownSetters },
+    { node: clear[0], text: `${restoreSetters}${prefix}releaseCssEnvironmentStyle(view[foreignStyle_]);${prefix}view[foreignStyle_].resetState();${clear[0].getFullText(file)}` },
+  ]);
 }

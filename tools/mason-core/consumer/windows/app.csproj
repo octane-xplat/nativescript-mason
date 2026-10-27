@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <AppDisplayName>Mason core qualification</AppDisplayName>
+    <AppDescription>Asserted Windows core consumer fixture.</AppDescription>
+    <ApplicationManifest>$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
+  </PropertyGroup>
+</Project>

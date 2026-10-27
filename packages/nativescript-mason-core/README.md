@@ -126,7 +126,8 @@ OS-input verification of beta.2.
 | iOS arm64 Simulator | Native regressions, compiled TSRX/hooks/styles, actual HID taps/swipes and cleanup pass |
 | iOS arm64 device | Framework clients link; signed development app and native UI-test runner build; physical runtime unqualified |
 | Android arm64-v8a | Native regressions, plain consumer, compiled TSRX/hooks/styles and real tap/swipe input pass on API 36 phone; API 35 emulator also passes |
-| Windows / web | Not provided by this package |
+| Windows x64 | Source assembly includes the WinRT host and nine Windows JavaScript leaves; maintained consumer qualification is separate from archive verification |
+| web | Not provided by this package |
 
 NativeScript core 9.1.3 with Xplat's canonical patches is qualified through the
 isolated renderer fixture; ordinary apps also pass separately. The Xplat native
@@ -139,6 +140,13 @@ reductions do not establish release APK/IPA or startup savings; matched release
 app measurements remain separate. The full-package iOS baseline also has one
 pre-existing text-node test failure, recorded in the extraction design; core's
 own native suites pass.
+
+Windows registry betas `.4` and `.5` lack those Windows files. Do not treat a
+locally assembled tarball as the published package of the same version. The
+maintained Windows workflow in `tools/mason-core/consumer/windows/README.md`
+checks native geometry, style-buffer values, ownership, cleanup and OS input
+against a relocated package and a real MSIX installation. A source build or
+inventory pass alone does not qualify runtime behavior.
 
 Source provenance and the byte-preserving module map live in
 `tools/mason-core/README.md` in the source checkout. The agreed design is
