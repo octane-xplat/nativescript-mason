@@ -220,3 +220,11 @@ and wheel input. Its package prerequisites live in
 not required. The source assembler requires the x64 DLL and WinMD and validates
 Windows leaves in the packed inventory. This does not add files to registry
 betas `.4` or `.5`, and does not qualify other Windows architectures.
+
+Universal package assembly requires the Windows native pair in
+`packages/nativescript-mason-core/platforms/windows/x64`, in addition to the
+mobile native inputs. On Windows, prepare the pinned desktop archive at
+`dist/native/mason-core/desktop/x86_64-pc-windows-msvc`, then run
+`pnpm exec nx run nativescript-mason-core:verify.host.windows`. This stages the
+DLL and WinMD into that package directory. Copy the staged directory to the
+same path in the assembly checkout when assembling on another host.

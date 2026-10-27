@@ -14,8 +14,10 @@ for installation and input.
 1. Assemble and verify the package in the Mason checkout. Native inputs must
    already be present. On the Windows host, build and verify the native host
    with `pnpm exec nx run nativescript-mason-core:verify.host.windows`, then
-   copy `dist/native/mason-core/windows` to the assembly checkout if it is
-   elsewhere. The build requires the Windows DLL and WinMD as well as
+   copy `packages/nativescript-mason-core/platforms/windows/x64` to the
+   same path in the assembly checkout if it is elsewhere. The Windows build
+   also needs the pinned desktop archive under
+   `dist/native/mason-core/desktop/x86_64-pc-windows-msvc` (including its header). The build requires the Windows DLL and WinMD as well as
    the pinned mobile archives. Pack the output, then copy the tarball and these
    tools to the Windows host or another directory.
 
