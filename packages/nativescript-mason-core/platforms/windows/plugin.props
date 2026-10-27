@@ -1,6 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project>
-  <!-- The core Windows host is distributed through the package's own
-       platforms/windows/{x64,arm64} binaries only; no NuGet fallback and no
-       FontManager dependency (widget text rendering stays in full MasonKit). -->
+  <PropertyGroup>
+    <!-- First installed microsoft.windows.sdk.net.ref package dir -->
+    <_NsSdkNetRefDir Condition="Exists('$(NuGetPackageRoot)microsoft.windows.sdk.net.ref')">$([System.IO.Directory]::GetDirectories('$(NuGetPackageRoot)microsoft.windows.sdk.net.ref')[0])</_NsSdkNetRefDir>
+    <CsWinRTWindowsMetadata Condition="'$(CsWinRTWindowsMetadata)' == '' and '$(_NsSdkNetRefDir)' != '' and Exists('$(_NsSdkNetRefDir)\winmd')">$(_NsSdkNetRefDir)\winmd</CsWinRTWindowsMetadata>
+    <!-- CsWinRT projection namespace whitelist: project NativeScript.* so the
+         runtime's managed namespace proxy can resolve component types. -->
+    <CsWinRTIncludes Condition="'$(CsWinRTIncludes)' == ''">NativeScript</CsWinRTIncludes>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- NativeScript.Widgets (core) and NativeScript.Mason (masonkit) ship as
+         native WinRT components (dll + winmd). The runtime's managed namespace
+         proxy needs CsWinRT projections for their types — generate them by
+         referencing the winmds and including the NativeScript root namespace.
+         Without this every style/layout call fails: Type not found:
+         NativeScript.Mason.Mason / NativeScript.Widgets.*. Private=false:
+         plugin.targets already copies each impl dll to the output dir. -->
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.3.1" />
+    <Reference Include="$(MSBuildThisFileDirectory)$(NSLibPlatform)\NativeScript.Mason.winmd"
+               Private="false"
+               Condition="Exists('$(MSBuildThisFileDirectory)$(NSLibPlatform)\NativeScript.Mason.winmd')" />
+    <Reference Include="$(MSBuildProjectDirectory)\plugins\@nativescript\core\$(NSLibPlatform)\NativeScript.Widgets.winmd"
+               Private="false"
+               Condition="Exists('$(MSBuildProjectDirectory)\plugins\@nativescript\core\$(NSLibPlatform)\NativeScript.Widgets.winmd')" />
+  </ItemGroup>
 </Project>

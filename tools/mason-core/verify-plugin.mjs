@@ -58,6 +58,7 @@ try {
     'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/android/MasonCore.aar', 'platforms/android/include.gradle',
     'platforms/windows/plugin.props', 'platforms/windows/plugin.targets',
+    'platforms/windows/patch-winrt-projection.ps1',
     'platforms/windows/x64/NativeScript.Mason.dll',
     'platforms/windows/x64/NativeScript.Mason.winmd',
   ]) assert.ok(existsSync(resolve(root, name)), `Missing native plugin input: ${name}`);

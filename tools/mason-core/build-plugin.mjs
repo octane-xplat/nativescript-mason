@@ -49,7 +49,9 @@ copyFileSync(resolve(android, 'manifest.json'), resolve(androidOutput, 'manifest
 // Windows host binaries are staged by build-windows-host.mjs into the package's
 // platforms/windows/{arch} along with plugin.targets/props; ship them as-is.
 const windowsHost = resolve(coreSourceRoot, 'platforms/windows');
-if (existsSync(resolve(windowsHost, 'x64/NativeScript.Mason.dll'))) {
+assert.ok(existsSync(resolve(windowsHost, 'x64/NativeScript.Mason.dll')), 'Windows core host is required; run build.host.windows before assembling the package.');
+assert.ok(existsSync(resolve(windowsHost, 'x64/NativeScript.Mason.winmd')), 'Windows core metadata is required.');
+{
   const windowsOutput = resolve(output, 'platforms/windows');
   mkdirSync(windowsOutput, { recursive: true });
   cpSync(windowsHost, windowsOutput, { recursive: true });
@@ -95,6 +97,6 @@ function files(directory) {
     return entry.isDirectory() ? files(filename) : [filename];
   });
 }
-const inventory = files(output).sort().map((filename) => ({ name: relative(output, filename), sha256: hash(filename) }));
+const inventory = files(output).sort().map((filename) => ({ name: relative(output, filename).replaceAll('\\', '/'), sha256: hash(filename) }));
 writeFileSync(resolve(output, 'artifact-inventory.json'), JSON.stringify(inventory, null, 2) + '\n');
 console.log('Built the core-only NativeScript package; target qualification is documented in its README.');

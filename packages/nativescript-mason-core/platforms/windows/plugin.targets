@@ -40,4 +40,33 @@
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference='Stop'; $p='$(MSBuildProjectDirectory)\Package.appxmanifest'; if(-not (Test-Path $p)){exit 0}; $dll='NativeScript.Mason.dll'; $ids='@(NSMasonCoreActivatableClass)'.Split(';'); [xml]$d=Get-Content -LiteralPath $p; $ns='http://schemas.microsoft.com/appx/manifest/foundation/windows10'; $m=New-Object System.Xml.XmlNamespaceManager($d.NameTable); $m.AddNamespace('a',$ns); $pkg=$d.DocumentElement; $ext=$pkg.SelectSingleNode('a:Extensions',$m); if(-not $ext){$ext=$d.CreateElement('Extensions',$ns);[void]$pkg.AppendChild($ext)}; $srv=$ext.SelectSingleNode('a:Extension[@Category=''windows.activatableClass.inProcessServer'']/a:InProcessServer[a:Path=''' + $dll + ''']',$m); if(-not $srv){$e=$d.CreateElement('Extension',$ns);$e.SetAttribute('Category','windows.activatableClass.inProcessServer');$srv=$d.CreateElement('InProcessServer',$ns);$pa=$d.CreateElement('Path',$ns);$pa.InnerText=$dll;[void]$srv.AppendChild($pa);[void]$e.AppendChild($srv);[void]$ext.AppendChild($e)}; $have=@($srv.SelectNodes('a:ActivatableClass',$m)|ForEach-Object{$_.GetAttribute('ActivatableClassId')}); $chg=$false; foreach($id in $ids){if($id -and ($have -notcontains $id)){$c=$d.CreateElement('ActivatableClass',$ns);$c.SetAttribute('ActivatableClassId',$id);$c.SetAttribute('ThreadingModel','both');[void]$srv.AppendChild($c);$chg=$true}}; if($chg){$d.Save($p)}&quot;" />
   </Target>
 
+  <!-- cswinrt emits explicit interface members for Mason's overridable
+       interfaces without listing them on the class (CS0540); patch after
+       projection generation, before compile. -->
+  <Target Name="NsPatchWinRTProjection" AfterTargets="CsWinRTIncludeProjection"
+          Condition="Exists('$(MSBuildProjectDirectory)\Generated Files\CsWinRT\NativeScript.Mason.cs')">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)patch-winrt-projection.ps1&quot; -Dir &quot;$(MSBuildProjectDirectory)\Generated Files\CsWinRT&quot;" />
+  </Target>
+  <!-- Override the runtime's publish-only target so MSIX receives one copy,
+       including on a cold build, before content paths are assigned. -->
+  <Target Name="AddDotNetBridgeContent" DependsOnTargets="PublishDotNetBridge" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <Content Remove="$(NSWindowsRoot)\dotnet-bridge\publish\**\*" />
+      <!-- Package DotNetBridge next to windows.exe — the NativeScript Windows
+           runtime loads it from `dotnet-bridge\` under AppContext.BaseDirectory
+           and fails native view creation ("DotNetBridge.dll and/or runtimeconfig
+           not found") when the MSIX payload omits it. The generated windows.csproj
+           only flows the bridge through CopyToPublishDirectory, which never
+           reaches the package; Content with CopyToOutputDirectory does. -->
+      <_NSMasonCoreBridgeContent Include="$(NSWindowsRoot)\dotnet-bridge\publish\**\*"
+               Condition="Exists('$(NSWindowsRoot)\dotnet-bridge\publish')" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Include="@(_NSMasonCoreBridgeContent)">
+        <Link>dotnet-bridge\%(_NSMasonCoreBridgeContent.RecursiveDir)%(_NSMasonCoreBridgeContent.Filename)%(_NSMasonCoreBridgeContent.Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+  </Target>
 </Project>
