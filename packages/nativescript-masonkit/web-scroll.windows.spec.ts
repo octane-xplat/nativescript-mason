@@ -12,13 +12,14 @@ const engine = {
   ScrollTo: vi.fn(),
   ScrollIntoView: vi.fn(),
   AddEventListener: vi.fn(() => 1),
-  RemoveEventListener: vi.fn(),
+  AddEventListenerPtr: vi.fn(() => 1),
+  RemoveEventListenerPtr: vi.fn(),
 };
 
 (globalThis as any).NativeScript = { Mason: { Mason: { Instance: () => engine } } };
-(globalThis as any).NSWinRT = { asDelegate: (_name: string, fn: any) => fn };
+(globalThis as any).NSWinRT = { dotnet: { asDelegate: (_name: string, fn: any) => fn } };
 
-function element(native: any = { id: 'native' }) {
+function element(native: any = { id: 'native', __native_ptr: 0x1234 }) {
   const view = new ViewBase() as any;
   view[native_] = native;
   view._view = native;
@@ -136,15 +137,16 @@ describe('scrollIntoView', () => {
 describe('scroll events', () => {
   it.each(['scroll', 'scrollend'])('registers "%s" natively only when a listener is added', (type) => {
     const view = element();
-    expect(engine.AddEventListener).not.toHaveBeenCalled();
+    expect(engine.AddEventListenerPtr).not.toHaveBeenCalled();
     const listener = vi.fn();
     view.addEventListener(type, listener);
-    expect(engine.AddEventListener).toHaveBeenCalledWith(view[native_], type, expect.any(Function));
-    const nativeListener = (engine.AddEventListener.mock.calls[0] as any[])[2];
+    expect(engine.AddEventListenerPtr).toHaveBeenCalledWith(view[native_].__native_ptr, type, expect.any(Function));
+    expect(engine.AddEventListener).not.toHaveBeenCalled();
+    const nativeListener = (engine.AddEventListenerPtr.mock.calls[0] as any[])[2];
     nativeListener({ Type: type });
     expect(listener).toHaveBeenCalledTimes(1);
     expect(listener.mock.calls[0][0].type).toBe(type);
     view.removeEventListener(type, listener);
-    expect(engine.RemoveEventListener).toHaveBeenCalledWith(view[native_], type, 1);
+    expect(engine.RemoveEventListenerPtr).toHaveBeenCalledWith(view[native_].__native_ptr, type, 1);
   });
 });

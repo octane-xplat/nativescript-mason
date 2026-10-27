@@ -253,6 +253,17 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/run-android-device-tests.mjs" }
     },
+    "build.host.windows": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/build-windows-host.mjs" }
+    },
+    "verify.host.windows": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build.host.windows"],
+      "cache": false,
+      "options": { "command": "node tools/mason-core/verify-windows-host.mjs" }
+    },
     "verify.native": {
       "executor": "nx:run-commands",
       "dependsOn": ["build.native.host"],

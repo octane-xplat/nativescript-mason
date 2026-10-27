@@ -26,12 +26,14 @@ function write(name, text) {
 rmSync(runtimeSourceRoot, { recursive: true, force: true });
 rmSync(runtimeOutput, { recursive: true, force: true });
 mkdirSync(runtimeSourceRoot, { recursive: true });
-for (const name of relocatedFiles.filter((name) => !name.includes('.windows.'))) {
+for (const name of relocatedFiles) {
   const filename = resolve(runtimeSourceRoot, name);
   mkdirSync(dirname(filename), { recursive: true });
   copyFileSync(resolve(coreSourceRoot, name), filename);
 }
-for (const name of ['css-environment.ts', 'native-environment.ios.ts', 'native-environment.android.ts', 'native-environment.d.ts']) {
+// Core Windows leaves are independent adaptations; MasonKit retains its own copies.
+for (const name of ['css-environment.ts', 'native-environment.ios.ts', 'native-environment.android.ts', 'native-environment.windows.ts', 'native-environment.d.ts',
+  'utils/index.windows.ts', 'view/index.windows.ts', 'scroll/index.windows.ts']) {
   write(name, readFileSync(resolve(coreSourceRoot, name), 'utf8'));
 }
 write('common.ts', coreCommonSource());
@@ -53,7 +55,7 @@ export { setCssUnitContext, cssUnits } from './units';
 export { registerAppFontsDirectory } from './fonts';
 export type * from './layout-types';
 `;
-for (const platform of ['ios', 'android']) {
+for (const platform of ['ios', 'android', 'windows']) {
   write(`tree/index.${platform}.ts`, coreTreeSource(platform));
   write(`index.${platform}.ts`, entry);
 }

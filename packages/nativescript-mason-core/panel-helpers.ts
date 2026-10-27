@@ -9,3 +9,7 @@ export function appendNativeChild(_panel: any, _child: any, _atIndex: number): b
 }
 
 export function removeNativeChild(_panel: any, _child: any): void {}
+
+export function nativeArg(v: any): any {
+  return v;
+}

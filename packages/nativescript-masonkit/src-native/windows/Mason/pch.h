@@ -21,4 +21,6 @@
 // mason-c C ABI. The component links masonnative.lib (built from crates/mason-windows) and reaches
 // the Rust Taffy engine purely through these `extern "C"` functions. Only cross-platform entry
 // points are referenced (no apple-only helpers), so the static archive resolves cleanly.
+extern "C" {
 #include "include/mason_native.h"
+}  // extern "C"

@@ -123,7 +123,7 @@ import {
 import { masonLayout } from './display-density';
 import { isMasonView_, isTextChild_, isText_, isPlaceholder_, text_, native_, textNode_, textNodeIndex_, textNodeProxied_, pseudoStyles_, emptyTextNode_, breakRun_, anonymousText_, windowsFontSource_, hostsRuns_, needsAnonymousText_, borderRadiusCorners_, borderSideColors_, eventType_, remapLogicalBoxes_, runMember_, runsInline_, runsSettled_, blockified_, touchAction_ } from './symbols';
 import { Tree } from './tree';
-import { masonEngine, removeNativeChild } from './panel-helpers';
+import { masonEngine, removeNativeChild, nativeArg } from './panel-helpers';
 import { TextNode } from './text-node';
 import { compile } from './pseudo';
 import { frameworkRegistry } from './framework-registry';
@@ -724,7 +724,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
         nativeHit = hitTest.call(nativeView, x, y);
       }
     } else if (__WINDOWS__ && typeof masonEngine().ElementFromPoint === 'function') {
-      nativeHit = masonEngine().ElementFromPoint(nativeView, x, y);
+      { const ptr = nativeArg(nativeView); if (ptr != null) nativeHit = masonEngine().ElementFromPointPtr(ptr, x, y); }
     }
 
     if (!nativeHit) return null;
@@ -874,7 +874,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       if (__WINDOWS__) {
         if (typeof masonEngine().AddEventListener === 'function') {
           const ref = new WeakRef(this);
-          const listener = (globalThis as any).NSWinRT.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
+          const listener = (globalThis as any).NSWinRT.dotnet.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
             const owner = ref.deref();
             if (!owner) return;
             const ret: any = wrapNativeEvent(arg);
@@ -882,7 +882,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
             ret._target = owner;
             callback.call(thisArg || owner, ret);
           });
-          callback['mason:event:id'] = masonEngine().AddEventListener((this as any)._view, arg, listener);
+          { const ptr = nativeArg((this as any)._view); if (ptr != null) callback['mason:event:id'] = masonEngine().AddEventListenerPtr(ptr, arg, listener); }
           callback['mason:event:listener'] = listener;
         } else if (arg === 'click' || arg === 'tap') {
           try {
@@ -916,7 +916,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           } catch (_) {}
         } else if (typeof (this as any)._view.AddEventListener === 'function') {
           const ref = new WeakRef(this);
-          const listener = (globalThis as any).NSWinRT.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
+          const listener = (globalThis as any).NSWinRT.dotnet.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
             const owner = ref.deref();
             if (!owner) return;
             const ret: any = wrapNativeEvent(arg);
@@ -960,7 +960,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       }
       if (__WINDOWS__) {
         if (id && callback['mason:event:listener'] && !callback['mason:event:tapped']) {
-          masonEngine().RemoveEventListener((this as any)._view, arg, id);
+          { const ptr = nativeArg((this as any)._view); if (ptr != null) masonEngine().RemoveEventListenerPtr(ptr, arg, id); }
           callback['mason:event:id'] = undefined;
           callback['mason:event:listener'] = undefined;
         } else if (id && (arg === 'click' || arg === 'tap')) {
@@ -1175,7 +1175,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (!view || typeof masonEngine().AddEventListener !== 'function') return;
     if (on && !this._windowsActiveId) {
       const ref = new WeakRef(this);
-      this._windowsActiveListener = (globalThis as any).NSWinRT.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
+      this._windowsActiveListener = (globalThis as any).NSWinRT.dotnet.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
         const owner: any = ref.deref();
         if (!owner) return;
         if (event.Data === '1') {
@@ -1184,9 +1184,9 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           clearWindowsActive(owner);
         }
       });
-      this._windowsActiveId = masonEngine().AddEventListener(view, 'mason:active', this._windowsActiveListener);
+      { const ptr = nativeArg(view); if (ptr != null) this._windowsActiveId = masonEngine().AddEventListenerPtr(ptr, 'mason:active', this._windowsActiveListener); }
     } else if (!on && this._windowsActiveId) {
-      masonEngine().RemoveEventListener(view, 'mason:active', this._windowsActiveId);
+      { const ptr = nativeArg(view); if (ptr != null) masonEngine().RemoveEventListenerPtr(ptr, 'mason:active', this._windowsActiveId); }
       this._windowsActiveId = 0;
       this._windowsActiveListener = undefined;
     }
@@ -1311,8 +1311,8 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (!nativeChild || child[isMasonView_]) return false;
     const value = fraction ?? NaN;
     if (__WINDOWS__) {
-      if (horizontal) masonEngine().SetPercentWidth(nativeChild, value);
-      else masonEngine().SetPercentHeight(nativeChild, value);
+      if (horizontal) { const ptr = nativeArg(nativeChild); if (ptr != null) masonEngine().SetPercentWidthPtr(ptr, value); }
+      else { const ptr = nativeArg(nativeChild); if (ptr != null) masonEngine().SetPercentHeightPtr(ptr, value); }
     } else if (__ANDROID__) {
       const mason = org.nativescript.mason.masonkit.Mason.getShared();
       if (horizontal) mason.setPercentWidth(nativeChild, value);

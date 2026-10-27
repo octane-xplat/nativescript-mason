@@ -1,0 +1,122 @@
+#pragma once
+#include "Node.g.h"
+#include <cstring>
+#include <vector>
+
+namespace winrt::NativeScript::Mason::implementation
+{
+    // A node in the layout tree: wraps a mason-c CMasonNode and the borrowed engine CMason*, and
+    // keeps the owning Mason alive via an opaque IInspectable. Created only by Mason.Create* /
+    // by methods that return child nodes; never activated from JS.
+    struct Node : NodeT<Node>
+    {
+        Node(winrt::Windows::Foundation::IInspectable const& engineKeepAlive, ::CMason* mason, ::CMasonNode* node)
+            : m_engine(engineKeepAlive), m_mason(mason), m_node(node) {}
+        ~Node();
+
+        // tree mutation
+        void AddChild(winrt::NativeScript::Mason::Node const& child);
+        void Prepend(winrt::NativeScript::Mason::Node const& child);
+        void AddChildAt(winrt::NativeScript::Mason::Node const& child, uint32_t index);
+        void InsertChildBefore(winrt::NativeScript::Mason::Node const& child, winrt::NativeScript::Mason::Node const& reference);
+        void InsertChildAfter(winrt::NativeScript::Mason::Node const& child, winrt::NativeScript::Mason::Node const& reference);
+        winrt::NativeScript::Mason::Node ReplaceChildAt(winrt::NativeScript::Mason::Node const& child, uint32_t index);
+        winrt::NativeScript::Mason::Node RemoveChild(winrt::NativeScript::Mason::Node const& child);
+        winrt::NativeScript::Mason::Node RemoveChildAt(uint32_t index);
+        void RemoveChildren();
+        winrt::NativeScript::Mason::Node GetChildAt(uint32_t index);
+        void SetChildren(array_view<winrt::NativeScript::Mason::Node const> children);
+        void AddChildren(array_view<winrt::NativeScript::Mason::Node const> children);
+        void PrependChildren(array_view<winrt::NativeScript::Mason::Node const> children);
+        bool IsChildrenSame(array_view<winrt::NativeScript::Mason::Node const> children);
+
+        // dirty / equality
+        bool IsDirty();
+        void MarkDirty();
+        bool IsEqual(winrt::NativeScript::Mason::Node const& other);
+
+        // pseudo-class state
+        uint32_t PseudoStates();
+        void PseudoStates(uint32_t value);
+        bool HasPseudoState(uint32_t flag);
+        winrt::Windows::Storage::Streams::IBuffer PreparePseudoBuffer(uint32_t flags);
+
+        // style
+        winrt::NativeScript::Mason::Style Style();
+
+        // measure
+        void SetMeasure(winrt::NativeScript::Mason::MeasureFunc const& callback);
+        void RemoveMeasure();
+
+        // compute
+        void Compute();
+        void ComputeWH(float width, float height);
+        void ComputeSize(winrt::NativeScript::Mason::AvailableSpaceType widthType, float widthValue,
+                         winrt::NativeScript::Mason::AvailableSpaceType heightType, float heightValue);
+        void ComputeMaxContent();
+        void ComputeMinContent();
+
+        // compute + layout
+        winrt::NativeScript::Mason::Layout GetLayout();
+        winrt::NativeScript::Mason::Layout GetShallowLayout();
+        winrt::NativeScript::Mason::Layout ComputeAndLayout();
+        winrt::NativeScript::Mason::Layout ComputeWHAndLayout(float width, float height);
+        winrt::NativeScript::Mason::Layout ComputeMaxContentAndLayout();
+        winrt::NativeScript::Mason::Layout ComputeMinContentAndLayout();
+
+        void PrintTree();
+        void Destroy();
+
+        // Internal accessors (not projected).
+        ::CMasonNode* NodePtr() const noexcept { return m_node; }
+        ::CMason* MasonPtr() const noexcept { return m_mason; }
+        const uint8_t* StyleData(uint32_t& size) const noexcept
+        {
+            uintptr_t len = 0;
+            const uint8_t* data = mason_style_get_style_data(m_mason, m_node, &len);
+            size = data ? static_cast<uint32_t>(len) : 0;
+            return data;
+        }
+
+        // This node's laid-out width and size, without building a Layout.
+        float LayoutWidth();
+        winrt::Windows::Foundation::Size LayoutSize();
+        // The laid-out size grown to the scrollable overflow.
+        winrt::Windows::Foundation::Size ScrollExtent();
+        // This node's frame, then its direct children's, without building Layouts.
+        void ShallowFrames(std::vector<winrt::Windows::Foundation::Rect>& out);
+        // Border plus padding on each side of this node's content box.
+        void ContentInsets(float& left, float& top, float& right, float& bottom);
+        // Where this node's content box starts in its parent's border box.
+        void ContentOrigin(float& x, float& y);
+        // An inline-level box's baseline from its bottom edge, set by the engine with its line.
+        float InlineBaseline() const noexcept
+        {
+            uintptr_t len = 0;
+            const uint8_t* state = mason_node_get_state_buffer(m_mason, m_node, &len);
+            float baseline = 0.0f;
+            if (state && len >= kStateBaseline + sizeof(float)) std::memcpy(&baseline, state + kStateBaseline, sizeof(float));
+            return baseline;
+        }
+        // mason-core NodeStateKeys::BASELINE, an f32.
+        static constexpr uintptr_t kStateBaseline = 8;
+
+        // Position relative to the layout root in DIPs, set by the parent panel's arrange.
+        float ArrangeX{ 0.0f };
+        float ArrangeY{ 0.0f };
+        // The scroll extent a scroller's content last measured at.
+        winrt::Windows::Foundation::Size MeasuredExtent{ -1.0f, -1.0f };
+
+    private:
+        // C trampoline registered with mason_node_set_context; recovers `this` from measure_data
+        // and invokes m_measure.
+        static long long MeasureTrampoline(const void* data, float knownWidth, float knownHeight,
+                                           float availableWidth, float availableHeight) noexcept;
+
+        winrt::Windows::Foundation::IInspectable m_engine{ nullptr };
+        ::CMason* m_mason{ nullptr };
+        ::CMasonNode* m_node{ nullptr };
+        winrt::NativeScript::Mason::MeasureFunc m_measure{ nullptr };
+        bool m_destroyed{ false };
+    };
+}

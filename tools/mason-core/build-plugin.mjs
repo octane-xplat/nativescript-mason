@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, relative } from 'node:path';
-import { workspaceRoot } from './sources.mjs';
+import { workspaceRoot, coreSourceRoot } from './sources.mjs';
 
 const runtime = resolve(workspaceRoot, 'dist/prototypes/nativescript-mason-core');
 const ios = resolve(workspaceRoot, 'dist/native/mason-core/ios-host/universal');
@@ -46,6 +46,14 @@ for (const name of ['FontManager.LICENSE', 'SDWebImage.LICENSE', 'Package.resolv
 }
 copyFileSync(resolve(android, 'MasonCore.aar'), resolve(androidOutput, 'MasonCore.aar'));
 copyFileSync(resolve(android, 'manifest.json'), resolve(androidOutput, 'manifest.json'));
+// Windows host binaries are staged by build-windows-host.mjs into the package's
+// platforms/windows/{arch} along with plugin.targets/props; ship them as-is.
+const windowsHost = resolve(coreSourceRoot, 'platforms/windows');
+if (existsSync(resolve(windowsHost, 'x64/NativeScript.Mason.dll'))) {
+  const windowsOutput = resolve(output, 'platforms/windows');
+  mkdirSync(windowsOutput, { recursive: true });
+  cpSync(windowsHost, windowsOutput, { recursive: true });
+}
 writeFileSync(resolve(androidOutput, 'include.gradle'), `dependencies {
   implementation 'androidx.core:core-ktx:1.12.0'
   implementation 'com.google.code.gson:gson:2.13.2'
@@ -66,6 +74,9 @@ delete manifest.private;
 manifest.publishConfig = sourceManifest.publishConfig;
 manifest.description = sourceManifest.description;
 manifest.nativescript = sourceManifest.nativescript;
+if (existsSync(resolve(output, 'platforms/windows/x64/NativeScript.Mason.dll'))) {
+  manifest.nativescript.platforms.windows = '0.1.0';
+}
 manifest.masonCorePrototype = {
   nativeHosts: true,
   ios: { architectures: ['arm64'], simulatorOnly: false, linkage: 'static', sharedNativeDependencies: ['FontManager'] },

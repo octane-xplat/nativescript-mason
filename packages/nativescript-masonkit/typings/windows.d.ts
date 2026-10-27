@@ -179,6 +179,27 @@ declare namespace NativeScript.Mason {
     // A core (non-Mason) child's leaf style buffer, and its commit.
     ForeignStyleValues(element: any): any;
     SyncForeignStyle(element: any, d0: number, d1: number, d2: number, d3: number): void;
+    // Byte copies of style buffers used by the DotNetBridge.
+    ReadStyleValues(element: IMasonElement): Uint8Array;
+    WriteStyleValues(element: IMasonElement, values: Uint8Array): void;
+    ReadForeignStyleValues(element: any): Uint8Array;
+    WriteForeignStyleValues(element: any, values: Uint8Array): void;
+    ReadNodeStyleValues(node: Node): Uint8Array;
+    WriteNodeStyleValues(node: Node, values: Uint8Array): void;
+    ReadPseudoStyleValues(node: Node, flags: number): Uint8Array;
+    WritePseudoStyleValues(node: Node, flags: number, values: Uint8Array): void;
+    // Foreign elements cross the bridge as raw COM pointers.
+    ReparentChildPtr(parent: any, childPtr: any, index: number): void;
+    RemoveChildPtr(parent: any, childPtr: any): void;
+    ReadForeignStyleValuesPtr(elementPtr: any): Uint8Array;
+    WriteForeignStyleValuesPtr(elementPtr: any, values: Uint8Array): void;
+    SyncForeignStylePtr(elementPtr: any, d0: number, d1: number, d2: number, d3: number): void;
+    SetPercentWidthPtr(elementPtr: any, fraction: number): void;
+    SetPercentHeightPtr(elementPtr: any, fraction: number): void;
+    AddEventListenerPtr(elementPtr: any, type: string, listener: any): number;
+    RemoveEventListenerPtr(elementPtr: any, type: string, id: number): void;
+    ElementFromPointPtr(elementPtr: any, x: number, y: number): any;
+    PrintElementTree(element: IMasonElement): void;
     ReparentChild(parent: any, child: any, index: number): void;
     RemoveChild(parent: any, child: any): void;
     // Percentage size (0-1, NaN clears) of a core (non-Mason) child.
@@ -276,6 +297,7 @@ declare namespace NativeScript.Mason {
     static IsTextScaleFactorEnabled: boolean;
     readonly Node: Node;
     readonly Style: Style;
+    SyncStyle(d0: number, d1: number, d2: number, d3: number): void;
     Content: string;
     FontSize: number;
     // CSS font-family list.

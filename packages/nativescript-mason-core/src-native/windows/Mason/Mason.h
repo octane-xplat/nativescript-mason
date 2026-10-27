@@ -1,0 +1,78 @@
+#pragma once
+#include "Mason.g.h"
+
+namespace winrt::NativeScript::Mason::implementation
+{
+    struct Mason : MasonT<Mason>
+    {
+        Mason();
+        ~Mason();
+
+        static winrt::NativeScript::Mason::Mason Instance();
+
+        void Clear();
+        void SetDeviceScale(float scale);
+        bool Preflight();
+        void Preflight(bool value);
+
+        winrt::NativeScript::Mason::Node CreateNode(bool anonymous);
+        winrt::NativeScript::Mason::Node CreateTextNode(bool anonymous);
+        winrt::NativeScript::Mason::Node CreateImageNode();
+        winrt::NativeScript::Mason::Node CreateButtonNode();
+        winrt::NativeScript::Mason::Node CreateLineBreakNode();
+        winrt::NativeScript::Mason::Node CreateListItemNode();
+
+        void PrintTree(winrt::NativeScript::Mason::Node const& node);
+
+        winrt::Windows::Storage::Streams::IBuffer StyleValues(winrt::NativeScript::Mason::IMasonElement const& element);
+        winrt::Windows::Storage::Streams::IBuffer ForeignStyleValues(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        void SyncForeignStyle(winrt::Microsoft::UI::Xaml::UIElement const& element, int32_t d0, int32_t d1, int32_t d2, int32_t d3);
+        winrt::com_array<uint8_t> ReadStyleValues(winrt::NativeScript::Mason::IMasonElement const& element);
+        void WriteStyleValues(winrt::NativeScript::Mason::IMasonElement const& element, winrt::array_view<uint8_t const> values);
+        winrt::com_array<uint8_t> ReadForeignStyleValues(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        void WriteForeignStyleValues(winrt::Microsoft::UI::Xaml::UIElement const& element, winrt::array_view<uint8_t const> values);
+        winrt::com_array<uint8_t> ReadNodeStyleValues(winrt::NativeScript::Mason::Node const& node);
+        void WriteNodeStyleValues(winrt::NativeScript::Mason::Node const& node, winrt::array_view<uint8_t const> values);
+        winrt::com_array<uint8_t> ReadPseudoStyleValues(winrt::NativeScript::Mason::Node const& node, uint32_t flags);
+        void WritePseudoStyleValues(winrt::NativeScript::Mason::Node const& node, uint32_t flags, winrt::array_view<uint8_t const> values);
+        void ReparentChild(winrt::Microsoft::UI::Xaml::Controls::Panel const& parent, winrt::Microsoft::UI::Xaml::UIElement const& child, int32_t index);
+        void RemoveChild(winrt::Microsoft::UI::Xaml::Controls::Panel const& parent, winrt::Microsoft::UI::Xaml::UIElement const& child);
+        void SetPercentWidth(winrt::Microsoft::UI::Xaml::UIElement const& element, float fraction);
+        void SetPercentHeight(winrt::Microsoft::UI::Xaml::UIElement const& element, float fraction);
+        int64_t AddEventListener(winrt::Microsoft::UI::Xaml::UIElement const& element, hstring const& type, winrt::NativeScript::Mason::EventListener const& listener);
+        void RemoveEventListener(winrt::Microsoft::UI::Xaml::UIElement const& element, hstring const& type, int64_t id);
+        winrt::Windows::Foundation::IInspectable ElementFromPoint(winrt::Microsoft::UI::Xaml::UIElement const& element, float x, float y);
+        void ReparentChildPtr(winrt::Microsoft::UI::Xaml::Controls::Panel const& parent, int64_t childPtr, int32_t index);
+        void RemoveChildPtr(winrt::Microsoft::UI::Xaml::Controls::Panel const& parent, int64_t childPtr);
+        winrt::com_array<uint8_t> ReadForeignStyleValuesPtr(int64_t elementPtr);
+        void WriteForeignStyleValuesPtr(int64_t elementPtr, winrt::array_view<uint8_t const> values);
+        void SyncForeignStylePtr(int64_t elementPtr, int32_t d0, int32_t d1, int32_t d2, int32_t d3);
+        void SetPercentWidthPtr(int64_t elementPtr, float fraction);
+        void SetPercentHeightPtr(int64_t elementPtr, float fraction);
+        int64_t AddEventListenerPtr(int64_t elementPtr, winrt::hstring const& type, winrt::NativeScript::Mason::EventListener const& listener);
+        void RemoveEventListenerPtr(int64_t elementPtr, winrt::hstring const& type, int64_t id);
+        winrt::Windows::Foundation::IInspectable ElementFromPointPtr(int64_t elementPtr, float x, float y);
+        void PrintElementTree(winrt::NativeScript::Mason::IMasonElement const& element);
+        double ScrollLeft(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        double ScrollTop(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        double ScrollWidth(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        double ScrollHeight(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        double ClientWidth(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        double ClientHeight(winrt::Microsoft::UI::Xaml::UIElement const& element);
+        void ScrollTo(winrt::Microsoft::UI::Xaml::UIElement const& element, double left, double top, bool smooth);
+        void ScrollIntoView(winrt::Microsoft::UI::Xaml::UIElement const& element, int32_t block, int32_t inlineMode, bool smooth);
+
+        // Not projected; used internally by the factory.
+        ::CMason* Ptr() const noexcept { return m_ptr; }
+
+    private:
+        ::CMason* m_ptr{ nullptr };
+    };
+}
+
+namespace winrt::NativeScript::Mason::factory_implementation
+{
+    struct Mason : MasonT<Mason, implementation::Mason>
+    {
+    };
+}

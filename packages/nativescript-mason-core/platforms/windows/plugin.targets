@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <_NSMasonCoreHasLocal>false</_NSMasonCoreHasLocal>
+    <_NSMasonCoreHasLocal Condition="Exists('$(MSBuildThisFileDirectory)x64\NativeScript.Mason.dll') or Exists('$(MSBuildThisFileDirectory)arm64\NativeScript.Mason.dll')">true</_NSMasonCoreHasLocal>
+  </PropertyGroup>
+
+  <Target Name="CopyNativeScriptMasonCore" AfterTargets="Build" Condition="'$(_NSMasonCoreHasLocal)'=='true'">
+    <PropertyGroup>
+      <_NSMasonCoreArchDir Condition="'$(Platform)'=='ARM64' or '$(Platform)'=='arm64'">$(MSBuildThisFileDirectory)arm64\</_NSMasonCoreArchDir>
+      <_NSMasonCoreArchDir Condition="'$(Platform)'=='x64' or '$(Platform)'=='x86_64'">$(MSBuildThisFileDirectory)x64\</_NSMasonCoreArchDir>
+      <_NSMasonCoreArchDir Condition="'$(_NSMasonCoreArchDir)'==''">$(MSBuildThisFileDirectory)x64\</_NSMasonCoreArchDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_NSMasonCoreFiles Include="$(_NSMasonCoreArchDir)NativeScript.Mason.dll" Condition="Exists('$(_NSMasonCoreArchDir)NativeScript.Mason.dll')" />
+      <_NSMasonCoreFiles Include="$(_NSMasonCoreArchDir)NativeScript.Mason.winmd" Condition="Exists('$(_NSMasonCoreArchDir)NativeScript.Mason.winmd')" />
+    </ItemGroup>
+    <Message Text="[@octane-xplat/nativescript-mason-core] Copying NativeScript.Mason ($(Platform)) to $(OutDir)" Importance="normal" Condition="'@(_NSMasonCoreFiles)' != ''" />
+    <Copy SourceFiles="@(_NSMasonCoreFiles)"
+          DestinationFolder="$(OutDir)"
+          SkipUnchangedFiles="true"
+          Condition="'@(_NSMasonCoreFiles)' != ''" />
+  </Target>
+
+  <ItemGroup>
+    <!-- Activatable runtimeclasses exported by the core host. Engine types
+         (Node/Style/Layout/Event) are reached through these, not activated. -->
+    <NSMasonCoreActivatableClass Include="NativeScript.Mason.Mason" />
+    <NSMasonCoreActivatableClass Include="NativeScript.Mason.MeasureOutput" />
+    <NSMasonCoreActivatableClass Include="NativeScript.Mason.View" />
+    <NSMasonCoreActivatableClass Include="NativeScript.Mason.Css" />
+    <NSMasonCoreActivatableClass Include="NativeScript.Mason.Diagnostics" />
+  </ItemGroup>
+
+  <Target Name="NSRegisterMasonCoreActivatableClasses"
+          AfterTargets="ApplyManifestOverrides;MergeAppResourcesManifest"
+          BeforeTargets="Build"
+          Condition="'$(_NSMasonCoreHasLocal)'=='true' and Exists('$(MSBuildProjectDirectory)\Package.appxmanifest')">
+    <Message Text="[@octane-xplat/nativescript-mason-core] Registering NativeScript.Mason activatable classes in Package.appxmanifest" Importance="normal" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$ErrorActionPreference='Stop'; $p='$(MSBuildProjectDirectory)\Package.appxmanifest'; if(-not (Test-Path $p)){exit 0}; $dll='NativeScript.Mason.dll'; $ids='@(NSMasonCoreActivatableClass)'.Split(';'); [xml]$d=Get-Content -LiteralPath $p; $ns='http://schemas.microsoft.com/appx/manifest/foundation/windows10'; $m=New-Object System.Xml.XmlNamespaceManager($d.NameTable); $m.AddNamespace('a',$ns); $pkg=$d.DocumentElement; $ext=$pkg.SelectSingleNode('a:Extensions',$m); if(-not $ext){$ext=$d.CreateElement('Extensions',$ns);[void]$pkg.AppendChild($ext)}; $srv=$ext.SelectSingleNode('a:Extension[@Category=''windows.activatableClass.inProcessServer'']/a:InProcessServer[a:Path=''' + $dll + ''']',$m); if(-not $srv){$e=$d.CreateElement('Extension',$ns);$e.SetAttribute('Category','windows.activatableClass.inProcessServer');$srv=$d.CreateElement('InProcessServer',$ns);$pa=$d.CreateElement('Path',$ns);$pa.InnerText=$dll;[void]$srv.AppendChild($pa);[void]$e.AppendChild($srv);[void]$ext.AppendChild($e)}; $have=@($srv.SelectNodes('a:ActivatableClass',$m)|ForEach-Object{$_.GetAttribute('ActivatableClassId')}); $chg=$false; foreach($id in $ids){if($id -and ($have -notcontains $id)){$c=$d.CreateElement('ActivatableClass',$ns);$c.SetAttribute('ActivatableClassId',$id);$c.SetAttribute('ThreadingModel','both');[void]$srv.AppendChild($c);$chg=$true}}; if($chg){$d.Save($p)}&quot;" />
+  </Target>
+
+</Project>

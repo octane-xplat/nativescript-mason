@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <CppWinRTOptimized>true</CppWinRTOptimized>
+    <CppWinRTRootNamespaceAutoMerge>true</CppWinRTRootNamespaceAutoMerge>
+    <CppWinRTGenerateWindowsMetadata>true</CppWinRTGenerateWindowsMetadata>
+    <MinimalCoreWin>true</MinimalCoreWin>
+    <ProjectGuid>{E6A9C3D2-BF5E-4C4A-8D6E-3F4A5B6C7D82}</ProjectGuid>
+    <ProjectName>NativeScript.Mason</ProjectName>
+    <RootNamespace>NativeScript.Mason</RootNamespace>
+    <TargetName>NativeScript.Mason</TargetName>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.17763.0</WindowsTargetPlatformMinVersion>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <!-- C++ projects carry no TargetFrameworkMoniker; ResolveNuGetPackageAssets
+         resolves package assets by this moniker from project.assets.json. -->
+    <NuGetTargetMoniker>native,Version=v0.0</NuGetTargetMoniker>
+    <!-- PRI expansion is app packaging; a bare component skips it (also absent
+         from VS Build Tools without the AppxPackage workload). -->
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <!-- Skip packaged-app output-group machinery (needs the AppxPackage task
+         assembly, which Build Tools alone doesn't carry). -->
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+    <IncludeCopyLocalFilesOutputGroup>false</IncludeCopyLocalFilesOutputGroup>
+    <GenerateLibraryLayout>false</GenerateLibraryLayout>
+    <AppContainerApplication>false</AppContainerApplication>
+    <Desktop>true</Desktop>
+  </PropertyGroup>
+
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <!-- VS 2022 Build Tools ship v143; the full host's v145 is its IDE choice. -->
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <!-- Same WinUI 3 dependency story as the full host: Mason.View needs the
+         Windows App SDK; the NativeScript app hosts it at runtime. -->
+    <UseWinUI>true</UseWinUI>
+    <UseLegacyMallocAlign>false</UseLegacyMallocAlign>
+    <UseDebugLibraries Condition="'$(Configuration)'=='Debug'">true</UseDebugLibraries>
+    <UseDebugLibraries Condition="'$(Configuration)'!='Debug'">false</UseDebugLibraries>
+    <WholeProgramOptimization Condition="'$(Configuration)'=='Release'">true</WholeProgramOptimization>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+  <!-- Core links the pinned mason-c archive (MasonCore.lib) from the shared
+       dist/native/mason-core desktop artifacts instead of rebuilding the Rust
+       crate. Repo root is five levels up (windows/Mason -> windows ->
+       src-native -> nativescript-mason-core -> packages -> repo). -->
+  <PropertyGroup Label="MasonCore">
+    <MasonRustTriple Condition="'$(Platform)'=='x64' or '$(Platform)'=='x86_64'">x86_64-pc-windows-msvc</MasonRustTriple>
+    <MasonRustTriple Condition="'$(Platform)'=='ARM64' or '$(Platform)'=='arm64'">aarch64-pc-windows-msvc</MasonRustTriple>
+    <MasonRepoRoot>$(MSBuildProjectDirectory)\..\..\..\..\..\</MasonRepoRoot>
+    <MasonCoreLibDir>$(MasonRepoRoot)dist\native\mason-core\desktop\$(MasonRustTriple)</MasonCoreLibDir>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <WarningLevel>Level4</WarningLevel>
+      <AdditionalOptions>%(AdditionalOptions) /bigobj</AdditionalOptions>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'!='Debug'">MultiThreaded</RuntimeLibrary>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory);$(MasonCoreLibDir)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalLibraryDirectories>$(MasonCoreLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>MasonCore.lib;d2d1.lib;windowscodecs.lib;shlwapi.lib;dxguid.lib;d3d11.lib;dxgi.lib;dwrite.lib;kernel32.lib;ntdll.lib;userenv.lib;ws2_32.lib;dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- Core host: layout/style/container/foreign-view subset only. Widget and
+       text-rendering sources (Text/Image/Button/Input/List/TextArea/TextNode/
+       Br/Li, DWriteText, TextAtlas, automation peers, hyphenation, vertical
+       text, form styling) stay in the full package. -->
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="include\mason_native.h" />
+    <ClInclude Include="Layout.h" />
+    <ClInclude Include="Style.h" />
+    <ClInclude Include="StyleKeys.h" />
+    <ClInclude Include="Node.h" />
+    <ClInclude Include="MeasureOutput.h" />
+    <ClInclude Include="Mason.h" />
+    <ClInclude Include="Invalidation.h" />
+    <ClInclude Include="LeafCommon.h" />
+    <ClInclude Include="PanelCore.h" />
+    <ClInclude Include="View.h" />
+    <ClInclude Include="Event.h" />
+    <ClInclude Include="BufferUtil.h" />
+    <ClInclude Include="CssImageResult.h" />
+    <ClInclude Include="ColorInterpolation.h" />
+    <ClInclude Include="Css.h" />
+    <ClInclude Include="Diagnostics.h" />
+    <ClInclude Include="RoundedColorBrush.h" />
+    <ClInclude Include="FixedLayer.h" />
+    <ClInclude Include="FixedSlot.h" />
+    <ClInclude Include="Positioning.h" />
+    <ClInclude Include="RoundedMask.h" />
+    <ClInclude Include="CssMask.h" />
+    <ClInclude Include="SvgPrepare.h" />
+    <ClInclude Include="SvgRewrite.h" />
+    <ClInclude Include="SvgSource.h" />
+    <ClInclude Include="RootScale.h" />
+    <ClInclude Include="ScrollHost.h" />
+    <ClInclude Include="BoxShadow.h" />
+    <ClInclude Include="BoxShape.h" />
+    <ClInclude Include="Decoration.h" />
+    <ClInclude Include="FilterEffects.h" />
+    <ClInclude Include="SpacingTrim.h" />
+    <ClInclude Include="VisualApply.h" />
+    <ClInclude Include="VisualState.h" />
+    <ClInclude Include="Events.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Layout.cpp" />
+    <ClCompile Include="Style.cpp" />
+    <ClCompile Include="Node.cpp" />
+    <ClCompile Include="MeasureOutput.cpp" />
+    <ClCompile Include="Mason.cpp" />
+    <ClCompile Include="View.cpp" />
+    <ClCompile Include="Event.cpp" />
+    <ClCompile Include="Css.cpp" />
+    <ClCompile Include="Diagnostics.cpp" />
+    <ClCompile Include="RoundedColorBrush.cpp" />
+    <ClCompile Include="FixedLayer.cpp" />
+    <ClCompile Include="FixedSlot.cpp" />
+    <ClCompile Include="Events.cpp" />
+    <ClCompile Include="exports.cpp" />
+    <ClCompile Include="$(IntDir)Generated Files\module.g.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="MasonEnums.idl" />
+    <Midl Include="Layout.idl" />
+    <Midl Include="Style.idl" />
+    <Midl Include="Node.idl" />
+    <Midl Include="Mason.idl" />
+    <Midl Include="Element.idl" />
+    <Midl Include="View.idl" />
+    <Midl Include="Event.idl" />
+    <Midl Include="CssImageResult.idl" />
+    <Midl Include="Css.idl" />
+    <Midl Include="Diagnostics.idl" />
+    <Midl Include="RoundedColorBrush.idl" />
+    <Midl Include="FixedLayer.idl" />
+    <Midl Include="FixedSlot.idl" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.CppWinRT" Version="2.0.240111.5" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.250205002" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

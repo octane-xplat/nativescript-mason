@@ -8,14 +8,23 @@ import { isMasonView_ } from './symbols';
 // Exercise the real platform dispatch with a live JS buffer; native geometry
 // and cache invalidation are covered by the Swift/Kotlin tests.
 let windowsSync: (...args: unknown[]) => void = () => {};
+let windowsWrite: (...args: unknown[]) => void = () => {};
 if (__WINDOWS__) {
-  (globalThis as any).NativeScript = { Mason: { Mason: { Instance: () => ({ SyncForeignStyle: (...a: unknown[]) => windowsSync(...a) }) } } };
+  (globalThis as any).NativeScript = { Mason: { Mason: { Instance: () => ({
+    SyncForeignStylePtr: (...a: unknown[]) => windowsSync(...a),
+    WriteForeignStyleValuesPtr: (...a: unknown[]) => windowsWrite(...a),
+    WriteStyleValues: (...a: unknown[]) => windowsWrite(...a),
+  }) } } };
 }
 
 function foreignStyle() {
   const sync = vi.fn();
-  const native = __ANDROID__ || __WINDOWS__ ? {} : { mason_syncStyleParts: sync };
-  if (__WINDOWS__) windowsSync = sync;
+  const write = vi.fn();
+  const native = __WINDOWS__ ? { __native_ptr: 0x1234 } : __ANDROID__ ? {} : { mason_syncStyleParts: sync };
+  if (__WINDOWS__) {
+    windowsSync = sync;
+    windowsWrite = write;
+  }
   if (__ANDROID__) {
     vi.stubGlobal('org', {
       nativescript: {
@@ -31,24 +40,28 @@ function foreignStyle() {
   const style = value as any;
   style.nativeView = native;
   style.view_ = { android: native, ios: native, windows: native };
-  return { style, sync, native };
+  return { style, sync, native, write };
 }
 
 function args(native: object, words: number[]) {
-  return __ANDROID__ || __WINDOWS__ ? [native, ...words] : words;
+  return __WINDOWS__ ? [(native as any).__native_ptr, ...words] : __ANDROID__ ? [native, ...words] : words;
 }
 
 afterEach(() => vi.unstubAllGlobals());
 
 describe('native style dispatch for ordinary views', () => {
   it('syncs initial sizes and later changes without Element methods', () => {
-    const { style, sync, native } = foreignStyle();
+    const { style, sync, native, write } = foreignStyle();
     style.batch(() => {
       style.width = 31;
       style.height = 36;
     });
     expect(sync).toHaveBeenCalledTimes(1);
     expect(sync).toHaveBeenLastCalledWith(...args(native, [1 << 20, 0, 0, 0]));
+    if (__WINDOWS__) {
+      expect(write).toHaveBeenLastCalledWith((native as any).__native_ptr, style.u8View);
+      expect(write.mock.invocationCallOrder[0]).toBeLessThan(sync.mock.invocationCallOrder[0]);
+    }
     style.batch(() => {
       style.width = 54;
       style.height = 43;
@@ -80,7 +93,7 @@ describe('native style dispatch for ordinary views', () => {
   });
 
   it.runIf(__WINDOWS__)('syncs Mason views through their own element, not the engine', () => {
-    const { style, sync, native } = foreignStyle();
+    const { style, sync, native, write } = foreignStyle();
     const directSync = vi.fn();
     (native as any).SyncStyle = directSync;
     style.view_[isMasonView_] = true;
@@ -88,6 +101,8 @@ describe('native style dispatch for ordinary views', () => {
     [style._d0, style._d1, style._d2, style._d3] = words;
     style._hasDirty = true;
     style._sendSync();
+    expect(write).toHaveBeenCalledExactlyOnceWith(native, style.u8View);
+    expect(write.mock.invocationCallOrder[0]).toBeLessThan(directSync.mock.invocationCallOrder[0]);
     expect(directSync).toHaveBeenCalledExactlyOnceWith(...words);
     expect(sync).not.toHaveBeenCalled();
   });

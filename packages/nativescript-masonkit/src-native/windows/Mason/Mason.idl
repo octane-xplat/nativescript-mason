@@ -42,6 +42,18 @@ namespace NativeScript.Mason
         Windows.Storage.Streams.IBuffer ForeignStyleValues(Microsoft.UI.Xaml.UIElement element);
         void SyncForeignStyle(Microsoft.UI.Xaml.UIElement element, Int32 d0, Int32 d1, Int32 d2, Int32 d3);
 
+        // Byte copies of the same style buffers. The DotNetBridge marshaller cannot hand a
+        // WinRT IBuffer back to JS with a COM instance, so element/foreign/node/pseudo style
+        // memory crosses as plain arrays: JS keeps a mirror, writes it, and pushes bytes back.
+        UInt8[] ReadStyleValues(IMasonElement element);
+        void WriteStyleValues(IMasonElement element, UInt8[] values);
+        UInt8[] ReadForeignStyleValues(Microsoft.UI.Xaml.UIElement element);
+        void WriteForeignStyleValues(Microsoft.UI.Xaml.UIElement element, UInt8[] values);
+        UInt8[] ReadNodeStyleValues(Node node);
+        void WriteNodeStyleValues(Node node, UInt8[] values);
+        UInt8[] ReadPseudoStyleValues(Node node, UInt32 flags);
+        void WritePseudoStyleValues(Node node, UInt32 flags, UInt8[] values);
+
         // Css.ReparentChild / Css.RemoveChild.
         void ReparentChild(Microsoft.UI.Xaml.Controls.Panel parent, Microsoft.UI.Xaml.UIElement child, Int32 index);
         void RemoveChild(Microsoft.UI.Xaml.Controls.Panel parent, Microsoft.UI.Xaml.UIElement child);
@@ -57,6 +69,22 @@ namespace NativeScript.Mason
         void RemoveEventListener(Microsoft.UI.Xaml.UIElement element, String type, Int64 id);
 
         Object ElementFromPoint(Microsoft.UI.Xaml.UIElement element, Single x, Single y);
+
+        // Pointer-based variants for foreign (non-Mason) elements: the bridge cannot cast a
+        // raw COM pointer to a projected runtimeclass arg, so JS passes the element's native
+        // pointer (Int64) and the component resolves the UIElement itself.
+        void ReparentChildPtr(Microsoft.UI.Xaml.Controls.Panel parent, Int64 childPtr, Int32 index);
+        void RemoveChildPtr(Microsoft.UI.Xaml.Controls.Panel parent, Int64 childPtr);
+        UInt8[] ReadForeignStyleValuesPtr(Int64 elementPtr);
+        void WriteForeignStyleValuesPtr(Int64 elementPtr, UInt8[] values);
+        void SyncForeignStylePtr(Int64 elementPtr, Int32 d0, Int32 d1, Int32 d2, Int32 d3);
+        void SetPercentWidthPtr(Int64 elementPtr, Single fraction);
+        void SetPercentHeightPtr(Int64 elementPtr, Single fraction);
+        Int64 AddEventListenerPtr(Int64 elementPtr, String type, EventListener listener);
+        void RemoveEventListenerPtr(Int64 elementPtr, String type, Int64 id);
+        Object ElementFromPointPtr(Int64 elementPtr, Single x, Single y);
+        // Dumps the element's mason subtree (computed layout) to the log — Node-style evidence.
+        void PrintElementTree(IMasonElement element);
 
         // Scroll offsets and sizes, in DIPs. Size reads run a pending layout pass first.
         Double ScrollLeft(Microsoft.UI.Xaml.UIElement element);

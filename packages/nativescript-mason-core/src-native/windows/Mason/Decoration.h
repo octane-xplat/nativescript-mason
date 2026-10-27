@@ -1,0 +1,126 @@
+#pragma once
+
+// Shared "decoration" composition layer: one ContainerVisual ("mason-deco") in the element's single
+// child-visual slot, holding a tagged child layer per feature ("mason-shadow", "mason-border") so
+// border and box-shadow can coexist.
+
+#include <algorithm>
+#include <unordered_map>
+#include <vector>
+#include <winrt/Microsoft.UI.Xaml.h>
+#include <winrt/Microsoft.UI.Xaml.Hosting.h>
+#include <winrt/Microsoft.UI.Composition.h>
+#include <winrt/Microsoft.UI.Xaml.Media.h>
+
+namespace mason_deco
+{
+    namespace mux = winrt::Microsoft::UI::Xaml;
+    namespace mucomp = winrt::Microsoft::UI::Composition;
+    namespace hosting = winrt::Microsoft::UI::Xaml::Hosting;
+
+    // The thread's compositor. Asking an element for its visual instead makes XAML give that element
+    // a hand-off visual of its own. Never released: XAML objects must outlive the thread's XAML.
+    inline mucomp::Compositor ThreadCompositor()
+    {
+        struct Holder { mucomp::Compositor compositor{ nullptr }; };
+        thread_local auto* holder = new Holder{};
+        if (!holder->compositor) holder->compositor = winrt::Microsoft::UI::Xaml::Media::CompositionTarget::GetCompositorForCurrentThread();
+        return holder->compositor;
+    }
+
+    inline mucomp::Compositor CompositorFor(mux::UIElement const&)
+    {
+        return ThreadCompositor();
+    }
+
+    // The decoration root of each element given one, since asking XAML for a child visual costs
+    // ~40 µs. The weak element tells a reused address from the element the root was made for.
+    struct Decorated
+    {
+        winrt::weak_ref<mux::UIElement> element;
+        mucomp::ContainerVisual root{ nullptr };
+    };
+
+    inline std::unordered_map<void*, Decorated>& DecoratedRoots()
+    {
+        thread_local auto* roots = new std::unordered_map<void*, Decorated>();
+        return *roots;
+    }
+
+    // Get the existing decoration root without creating one.
+    inline mucomp::ContainerVisual ExistingRoot(mux::UIElement const& element)
+    {
+        if (!element) return nullptr;
+        auto& roots = DecoratedRoots();
+        auto it = roots.find(winrt::get_abi(element.as<winrt::Windows::Foundation::IUnknown>()));
+        if (it == roots.end()) return nullptr;
+        if (it->second.element.get() == element) return it->second.root;
+        roots.erase(it);
+        return nullptr;
+    }
+
+    // Return the element's decoration root ContainerVisual, creating + installing it if absent.
+    inline mucomp::ContainerVisual EnsureRoot(mux::UIElement const& element)
+    {
+        if (!element) return nullptr;
+        if (auto existing = ExistingRoot(element)) return existing;
+        auto comp = CompositorFor(element);
+        if (!comp) return nullptr;
+        auto root = comp.CreateContainerVisual();
+        root.Comment(L"mason-deco");
+        hosting::ElementCompositionPreview::SetElementChildVisual(element, root);
+
+        auto& roots = DecoratedRoots();
+        thread_local size_t sweepAt = 1024;
+        if (roots.size() >= sweepAt)
+        {
+            std::erase_if(roots, [](auto const& entry) { return !entry.second.element.get(); });
+            sweepAt = (std::max)(size_t{ 1024 }, roots.size() * 2);
+        }
+        roots[winrt::get_abi(element.as<winrt::Windows::Foundation::IUnknown>())] = { winrt::make_weak(element), root };
+        return root;
+    }
+
+    // A layer drawing the element's content (its text, or an image's SVG) rather than its box.
+    inline bool IsContentLayer(winrt::hstring const& tag) { return tag == L"mason-text" || tag == L"mason-img"; }
+
+    // Replace (or, when layer == nullptr, remove) the tagged layer inside the decoration root.
+    inline void SetLayer(mux::UIElement const& element, winrt::hstring const& tag, mucomp::Visual const& layer)
+    {
+        mucomp::ContainerVisual root{ nullptr };
+        if (layer)
+        {
+            root = EnsureRoot(element);
+        }
+        else
+        {
+            root = ExistingRoot(element);
+            if (!root) return; // nothing to remove
+        }
+        if (!root) return;
+
+        auto kids = root.Children();
+        std::vector<mucomp::Visual> stale;
+        for (auto&& child : kids)
+        {
+            if (child.Comment() == tag) stale.push_back(child);
+        }
+        for (auto&& c : stale) kids.Remove(c);
+
+        if (layer)
+        {
+            layer.Comment(tag);
+            // Content paints over the box's decorations.
+            mucomp::Visual content{ nullptr };
+            if (!IsContentLayer(tag))
+            {
+                for (auto&& child : kids)
+                {
+                    if (IsContentLayer(child.Comment())) content = child;
+                }
+            }
+            if (content) kids.InsertBelow(layer, content);
+            else kids.InsertAtTop(layer);
+        }
+    }
+}

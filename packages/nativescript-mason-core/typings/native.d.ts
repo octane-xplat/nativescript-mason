@@ -3,3 +3,4 @@
 /// <reference path="./objc!MasonCore.d.ts" />
 /// <reference path="./objc!FontManager.d.ts" />
 /// <reference path="./objc!SDWebImage.d.ts" />
+/// <reference path="./windows.d.ts" />

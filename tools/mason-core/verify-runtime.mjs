@@ -56,9 +56,10 @@ try {
   const archive = resolve(artifacts, archives[0]);
   const entries = run('tar', ['-tzf', archive], temporary).trim().split('\n').map((name) => name.replace(/^package\//, ''));
   const modules = [
-    'css-environment', 'native-environment.ios', 'native-environment.android',
-    ...relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.')).map((name) => name.replace(/\.ts$/, '')),
-    'common', 'index.ios', 'index.android', 'tree/index.ios', 'tree/index.android',
+    'css-environment', 'native-environment.ios', 'native-environment.android', 'native-environment.windows',
+    'utils/index.windows', 'view/index.windows', 'scroll/index.windows',
+    ...relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts')).map((name) => name.replace(/\.ts$/, '')),
+    'common', 'index.ios', 'index.android', 'index.windows', 'tree/index.ios', 'tree/index.android', 'tree/index.windows',
   ];
   const expected = [
     'LICENSE', 'README.md', 'ios-host-README.md', 'native-types-README.md', 'plugin-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
@@ -88,16 +89,17 @@ try {
   assert.equal(manifest.masonCorePrototype.nativeHosts, false);
   assert.deepEqual(manifest.dependencies, { '@nativescript/font-manager': '1.0.20' });
   assert.deepEqual(Object.keys(manifest.peerDependencies), ['@nativescript/core']);
-  for (const platform of ['ios', 'android']) {
+  for (const platform of ['ios', 'android', 'windows']) {
     const files = graph(packageRoot, platform);
     console.log(`Packed ${platform} entry closes over ${files.size} local JS modules and NativeScript core only.`);
   }
-  // Compare both emissions under the prototype's iOS/Android platform constant.
+  // Compare shared iOS/Android emissions while retaining all platform constants.
   // Apply the explicit mobile-only style and foreign-release adaptations;
   // every other shared difference still fails, including the property seam.
   for (const name of relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts') && !name.includes('.windows.'))) {
     const emitted = name.replace(/\.ts$/, '.js');
-    const clean = (text) => text.replace(/\n?\/\/# sourceMappingURL=.*\s*$/, '').trimEnd();
+    const clean = (text) => ts.createPrinter().printFile(ts.createSourceFile(emitted,
+      text.replace(/\n?\/\/# sourceMappingURL=.*\s*$/, ''), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS)).trimEnd();
     let full = readFileSync(resolve(workspaceRoot, 'dist/packages/nativescript-masonkit', emitted), 'utf8');
     if (name === 'style.ts') full = coreStyleSource(full);
     if (name === 'properties.ts') full = coreEnvironmentPropertiesSource(full);

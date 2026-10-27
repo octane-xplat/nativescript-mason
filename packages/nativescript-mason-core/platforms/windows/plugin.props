@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <!-- The core Windows host is distributed through the package's own
+       platforms/windows/{x64,arm64} binaries only; no NuGet fallback and no
+       FontManager dependency (widget text rendering stays in full MasonKit). -->
+</Project>

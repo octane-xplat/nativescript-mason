@@ -57,9 +57,21 @@ try {
     'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/android/MasonCore.aar', 'platforms/android/include.gradle',
+    'platforms/windows/plugin.props', 'platforms/windows/plugin.targets',
+    'platforms/windows/x64/NativeScript.Mason.dll',
+    'platforms/windows/x64/NativeScript.Mason.winmd',
   ]) assert.ok(existsSync(resolve(root, name)), `Missing native plugin input: ${name}`);
+  assert.equal(manifest.nativescript.platforms.windows, '0.1.0');
   const javascript = inventory.filter(({ name }) => name.endsWith('.js'));
-  assert.equal(javascript.length, 34);
+  const windowsRuntime = [
+    'index.windows.js', 'mask.windows.js', 'native-environment.windows.js',
+    'panel-helpers.windows.js', 'scroll/index.windows.js', 'svg-path.windows.js',
+    'tree/index.windows.js', 'utils/index.windows.js', 'view/index.windows.js',
+  ];
+  assert.equal(javascript.length, 34 + windowsRuntime.length);
+  for (const name of windowsRuntime) {
+    assert.ok(javascript.some((entry) => entry.name === name), `Missing Windows runtime: ${name}`);
+  }
   for (const { name } of javascript) {
     const source = readFileSync(resolve(root, name), 'utf8');
     for (const dependency of ts.preProcessFile(source).importedFiles) {

@@ -1680,10 +1680,38 @@ function appleHasWritableStyleValues(nativeView: any): boolean {
   return !!appleWritableStyleValues;
 }
 
+// WinRT IBuffer results lose their COM instance through the DotNetBridge
+// marshalling, so element style memory crosses as byte copies: JS keeps a
+// mirror ArrayBuffer and pushes it back before each SyncStyle notify.
+function windowsNativePtr(v: any): any {
+  if (!v) return null;
+  // BigInt args do not marshal to Int64 through the bridge; a pointer under 2^53 is exact as a Number.
+  if (v.__native_ptr !== undefined) return Number(v.__native_ptr);
+  const key = (globalThis as any).NSWinRT?.interop?.pointerKey?.(v);
+  if (key) {
+    const ptr = Number(key);
+    if (ptr) {
+      try { v.__native_ptr = ptr; } catch { /* frozen proxy */ }
+      return ptr;
+    }
+  }
+  return null;
+}
 function windowsStyleValues(nativeView: any, foreign: boolean) {
-  if (foreign && nativeView) return masonEngine().ForeignStyleValues(nativeView);
-  if (nativeView?.Node) return masonEngine().StyleValues(nativeView);
-  return NativeScript.Mason.Mason.Instance().CreateNode(false).Style.Values;
+  if (foreign && nativeView) {
+    const ptr = windowsNativePtr(nativeView);
+    return ptr == null ? null : masonEngine().ReadForeignStyleValuesPtr(ptr);
+  }
+  if (nativeView?.Node) return masonEngine().ReadStyleValues(nativeView);
+  return masonEngine().ReadNodeStyleValues(NativeScript.Mason.Mason.Instance().CreateNode(false));
+}
+function windowsWriteStyleValues(nativeView: any, foreign: boolean, bytes: Uint8Array) {
+  if (foreign && nativeView) {
+    const ptr = windowsNativePtr(nativeView);
+    if (ptr != null) masonEngine().WriteForeignStyleValuesPtr(ptr, bytes);
+    return;
+  }
+  if (nativeView?.Node) masonEngine().WriteStyleValues(nativeView, bytes);
 }
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -1884,7 +1912,7 @@ export class Style {
       // projects it as a writable ArrayBuffer, so the same StyleKeys-offset writes used on
       // iOS/Android land straight in the node's style.
       //@ts-ignore
-      this.setBuffer(NSWinRT.interop.arrayBufferFromBuffer(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_])) as ArrayBuffer);
+      this.setBuffer(new Uint8Array(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_])).buffer);
     }
   }
 
@@ -1948,6 +1976,14 @@ export class Style {
       const pseudoBuffer = node.preparePseudoBuffer(mask);
 
       const buffer = interop.bufferFromData(pseudoBuffer);
+      ret.style_view = new DataView(buffer);
+      ret.i8View = new Int8Array(buffer);
+      ret.u8View = new Uint8Array(buffer);
+      ret.clearPseudoSetMask();
+    } else if (__WINDOWS__) {
+      const node = (nativeView as any)?.Node ?? masonEngine().CreateNode(false);
+      ret.nativeNode = node;
+      const buffer = new Uint8Array(masonEngine().ReadPseudoStyleValues(node, mask)).buffer;
       ret.style_view = new DataView(buffer);
       ret.i8View = new Int8Array(buffer);
       ret.u8View = new Uint8Array(buffer);
@@ -2478,11 +2514,20 @@ export class Style {
       const d2 = all ? -1 : this._d2;
       const d3 = all ? -1 : this._d3;
       if (!this.view[isMasonView_]) {
-        masonEngine().SyncForeignStyle(this.nativeView, d0, d1, d2, d3);
+        const ptr = windowsNativePtr(this.nativeView);
+        if (ptr != null) {
+          masonEngine().WriteForeignStyleValuesPtr(ptr, this.u8View);
+          masonEngine().SyncForeignStylePtr(ptr, d0, d1, d2, d3);
+        }
         return;
       }
       // @ts-ignore
       const view = (this.view as any)?.windows ?? this.view._view;
+      if (this._pseudo) {
+        masonEngine().WritePseudoStyleValues(this.nativeNode, this._pseudo, this.u8View);
+      } else {
+        masonEngine().WriteStyleValues(view, this.u8View);
+      }
       (view as NativeScript.Mason.IMasonElement).SyncStyle(d0, d1, d2, d3);
       const text = StateKeys.WINDOWS_TEXT;
       if ((d0 & text.w0) | (d1 & text.w1) | (d2 & text.w2) | (d3 & text.w3)) {
@@ -2499,7 +2544,7 @@ export class Style {
   copyTextStyleTo(text: NativeScript.Mason.Text, d0 = -1, d1 = -1, d2 = -1, d3 = -1, block = false) {
     if (!__WINDOWS__ || !this.u8View) return;
     //@ts-ignore
-    const target = new Uint8Array(NSWinRT.interop.arrayBufferFromBuffer(masonEngine().StyleValues(text)) as ArrayBuffer);
+    const target = new Uint8Array(masonEngine().ReadStyleValues(text));
     target.set(this.u8View.subarray(StyleKeys.FONT_COLOR, StyleKeys.BACKGROUND_COLOR), StyleKeys.FONT_COLOR);
     target.set(this.u8View.subarray(StyleKeys.DECORATION_LINE, StyleKeys.PSEUDO_SET_MASK_LOW), StyleKeys.DECORATION_LINE);
     target.set(this.u8View.subarray(StyleKeys.HYPHENS, StyleKeys.LINE_CLAMP_STATE + 1), StyleKeys.HYPHENS);
@@ -2507,6 +2552,7 @@ export class Style {
       target[StyleKeys.DISPLAY] = 3;
       target[StyleKeys.DISPLAY_MODE] = DisplayMode.None;
     }
+    masonEngine().WriteStyleValues(text, target);
     (text as unknown as NativeScript.Mason.IMasonElement).SyncStyle(d0, d1, d2, d3);
   }
 
