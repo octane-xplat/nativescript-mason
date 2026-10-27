@@ -50,7 +50,9 @@ throwing is not a pass. `input-actions.json` records the session, DPI scale,
 physical screen coordinates from the owning window UI Automation provider,
 and user32 click/wheel injection. It reads the ScrollPattern only to identify
 the viewport; it never invokes that pattern to scroll. Physical cursor APIs
-avoid scaling coordinates twice on a 200% display. `installation.json` compares
+avoid scaling coordinates twice on a 200% display. The standalone managed
+peer bounds are saved separately as `peerViewport`; they may omit the desktop
+window origin and must not be used directly as physical screen coordinates. `installation.json` compares
 the installed bundle, vendor bundle, engine DLL and bridge DLL with the signed
 MSIX. `runtime.log` and `runtime.err` capture startup diagnostics before the
 first assertion. `interactive.log` and

@@ -25,7 +25,7 @@ public static class Result
         return new[] { position.X, position.Y, element.ActualWidth, element.ActualHeight };
     }
 
-    public static double[] ScreenBox(long pointer)
+    public static double[] PeerBounds(long pointer)
     {
         var element = (FrameworkElement)Element(pointer);
         var peer = FrameworkElementAutomationPeer.CreatePeerForElement(element)

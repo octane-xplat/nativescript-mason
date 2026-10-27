@@ -113,9 +113,9 @@ Application.run({ create() {
       await pause(250); // Let the native viewport finish its first arrange.
       const before = box(row);
       result.measurements.scroll = { before, viewport: box(sc), extent: Number(sc.nativeViewProtected.ScrollableHeight), offsetBefore: Number(sc.nativeViewProtected.VerticalOffset) };
-      const screen = NativeScript.MasonQualification.Result.ScreenBox(nativeArg(sc.nativeViewProtected));
-      result.measurements.scroll.screenViewport = { x: Number(screen[0]), y: Number(screen[1]), width: Number(screen[2]), height: Number(screen[3]), scale: Number(screen[4]) };
-      assert('native viewport screen bounds', Number(screen[2]) > 0 && Number(screen[3]) > 0, result.measurements.scroll.screenViewport);
+      const screen = NativeScript.MasonQualification.Result.PeerBounds(nativeArg(sc.nativeViewProtected));
+      result.measurements.scroll.peerViewport = { x: Number(screen[0]), y: Number(screen[1]), width: Number(screen[2]), height: Number(screen[3]), scale: Number(screen[4]) };
+      assert('native viewport peer bounds', Number(screen[2]) > 0 && Number(screen[3]) > 0, result.measurements.scroll.peerViewport);
       // The runner must inject OS click + wheel in the owning interactive session.
       // No ChangeView/ScrollTo call is permitted in this scenario.
       result.phase = 'awaiting-os-input'; save();
