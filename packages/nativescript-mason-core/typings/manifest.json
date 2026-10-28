@@ -1,6 +1,6 @@
 {
   "androidHostSha256": "53c2a456a72f634a58f1c33c4e431da5af17f089942a7fd809ef704cbb5cf8b8",
-  "iosHostSha256": "98de2a3d7e4c66296c898f810557e0c6170ba9758b4bc85a81564e3ab04fe0a3",
+  "iosHostSha256": "f211788b92362ab1eb608ba0b2c8b55b960dc3b9f89869bbacba26c850827534",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
@@ -41,5 +41,23 @@
       "sha256": "e7c895798d8155e444149d2f2818e86261a29ff753f0f0389b3345557f71898a"
     }
   ],
-  "qualification": "Generated from independent core artifacts. NativeScript SDK ambient platform types and skipLibCheck remain required; wrapper compilation and consumer verification are separate checks."
+  "qualification": "Generated from independent core artifacts. NativeScript SDK ambient platform types and skipLibCheck remain required; wrapper compilation and consumer verification are separate checks.",
+  "iosApiRevalidation": {
+    "previousIosHostSha256": "98de2a3d7e4c66296c898f810557e0c6170ba9758b4bc85a81564e3ab04fe0a3",
+    "method": "Byte-identical exported headers against beta.5; retained generated declarations",
+    "headers": [
+      {
+        "name": "Mason.h",
+        "sha256": "0dc38d513e0a73369836b4478ec254a4d3833c3dbb2803439cc0cd5f66818cbd"
+      },
+      {
+        "name": "MasonCore-Swift.h",
+        "sha256": "81352d7330ec07797799f54d1da0ba010bc9a5374079152e8082196748bd9422"
+      },
+      {
+        "name": "mason_native.h",
+        "sha256": "ef117af0d549542f22a50d90484e05b62eb9c7aca00b0aaeb9a6fe9723ca79f7"
+      }
+    ]
+  }
 }
