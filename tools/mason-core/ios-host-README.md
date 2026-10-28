@@ -17,7 +17,7 @@ The target builds the independent Rust engine, generates the core Swift project
 under `tmp/mason-core-ios-host`, and exports
 `dist/native/mason-core/ios-host/release`. Verification copies the artifact to an
 isolated temporary directory, links Swift and Objective-C consumers, verifies
-all 99 declared C functions are exported, and checks native symbols and headers
+all 103 declared C functions are exported, and checks native symbols and headers
 for excluded classes.
 
 Build and verify the unsigned arm64 device framework separately:
@@ -29,7 +29,7 @@ pnpm exec nx run nativescript-mason-core:verify.host.ios.device.artifact
 This uses `iphoneos`, the device engine archive and separate staging/derived
 folders, exporting `dist/native/mason-core/ios-host/device/release`. The device
 framework and isolated Swift/Objective-C clients compile and link; its Mach-O
-platform and all 99 C exports are verified. This is build evidence only. It does
+platform and all 103 C exports are verified. This is build evidence only. It does
 not qualify device runtime behavior.
 Both builds require a native-build resource reservation. Assemble the verified
 slices after both builds:
@@ -81,13 +81,16 @@ pnpm exec nx run nativescript-mason-core:test.host.ios
 
 The runner boots only that dedicated device and shuts it down afterward. It
 runs the 11 existing `CoreLayoutInteropTests` unchanged apart from their module
-import, plus four core regressions. It checks the result bundle contains all
-15 passing tests, with no skips. Results stay under `tmp/mason-core-ios-tests`.
+import, plus nine core regressions. It checks the result bundle contains all
+20 passing tests, with no skips. Results stay under `tmp/mason-core-ios-tests`.
 The tests exercise UIKit directly; they do not capture screenshots.
 
 Covered behavior: grid placement, foreign label intrinsic-size invalidation,
 percentage sizing and reset, programmatic scroll clamping, nested roots during
-an outer compute, bounded root measurement, and view/node/listener release.
+an outer compute, bounded root measurement, deferred intrinsic queries during
+host resize, and view/node/listener release. Intrinsic queries retain their
+measured results while restoring the bounds assigned by the host, including
+when a new host size arrives before queued measurements settle.
 Host-driven fixtures give roots explicit bounds and mark their applied compute
 before programmatic seeking, matching the host lifecycle.
 
