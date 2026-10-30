@@ -104,6 +104,7 @@
     <ClInclude Include="Mason.h" />
     <ClInclude Include="Invalidation.h" />
     <ClInclude Include="LeafCommon.h" />
+    <ClInclude Include="TextIntrinsic.h" />
     <ClInclude Include="PanelCore.h" />
     <ClInclude Include="View.h" />
     <ClInclude Include="Text.h" />

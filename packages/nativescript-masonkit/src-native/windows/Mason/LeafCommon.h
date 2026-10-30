@@ -52,7 +52,8 @@ namespace mason_leaf
     }
 
     // The known size, else the available space. XAML clamps DesiredSize to the constraint, so the
-    // engine's -1 (min-content) and -2 (max-content) are measured unconstrained instead.
+    // engine's negative intrinsic constraints are unconstrained here. Wrapping text
+    // needs its own min-content measurement (TextIntrinsic.h).
     inline float XamlConstraint(float known, float available)
     {
         if (!std::isnan(known)) return known;

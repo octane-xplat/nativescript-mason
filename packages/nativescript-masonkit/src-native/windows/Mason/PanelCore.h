@@ -21,6 +21,7 @@
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 #include "Invalidation.h"
 #include "LeafCommon.h"
+#include "TextIntrinsic.h"
 #include "Node.h"
 #include "Positioning.h"
 #include "ScrollHost.h"
@@ -85,9 +86,51 @@ namespace mason_panel
         auto m = fe.Margin();
         const float mx = static_cast<float>(m.Left + m.Right);
         const float my = static_cast<float>(m.Top + m.Bottom);
-        child.Measure(winrt::Windows::Foundation::Size{ mason_leaf::XamlConstraint(kw, aw) + mx, mason_leaf::XamlConstraint(kh, ah) + my });
+        float width = mason_leaf::XamlConstraint(kw, aw);
+        bool fitContent = false;
+        if (std::isnan(kw) && (aw == -1.0f || (std::isfinite(aw) && aw >= 0.0f)))
+        {
+            // A wrapping text's automatic flex minimum is its widest unbreakable
+            // segment, not its full line. NativeScript Label wraps its TextBlock
+            // in a Border; include that wrapper's horizontal decoration as well.
+            auto text = child.try_as<muxc::TextBlock>();
+            float inset = 0.0f;
+            if (!text)
+            {
+                if (auto border = child.try_as<muxc::Border>())
+                {
+                    text = border.Child().try_as<muxc::TextBlock>();
+                    if (text)
+                    {
+                        auto padding = border.Padding();
+                        auto stroke = border.BorderThickness();
+                        auto margin = text.Margin();
+                        inset = static_cast<float>(padding.Left + padding.Right + stroke.Left + stroke.Right + margin.Left + margin.Right);
+                    }
+                }
+            }
+            if (text && text.TextWrapping() != mux::TextWrapping::NoWrap)
+            {
+                if (aw == -1.0f)
+                {
+                    auto padding = text.Padding();
+                    width = mason_xaml_text::MinContentWidth(text) + inset + static_cast<float>(padding.Left + padding.Right);
+                }
+                else
+                {
+                    // XAML's wrapped DesiredSize is only the longest rendered
+                    // line. CSS fit-content keeps the offered width when the
+                    // unwrapped content exceeds it, even if every line is shorter.
+                    child.Measure(winrt::Windows::Foundation::Size{
+                        std::numeric_limits<float>::infinity(), mason_leaf::XamlConstraint(kh, ah) + my });
+                    width = (std::min)(aw, (std::max)(0.0f, child.DesiredSize().Width - mx));
+                    fitContent = true;
+                }
+            }
+        }
+        child.Measure(winrt::Windows::Foundation::Size{ width + mx, mason_leaf::XamlConstraint(kh, ah) + my });
         auto d = child.DesiredSize();
-        return mason_leaf::PackMeasure((std::max)(0.0f, d.Width - mx), (std::max)(0.0f, d.Height - my));
+        return mason_leaf::PackMeasure(fitContent ? width : (std::max)(0.0f, d.Width - mx), (std::max)(0.0f, d.Height - my));
     }
 
     inline bool HasMasonAncestor(mux::UIElement const& element)
@@ -176,6 +219,42 @@ namespace mason_panel
         return visible;
     }
 
+    inline void MeasureForeignFrame(mux::UIElement const& child)
+    {
+        auto leaf = child.GetValue(LeafProperty()).try_as<nsm::Node>();
+        if (!leaf) return;
+        auto size = winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(leaf)->LayoutSize();
+        if (auto fe = child.try_as<mux::FrameworkElement>())
+        {
+            auto margin = fe.Margin();
+            size.Width = (std::max)(0.0f, size.Width + static_cast<float>(margin.Left + margin.Right));
+            size.Height = (std::max)(0.0f, size.Height + static_cast<float>(margin.Top + margin.Bottom));
+        }
+        child.Measure(size);
+    }
+
+    // Intrinsic sizing can leave a foreign child measured at a probe width.
+    // Restore the final border-box constraint before returning from the root
+    // measure pass; doing this during arrange schedules another layout pass.
+    inline void MeasureForeignFrames(muxc::UIElementCollection const& children)
+    {
+        for (auto const& child : children)
+        {
+            if (child.Visibility() == mux::Visibility::Collapsed) continue;
+            if (child.try_as<nsm::IMasonElement>())
+            {
+                if (auto panel = child.try_as<muxc::Panel>()) MeasureForeignFrames(panel.Children());
+                continue;
+            }
+            if (auto content = ScrollContentOf(child))
+            {
+                if (auto panel = content.try_as<muxc::Panel>()) MeasureForeignFrames(panel.Children());
+                continue;
+            }
+            MeasureForeignFrame(child);
+        }
+    }
+
     inline winrt::Windows::Foundation::Size Measure(
         nsm::Mason const& engine, nsm::Node const& node, mux::UIElement const& self,
         muxc::UIElementCollection const& children, winrt::Windows::Foundation::Size const& available)
@@ -190,7 +269,16 @@ namespace mason_panel
             // A scroller is measured at its frame, here and in Arrange: XAML clips an element arranged
             // smaller than it asked for, and a viewport that changes in arrange re-measures it mid-pass.
             auto content = ScrollContentOf(c);
-            c.Measure(content ? winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(content.Node())->LayoutSize() : available);
+            if (content)
+                c.Measure(winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(content.Node())->LayoutSize());
+            else if (c.try_as<nsm::IMasonElement>())
+                c.Measure(available);
+            else
+                // A nested XAML measure can run after the root compute. Do not
+                // replace the foreign child's final measurement with the whole
+                // container's available width: Arrange then honors that larger
+                // DesiredSize even though Mason assigned a smaller frame.
+                MeasureForeignFrame(c);
         }
 
         if (isRoot)
@@ -203,6 +291,7 @@ namespace mason_panel
                 wf ? nsm::AvailableSpaceType::Definite : nsm::AvailableSpaceType::MaxContent, available.Width,
                 hf ? nsm::AvailableSpaceType::Definite : nsm::AvailableSpaceType::MaxContent, available.Height);
             mason_leaf::FlushAfterCompute();
+            MeasureForeignFrames(children);
             if (layer) mason_position::MeasureLayer(layer, available);
             return winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(node)->LayoutSize();
         }

@@ -30,6 +30,7 @@
 #include "BufferUtil.h"
 #include "TextAtlas.h"
 #include "PanelCore.h"
+#include "TextIntrinsic.h"
 #include "TextAutomationPeer.h"
 #include "Hyphenation.h"
 #include "Css.h"
@@ -227,67 +228,9 @@ namespace
         return &holder->block;
     }
 
-    // CSS min-content is the widest unbreakable segment. XAML clamps DesiredSize to the offered width,
-    // so the segments go on their own lines of a detached, unwrapped probe, measured once.
     float LaidOutMinContentWidth(muxc::TextBlock const& text)
     {
-        muxc::TextBlock* probe = ProbeBlock();
-        probe->FontFamily(text.FontFamily());
-        probe->FontSize(text.FontSize());
-        probe->FontWeight(text.FontWeight());
-        probe->FontStyle(text.FontStyle());
-        probe->CharacterSpacing(text.CharacterSpacing());
-        auto pieces = probe->Inlines();
-        pieces.Clear();
-
-        const float inf = std::numeric_limits<float>::infinity();
-        bool lineHasText = false;
-        auto flush = [&]()
-        {
-            if (!lineHasText) return;
-            pieces.Append(muxd::LineBreak());
-            lineHasText = false;
-        };
-
-        for (auto const& inl : text.Inlines())
-        {
-            auto run = inl.try_as<muxd::Run>();
-            if (!run)
-            {
-                flush();
-                continue;
-            }
-            const winrt::hstring content = run.Text();
-            const std::wstring_view chars{ content };
-            size_t start = 0;
-            for (size_t i = 0; i <= chars.size(); ++i)
-            {
-                const bool end = i == chars.size();
-                const bool space = !end && IsBreakOpportunity(chars[i]);
-                const bool hyphen = !end && chars[i] == L'-';
-                if (!end && !space && !hyphen) continue;
-                const size_t stop = hyphen ? i + 1 : i;
-                if (stop > start)
-                {
-                    muxd::Run piece;
-                    piece.Text(winrt::hstring{ chars.substr(start, stop - start) });
-                    piece.FontFamily(run.FontFamily());
-                    piece.FontSize(run.FontSize());
-                    piece.FontWeight(run.FontWeight());
-                    piece.FontStyle(run.FontStyle());
-                    piece.CharacterSpacing(run.CharacterSpacing());
-                    pieces.Append(piece);
-                    lineHasText = true;
-                }
-                if (!end) flush();
-                start = i + 1;
-            }
-        }
-        if (pieces.Size() == 0) return 0.0f;
-        probe->Measure(Size{ inf, inf });
-        const float widest = probe->DesiredSize().Width;
-        pieces.Clear();
-        return widest;
+        return mason_xaml_text::MinContentWidth(text);
     }
 
     // Words repeat across texts and updates (labels, counters), so segment widths are kept per run
