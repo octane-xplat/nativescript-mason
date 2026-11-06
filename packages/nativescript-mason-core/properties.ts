@@ -2634,6 +2634,8 @@ const TextDecorationParse = makeParser<string>(makeValidator('none', 'underline'
 // Windows keeps core's handling alone: its fontInternal setNative resolves app fonts.
 if (!__WINDOWS__) {
   coreFontFamilyProperty.overrideHandlers({
+    name: coreFontFamilyProperty.name,
+    cssName: coreFontFamilyProperty.cssLocalName,
     valueChanged(target, oldValue, newValue) {
       // Core's own update, restated — overrideHandlers replaces the handler
       // wholesale, so the fontInternal bookkeeping cannot just be delegated to.

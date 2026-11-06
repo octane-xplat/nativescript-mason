@@ -209,10 +209,11 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
     visit(member);
     if (delegatesToSetter) delegates.push(setterName(member));
   }
-  const before = '          set.call(this, value);';
+  const before = '        try {\n          set.call(this, value);';
   if (output.split(before).length !== 2) throw new Error('Review core environment style adapter.');
   output = output.replace(before,
-    `          const resolved = environmentDelegates.has(name) ? value :
+    `        try {
+          const resolved = environmentDelegates.has(name) ? value :
             environmentStyleValue(this, name, value);
           set.call(this, resolved);`);
   output = output.replace('  const proto = Style.prototype',
