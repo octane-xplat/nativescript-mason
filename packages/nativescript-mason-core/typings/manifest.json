@@ -37,12 +37,12 @@
       "sha256": "d5f0d4dc094e8a7ef58b22657109855133e9292aa5cdfe83297899b1d4e4e5e5"
     },
     {
-      "name": "native.d.ts",
-      "sha256": "e7c895798d8155e444149d2f2818e86261a29ff753f0f0389b3345557f71898a"
-    },
-    {
       "name": "windows.d.ts",
       "sha256": "e90c952e28a2e95a83523d1bdf6367aecdacade78aa339fa609037fcd526d300"
+    },
+    {
+      "name": "native.d.ts",
+      "sha256": "66c80360575fed8dcc1213357beda93baee25bddbe8637905b187a08360e078b"
     }
   ],
   "qualification": "Generated from independent core artifacts. NativeScript SDK ambient platform types and skipLibCheck remain required; wrapper compilation and consumer verification are separate checks."

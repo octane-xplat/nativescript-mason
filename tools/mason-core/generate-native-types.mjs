@@ -106,6 +106,7 @@ for (const name of ['MasonCore', 'FontManager', 'SDWebImage']) {
     name === 'MasonCore' ? ['NSCMason', 'MasonUIView', 'MasonNode', 'MasonStyle'] : [],
     name === 'MasonCore' ? ['HTMLParser', 'MasonText', 'MasonTextNode', 'MasonDocument', 'MasonInput', 'MasonTextArea'] : []);
 }
+files.push({ name: 'windows.d.ts', sha256: hash(resolve(output, 'windows.d.ts')) });
 writeFileSync(resolve(output, 'native.d.ts'), files.map(({ name }) => `/// <reference path="./${name}" />`).join('\n') + '\n');
 files.push({ name: 'native.d.ts', sha256: hash(resolve(output, 'native.d.ts')) });
 writeFileSync(resolve(output, 'manifest.json'), JSON.stringify({
