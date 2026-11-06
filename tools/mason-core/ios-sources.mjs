@@ -100,6 +100,12 @@ export function projectIosSource(name) {
       'mason_addChildAt(text:_:)', 'mason_replaceChildAt(text:_:)',
       'getInnerHTML(_:)', 'setInnerHTML(_:_:)',
     ]) source.remove(signature);
+    for (const signature of ['mason_prepareStyleSlot()', 'mason_writableStyleValues()']) {
+      const node = source.declarations(signature);
+      if (node.length !== 1) throw new Error(`Extensions ${signature} boundary changed.`);
+      const original = source.lines.slice(node[0].first, node[0].last + 1).join('\n');
+      source.edit(node[0], original.replaceAll(' ?? (self as? MasonText)?.node.style', ''));
+    }
   }
   if (name === 'SwiftHelpers.swift') {
     for (const signature of ['append(_:text:)', 'append(_:texts:)', 'prepend(_:string:)', 'prepend(_:strings:)', 'addChildAt(_:text:_:)']) source.remove(signature);

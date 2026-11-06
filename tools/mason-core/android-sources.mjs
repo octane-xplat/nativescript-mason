@@ -91,7 +91,8 @@ export function projectAndroidSources() {
         if (node.otherwise === null) source.edit(node);
         else source.keepElse(node);
       }
-      source.branch('view is TextContainer', { count: 2 });
+      source.branch('view is TextContainer');
+      source.branch('view is TextContainer || view is TextArea');
       source.branch('node.detailsHidden || node.layoutParent?.detailsRole == Details.DETAILS');
       source.branch('textHost != null', { otherwise: true });
       source.branch('view is Input', { otherwise: true });
