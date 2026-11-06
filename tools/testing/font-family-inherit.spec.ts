@@ -86,4 +86,22 @@ describe('fontFamily inheritance through a Mason container (octane-xplat#157)', 
     };
     expect(result).toEqual({ root: 'SN Pro', app: 'SN Pro', before: 'SN Pro', after: 'SN Pro' });
   });
+
+  it('reapplying the family after a reset still propagates to new mounts', () => {
+    const root = host(false);
+    const app = host(true);
+    const label = host(false);
+    root.addChild(app);
+    app.addChild(label);
+
+    root.style.fontFamily = 'SN Pro';
+    root.style.fontFamily = 'unset';
+    root.style.fontFamily = 'SN Pro';
+
+    const late = host(false);
+    app.addChild(late);
+
+    expect(label.style.fontFamily).toBe('SN Pro');
+    expect(late.style.fontFamily).toBe('SN Pro');
+  });
 });
