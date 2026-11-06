@@ -23,8 +23,7 @@ export function run(command, args, options = {}) {
 // Rust `target_vendor = "apple"` exports. crates/mason-c/cbindgen.toml maps
 // that cfg to `__APPLE__`, so the generated header declares them only on
 // Apple targets. Guard here so a stale regenerated header fails loudly.
-export const appleOnlySymbols = ['mason_get_buffer', 'mason_node_get_pseudo_style_buffer_apple',
-  'mason_node_prepare_pseudo_style_buffer_apple', 'mason_node_set_apple_node', 'mason_style_get_style_buffer_apple'];
+export const appleOnlySymbols = ['mason_node_set_apple_node'];
 
 export function prepareHeaders(destination) {
   mkdirSync(destination, { recursive: true });

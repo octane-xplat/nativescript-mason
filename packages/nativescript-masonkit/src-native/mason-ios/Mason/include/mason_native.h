@@ -424,7 +424,9 @@ void mason_node_set_context(struct CMason *mason,
 void mason_node_remove_context(struct CMason *mason, struct CMasonNode *node);
 #endif
 
+#if defined(__APPLE__)
 void mason_node_set_apple_node(struct CMason *mason, struct CMasonNode *node, void *apple_node);
+#endif
 
 void mason_style_update_non_buffer_data(struct CMason *mason,
                                         struct CMasonNode *node,
