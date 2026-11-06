@@ -1141,14 +1141,7 @@ class TextEngine(val container: TextContainer) {
   internal var measuredExclusions: FloatArray? = null
     private set
 
-  private fun hasFloatedSibling(): Boolean {
-    val parent = node.parent ?: return false
-    for (child in parent.children) {
-      if (child === node || child.type != NodeType.Element || !child.style.isValueInitialized) continue
-      if (child.style.float != org.nativescript.mason.masonkit.enums.Float.None) return true
-    }
-    return false
-  }
+  private fun hasFloatedSibling(): Boolean = node.parent?.hasFloatedChildBesides(node) ?: false
 
   /**
    * The margin boxes of floats beside this text, as `[left, top, right, bottom, side]` runs in
@@ -1700,11 +1693,13 @@ class TextEngine(val container: TextContainer) {
   // Custom span for inline child views
   private inner class ViewSpan(
     val childNode: Node, private val viewHelper: ViewHelper
-  ) : ReplacementSpan() {
+  ) : ReplacementSpan(), TextNode.InlineBox {
     // Where the box sits, in layout coordinates, as of the last draw. The text view lays
     // the box's real view out there.
     internal val drawnRect = RectF()
     internal var drawn = false
+    override var ascent = 0
+    override var descent = 0
 
     /**
      * The box's extent along the line, then across it. Vertical text runs its lines down
@@ -1813,6 +1808,9 @@ class TextEngine(val container: TextContainer) {
 
         metrics.top = metrics.ascent
         metrics.bottom = metrics.descent
+        ascent = metrics.ascent
+        descent = metrics.descent
+        TextNode.LineScan.measuredGeneration++
 
         // Follow web behavior: do not artificially clamp placeholder font
         // metrics here. Let the native layout compute line-box contributions
@@ -2598,12 +2596,14 @@ class TextEngine(val container: TextContainer) {
     }
     if (!nested) {
       val modes = spacingTrimModes(wrapped)
-      applySpacingTrim(wrapped, modes)
+      // Text without full-width punctuation has nothing to trim.
+      val punctuated = hasFullWidthPunctuation(wrapped)
+      if (punctuated || modes != null) applySpacingTrim(wrapped, modes)
       if (isVerticalWritingMode) {
         applyUprightGlyphs(wrapped, style.resolvedTextOrientation.toInt(), style.resolvedTextCombineUpright.toInt())
       }
       lineEdgeTrimModes = modes
-      trimsLineEdges = trimsAtLineEdges(wrapped, modes)
+      trimsLineEdges = punctuated && trimsAtLineEdges(wrapped, modes)
     }
 
     // Cache the result
