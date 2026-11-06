@@ -209,13 +209,15 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
     visit(member);
     if (delegatesToSetter) delegates.push(setterName(member));
   }
-  const before = '        try {\n          set.call(this, value);';
-  if (output.split(before).length !== 2) throw new Error('Review core environment style adapter.');
-  output = output.replace(before,
-    `        try {
-          const resolved = environmentDelegates.has(name) ? value :
-            environmentStyleValue(this, name, value);
-          set.call(this, resolved);`);
+  const gate = "        if (typeof value === 'number') {";
+  if (output.split(gate).length !== 2) throw new Error('Review core environment number gate.');
+  output = output.replace(gate,
+    `        const resolved = environmentDelegates.has(name) ? value :
+          environmentStyleValue(this, name, value);
+        if (typeof resolved === 'number') {`);
+  const call = 'set.call(this, value);';
+  if (output.split(call).length !== 3) throw new Error('Review core environment style adapter.');
+  output = output.replaceAll(call, 'set.call(this, resolved);');
   output = output.replace('  const proto = Style.prototype',
     `  const environmentDelegates = new Set(${JSON.stringify(delegates)});\n  const proto = Style.prototype`);
   for (const name of ['padding', 'margin', 'inset']) {
