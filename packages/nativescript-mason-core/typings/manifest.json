@@ -1,6 +1,6 @@
 {
-  "androidHostSha256": "53c2a456a72f634a58f1c33c4e431da5af17f089942a7fd809ef704cbb5cf8b8",
-  "iosHostSha256": "f211788b92362ab1eb608ba0b2c8b55b960dc3b9f89869bbacba26c850827534",
+  "androidHostSha256": "ea689c9ca63260008b2c7cdf76aa4d862b13d44014323a4ba90a09579db3e441",
+  "iosHostSha256": "4cd39d9c3a37aceaa6c02c4341cef3483025124a75af27fb5b1ca22ced32d431",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
@@ -18,7 +18,7 @@
   "files": [
     {
       "name": "android.d.ts",
-      "sha256": "45da9a4106f43605bd6c107ad279fba101c101af1176de82b63eb3a04e933db9"
+      "sha256": "2ec769f8c537287b77d01c133ca6c552567ab51456c57f99c37411506e39402e"
     },
     {
       "name": "android-declarations.d.ts",
@@ -26,7 +26,7 @@
     },
     {
       "name": "objc!MasonCore.d.ts",
-      "sha256": "7f2c90c4291d8555f0deaf8fc26b00013a58e267793451dc0fa3ddbff2ddf724"
+      "sha256": "154d948de29c22da838ecee2b757ce89d8bd5d2a746c5f859c49ed5bb31c51c3"
     },
     {
       "name": "objc!FontManager.d.ts",
@@ -38,30 +38,12 @@
     },
     {
       "name": "native.d.ts",
-      "sha256": "66c80360575fed8dcc1213357beda93baee25bddbe8637905b187a08360e078b"
+      "sha256": "e7c895798d8155e444149d2f2818e86261a29ff753f0f0389b3345557f71898a"
     },
     {
       "name": "windows.d.ts",
       "sha256": "e90c952e28a2e95a83523d1bdf6367aecdacade78aa339fa609037fcd526d300"
     }
   ],
-  "qualification": "Generated from independent core artifacts. NativeScript SDK ambient platform types and skipLibCheck remain required; wrapper compilation and consumer verification are separate checks.",
-  "iosApiRevalidation": {
-    "previousIosHostSha256": "98de2a3d7e4c66296c898f810557e0c6170ba9758b4bc85a81564e3ab04fe0a3",
-    "method": "Byte-identical exported headers against beta.5; retained generated declarations",
-    "headers": [
-      {
-        "name": "Mason.h",
-        "sha256": "0dc38d513e0a73369836b4478ec254a4d3833c3dbb2803439cc0cd5f66818cbd"
-      },
-      {
-        "name": "MasonCore-Swift.h",
-        "sha256": "81352d7330ec07797799f54d1da0ba010bc9a5374079152e8082196748bd9422"
-      },
-      {
-        "name": "mason_native.h",
-        "sha256": "ef117af0d549542f22a50d90484e05b62eb9c7aca00b0aaeb9a6fe9723ca79f7"
-      }
-    ]
-  }
+  "qualification": "Generated from independent core artifacts. NativeScript SDK ambient platform types and skipLibCheck remain required; wrapper compilation and consumer verification are separate checks."
 }

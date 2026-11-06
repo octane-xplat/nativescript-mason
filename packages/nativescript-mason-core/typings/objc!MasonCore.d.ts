@@ -1252,6 +1252,35 @@ declare class MasonSizeHelper extends NSObject {
 	readonly width: number;
 }
 
+declare class MasonSlotData extends NSMutableData {
+
+	static alloc(): MasonSlotData; // inherited from NSObject
+
+	static data(): MasonSlotData; // inherited from NSData
+
+	static dataWithBytesLength(bytes: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, length: number): MasonSlotData; // inherited from NSData
+
+	static dataWithBytesNoCopyLength(bytes: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView, length: number): MasonSlotData; // inherited from NSData
+
+	static dataWithBytesNoCopyLengthFreeWhenDone(bytes: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView, length: number, b: boolean): MasonSlotData; // inherited from NSData
+
+	static dataWithCapacity(aNumItems: number): MasonSlotData; // inherited from NSMutableData
+
+	static dataWithContentsOfFile(path: string): MasonSlotData; // inherited from NSData
+
+	static dataWithContentsOfFileOptionsError(path: string, readOptionsMask: NSDataReadingOptions, error?: interop.Reference<NSError>): MasonSlotData; // inherited from NSData
+
+	static dataWithContentsOfURL(url: NSURL): MasonSlotData; // inherited from NSData
+
+	static dataWithContentsOfURLOptionsError(url: NSURL, readOptionsMask: NSDataReadingOptions, error?: interop.Reference<NSError>): MasonSlotData; // inherited from NSData
+
+	static dataWithData(data: NSData): MasonSlotData; // inherited from NSData
+
+	static dataWithLength(length: number): MasonSlotData; // inherited from NSMutableData
+
+	static new(): MasonSlotData; // inherited from NSObject
+}
+
 declare class MasonStyle extends NSObject {
 
 	static alloc(): MasonStyle; // inherited from NSObject
@@ -2207,6 +2236,8 @@ declare class NSCMason extends NSObject {
 
 	setPercentWidth(view: UIView, fraction: number): void;
 
+	styleChunk(chunk: number): MasonSlotData | null;
+
 	styleForView(view: UIView): MasonStyle;
 
 	styleForViewOrNode(viewOrNode: any | null): MasonStyle | null;
@@ -2281,7 +2312,7 @@ declare function mason_clear(mason: interop.Pointer | interop.Reference<any> | A
 
 declare function mason_debug_stats(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, out: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null, len: number): void;
 
-declare function mason_get_buffer(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, handle: number): interop.Pointer | interop.Reference<any> | null;
+declare function mason_default_style_ptr(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
 
 declare function mason_get_preflight(): boolean;
 
@@ -2334,8 +2365,6 @@ declare function mason_node_get_float_rects_buffer(mason: interop.Pointer | inte
 declare function mason_node_get_pseudo_states(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
 
 declare function mason_node_get_pseudo_style_buffer(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, flags: number, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
-
-declare function mason_node_get_pseudo_style_buffer_apple(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, flags: number): interop.Pointer | interop.Reference<any> | null;
 
 declare function mason_node_get_state_buffer(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
 
@@ -2397,8 +2426,6 @@ declare function mason_node_new_text_node_with_context(mason: interop.Pointer | 
 
 declare function mason_node_prepare_pseudo_style_buffer(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, flags: number, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
 
-declare function mason_node_prepare_pseudo_style_buffer_apple(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, flags: number): interop.Pointer | interop.Reference<any> | null;
-
 declare function mason_node_prepend(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, child: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): void;
 
 declare function mason_node_prepend_children(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, children: interop.Pointer | interop.Reference<interop.Pointer | interop.Reference<any> | null> | ArrayBufferLike | ArrayBufferView | null, children_size: number): void;
@@ -2433,6 +2460,8 @@ declare function mason_set_device_scale(mason: interop.Pointer | interop.Referen
 
 declare function mason_set_preflight(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, enabled: boolean): void;
 
+declare function mason_style_chunk(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, chunk: number, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
+
 declare function mason_style_get_grid_area_css(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
 
 declare function mason_style_get_grid_auto_columns_css(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
@@ -2459,9 +2488,11 @@ declare function mason_style_get_grid_template_rows_css(mason: interop.Pointer |
 
 declare function mason_style_get_style_buffer(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<CMasonBuffer> | null;
 
-declare function mason_style_get_style_buffer_apple(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
-
 declare function mason_style_get_style_data(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
+
+declare function mason_style_prepare_mut_ptr(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
+
+declare function mason_style_prepare_slot(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): number;
 
 declare function mason_style_prepare_style_for_mut(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, node: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null): void;
 
