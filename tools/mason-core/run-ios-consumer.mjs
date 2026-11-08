@@ -13,19 +13,29 @@ function run(args, timeout = 30000) {
   return result.stdout;
 }
 
-const device = readFileSync(resolve(workspaceRoot, 'tmp/mason-core-ios-test-device.txt'), 'utf8').trim();
+const override = process.env.MASON_CORE_IOS_DEVICE;
+const device = override ?? readFileSync(resolve(workspaceRoot, 'tmp/mason-core-ios-test-device.txt'), 'utf8').trim();
 const osInput = process.argv.includes('--os-input');
 if (osInput) assert.equal(JSON.parse(readFileSync(resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer/consumer-scenario.json'), 'utf8')).scenario, 'xplat-compiled');
 const devices = JSON.parse(run(['simctl', 'list', 'devices', '-j']));
 const selected = Object.values(devices.devices).flat().find((entry) => entry.udid === device);
-assert.equal(selected?.name, 'Mason core extraction', 'Use the owned Mason core extraction simulator.');
+assert.ok(selected, `The selected iOS simulator ${device} is not registered.`);
+if (!override) assert.equal(selected.name, 'Mason core extraction', 'Use the owned Mason core extraction simulator.');
 assert.equal(selected.state, 'Shutdown', 'The consumer runner requires its dedicated simulator to be shut down.');
 const products = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer/platforms/ios/build/Debug-iphonesimulator');
 const apps = readdirSync(products).filter((name) => name.endsWith('.app'));
 assert.equal(apps.length, 1, 'Build the isolated iOS consumer first.');
 const app = resolve(products, apps[0]);
-assert.ok(existsSync(resolve(app, 'Frameworks/MasonCore.framework/MasonCore')));
-assert.ok(existsSync(resolve(app, 'Frameworks/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy')));
+const embedded = existsSync(resolve(app, 'Frameworks/MasonCore.framework/MasonCore'));
+if (embedded) {
+  assert.ok(existsSync(resolve(app, 'Frameworks/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy')));
+} else {
+  // Webpack packaging statically links the core framework; the privacy bundle
+  // still ships beside the executable and the binary must carry core classes.
+  assert.ok(existsSync(resolve(app, 'SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy')), 'Static packaging lost the SDWebImage privacy bundle.');
+  const symbols = spawnSync('xcrun', ['nm', '-gU', resolve(app, apps[0].slice(0, -4))], { encoding: 'utf8', timeout: 30000 });
+  assert.ok(symbols.stdout?.includes('_OBJC_CLASS_$_NSCMason'), 'The app binary does not statically link the Mason core framework.');
+}
 assert.ok(!existsSync(resolve(app, 'Frameworks/Mason.framework')));
 const id = 'org.octane.masoncoreprobe';
 const output = resolve(workspaceRoot, 'tmp/mason-core-nativescript-ios-tests', String(Date.now()));
@@ -99,7 +109,9 @@ try {
   assert.equal(result.platform, 'ios');
   if (osInput) {
     assert.equal(result.osInput, true);
-    assert.deepEqual(actions.map(({ phase }) => phase), ['tap', 'scroll']);
+    // The iOS consumer also drives a gated (touch-action:none) then allowed
+    // interactive-keyboard dismissal drag after its tap and scroll phases.
+    assert.deepEqual(actions.map(({ phase }) => phase), ['tap', 'scroll', 'blocked', 'dismiss']);
   }
   const scenarioPath = resolve(workspaceRoot, 'tmp/mason-core-nativescript-consumer/consumer-scenario.json');
   if (existsSync(scenarioPath)) {

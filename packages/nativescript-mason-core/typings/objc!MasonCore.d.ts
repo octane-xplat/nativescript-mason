@@ -1811,6 +1811,10 @@ declare class MasonUIView extends UIView implements MasonElementObjc {
 
 	alignSelf: MasonAlignSelf;
 
+	alwaysBounceHorizontal: boolean;
+
+	alwaysBounceVertical: boolean;
+
 	aspectRatio: number;
 
 	background: string;
@@ -1822,6 +1826,8 @@ declare class MasonUIView extends UIView implements MasonElementObjc {
 	direction: MasonDirection;
 
 	display: MasonDisplay;
+
+	readonly dragging: boolean;
 
 	flexBasisCompat: MasonDimensionCompat;
 
@@ -1868,6 +1874,8 @@ declare class MasonUIView extends UIView implements MasonElementObjc {
 	justifyItems: MasonJustifyItems;
 
 	justifySelf: MasonJustifySelf;
+
+	keyboardDismissMode: UIScrollViewKeyboardDismissMode;
 
 	readonly mason: NSCMason;
 

@@ -252,4 +252,147 @@ final class CoreLayoutInteropTests: XCTestCase {
     }
     XCTAssertNil(released)
   }
+
+  /// The bounds.origin scroll host reports UIScrollView-style drag state: the
+  /// pan, then the momentum that follows it, and nothing after it settles.
+  func test_scrollHostDraggingCoversPanAndMomentum() {
+    let view = MasonUIView(mason: mason)
+    view.isScrollContainer = true
+    view.overflowY = .Scroll
+    XCTAssertFalse(view.dragging)
+    view._scrollPanBegan()
+    XCTAssertTrue(view.dragging)
+    view._scrollPanEnded(CGPoint(x: 0, y: 300))
+    XCTAssertTrue(view.dragging, "momentum still counts as dragging, like UIScrollView")
+    let deadline = Date().addingTimeInterval(5)
+    while view.dragging && Date() < deadline {
+      RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+    }
+    XCTAssertFalse(view.dragging, "dragging must clear once scroll motion settles")
+  }
+
+  /// `keyboardDismissMode` resigns the first responder when a scroll drag
+  /// begins under `.onDrag`; `.none` leaves it alone. `.interactive` instead
+  /// engages a hidden driver UIScrollView whose pan recognizer is re-attached
+  /// to the host so UIKit performs its own finger-tracked dismissal — the
+  /// responder must NOT resign at drag start, or the drag would be the same
+  /// snap dismissal `.onDrag` already provides.
+  func test_scrollHostKeyboardDismissModeResignsFirstResponderOnDrag() {
+    let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 300, height: 300))
+    window.makeKeyAndVisible()
+    defer {
+      window.resignKey()
+      window.isHidden = true
+    }
+    let field = UITextField(frame: CGRect(x: 0, y: 0, width: 200, height: 30))
+    window.addSubview(field)
+    let view = MasonUIView(mason: mason)
+    view.isScrollContainer = true
+    window.addSubview(view)
+    XCTAssertTrue(field.becomeFirstResponder())
+
+    view._scrollPanBegan()
+    XCTAssertTrue(field.isFirstResponder, "default .none must not dismiss")
+    view._scrollPanEnded(.zero)
+    XCTAssertFalse(view.dragging)
+
+    view.keyboardDismissMode = .onDrag
+    view._scrollPanBegan()
+    XCTAssertFalse(field.isFirstResponder, ".onDrag resigns once the drag begins")
+    view._scrollPanEnded(.zero)
+
+    XCTAssertTrue(field.becomeFirstResponder())
+    view.keyboardDismissMode = .interactive
+    XCTAssertNotNil(view._keyboardDismissDriver, ".interactive installs the UIScrollView dismissal driver")
+    XCTAssertTrue(view._keyboardDismissDriver?.panGestureRecognizer.view === view,
+                  "the driver pan must be attached to the scroll host to track its drags")
+    XCTAssertEqual(view._keyboardDismissDriver?.keyboardDismissMode, .interactive)
+    view._scrollPanBegan()
+    XCTAssertTrue(field.isFirstResponder,
+                  ".interactive tracks the drag instead of snap-resigning at its start")
+    view._scrollPanEnded(.zero)
+
+    view.keyboardDismissMode = .none
+    XCTAssertNil(view._keyboardDismissDriver,
+                 "leaving .interactive detaches the driver pan and removes its hidden scroll view")
+
+    view.keyboardDismissMode = .interactive
+    XCTAssertNotNil(view._keyboardDismissDriver, "re-entering .interactive installs a fresh driver")
+    XCTAssertTrue(view._keyboardDismissDriver?.panGestureRecognizer.view === view,
+                  "the fresh driver pan is attached to the scroll host")
+  }
+
+  /// The dismissal driver's pan must pass the same begin gate as the host's
+  /// own scroll pan. Its owner is a UIScrollView whose always-bounce axes
+  /// would otherwise let UIKit start interactive tracking on drags the host's
+  /// scroll policy — touch-action, scrollability, bounce — refuses.
+  func test_interactiveDismissalDriverPanFollowsTheHostScrollGate() {
+    let view = MasonUIView(mason: mason)
+    view.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+    view.isScrollContainer = true
+    view.overflowY = .Scroll
+    view.keyboardDismissMode = .interactive
+    let driver = view._keyboardDismissDriver!
+    let driverPan = driver.panGestureRecognizer
+    // UIScrollView requires its pan's delegate to be the scroll view itself;
+    // that delegate consult is the real gate path UIKit takes.
+    XCTAssertTrue(driverPan.delegate === driver, "the driver stays its pan's own delegate")
+    let driverAllows = { driverPan.delegate!.gestureRecognizerShouldBegin!(driverPan) }
+
+    // With no active gesture the pan reads zero velocity — a vertical drag.
+    XCTAssertTrue(driverAllows(), "the driver pan begins on an axis the host can scroll")
+
+    // touch-action: none refuses it, matching the host's own scroll pan.
+    view.node.touchAction = 0
+    XCTAssertFalse(driverAllows(),
+                   "the driver pan must not start UIKit tracking on a touch-action:none drag")
+    // The host's own pan gate refuses the same drag.
+    XCTAssertFalse(view._scrollPanAllowed(horizontal: false, at: CGPoint(x: 50, y: 50)))
+    XCTAssertFalse(view._scrollPanAllowed(horizontal: true, at: CGPoint(x: 50, y: 50)))
+    view.node.touchAction = 7
+    XCTAssertTrue(driverAllows(), "restoring touch-action lets the driver pan begin again")
+
+    // Directional contract: pan-x only — the vertical dismissal drag is refused.
+    view.node.touchAction = 1
+    XCTAssertFalse(view._scrollPanAllowed(horizontal: false, at: CGPoint(x: 50, y: 50)),
+                   "a pan-x policy must refuse the vertical dismissal drag")
+    XCTAssertTrue(view._scrollPanAllowed(horizontal: true, at: CGPoint(x: 50, y: 50)),
+                  "a pan-x policy still allows horizontal drags")
+    view.node.touchAction = 7
+
+    // A host that can neither scroll nor bounce refuses the driver outright.
+    let plain = MasonUIView(mason: mason)
+    plain.keyboardDismissMode = .interactive
+    let plainDriver = plain._keyboardDismissDriver!
+    let plainPan = plainDriver.panGestureRecognizer
+    XCTAssertTrue(plainPan.delegate === plainDriver, "the driver stays its pan's own delegate")
+    XCTAssertFalse(plainPan.delegate!.gestureRecognizerShouldBegin!(plainPan),
+                   "a non-scroll, non-bounce host must not start dismissal tracking")
+    plain.alwaysBounceVertical = true
+    XCTAssertTrue(plainPan.delegate!.gestureRecognizerShouldBegin!(plainPan),
+                  "an always-bounce axis lets the dismissal drag engage")
+
+    view.keyboardDismissMode = .none
+    XCTAssertNil(view._keyboardDismissDriver, "leaving .interactive tears the driver down")
+    XCTAssertNil(driver.superview, "teardown removes the hidden driver from the hierarchy")
+    XCTAssertNil(driverPan.view, "teardown detaches the driver pan from the host")
+  }
+
+  /// An always-bounce axis lets the scroll pan begin even when its content
+  /// cannot move, so dismissal drags still engage on short content.
+  func test_scrollPanBeginsOnAlwaysBounceAxisWithoutScrollableContent() {
+    let view = MasonUIView(mason: mason)
+    view.isScrollContainer = true
+    XCTAssertFalse(view._scrollPanCanBegin(horizontal: false))
+    XCTAssertFalse(view._scrollPanCanBegin(horizontal: true))
+    view.alwaysBounceVertical = true
+    XCTAssertTrue(view._scrollPanCanBegin(horizontal: false))
+    XCTAssertFalse(view._scrollPanCanBegin(horizontal: true))
+    view.alwaysBounceHorizontal = true
+    XCTAssertTrue(view._scrollPanCanBegin(horizontal: true))
+    view.overflowY = .Scroll
+    view.alwaysBounceHorizontal = false
+    view.alwaysBounceVertical = false
+    XCTAssertTrue(view._scrollPanCanBegin(horizontal: false))
+  }
 }

@@ -1,6 +1,6 @@
 {
-  "androidHostSha256": "ea689c9ca63260008b2c7cdf76aa4d862b13d44014323a4ba90a09579db3e441",
-  "iosHostSha256": "4cd39d9c3a37aceaa6c02c4341cef3483025124a75af27fb5b1ca22ced32d431",
+  "androidHostSha256": "b95f22efb0395ade08a8389560bb6f99617aab051d9fa82ed8e40f84c962ff51",
+  "iosHostSha256": "2afb2eac588dc037859dbad1c1ccfc22525fd5e2a6c5d23f02d9524bd954e996",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
@@ -18,7 +18,7 @@
   "files": [
     {
       "name": "android.d.ts",
-      "sha256": "2ec769f8c537287b77d01c133ca6c552567ab51456c57f99c37411506e39402e"
+      "sha256": "76e3b27cd5fb932217194f08b010f42afbb617ce055a445ddc67036f8b00aa26"
     },
     {
       "name": "android-declarations.d.ts",
@@ -26,7 +26,7 @@
     },
     {
       "name": "objc!MasonCore.d.ts",
-      "sha256": "154d948de29c22da838ecee2b757ce89d8bd5d2a746c5f859c49ed5bb31c51c3"
+      "sha256": "c87020bc23e6c0c9843bb18853257788f8088cd3f257d7dccf746188afe886bf"
     },
     {
       "name": "objc!FontManager.d.ts",

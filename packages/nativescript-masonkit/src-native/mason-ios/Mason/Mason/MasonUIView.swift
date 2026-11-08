@@ -666,6 +666,19 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
       if isScrollContainer != oldValue { node.appliedStyleVersion = .max }
     }
   }
+  // `UIScrollView.KeyboardDismissMode` for this bounds.origin scroll host.
+  // `.onDrag` resigns the first responder once a scroll drag begins.
+  // `.interactive` is real finger tracking: UIKit only implements it inside
+  // UIScrollView, so a hidden driver scroll view's pan recognizer is attached
+  // to this view and the OS performs its own interactive dismissal on drags.
+  @objc public var keyboardDismissMode: UIScrollView.KeyboardDismissMode = .none {
+    didSet { _updateKeyboardDismissDriver() }
+  }
+  // `UIScrollView.alwaysBounce*`: lets the scroll pan begin on an axis whose
+  // content cannot move, so the gesture still engages and rubber-bands it.
+  @objc public var alwaysBounceHorizontal = false
+  @objc public var alwaysBounceVertical = false
+  var _keyboardDismissDriver: UIScrollView?
   private var _scrollPanStartOffset: CGPoint = .zero
   private var _scrollPanTranslation: CGPoint = .zero
   private var _scrollDecelerationLink: CADisplayLink?
@@ -1698,6 +1711,44 @@ extension MasonUIView {
     }
   }
 
+  /// `UIScrollView.dragging`: true while the scroll pan is down and through the
+  /// momentum that follows it; programmatic smooth scrolling does not count.
+  @objc public var dragging: Bool {
+    _panActive || _scrollDecelerationLink != nil
+  }
+
+  /// A bounce-enabled axis participates in the pan and rubber-bands even when
+  /// its content cannot scroll, like `UIScrollView.alwaysBounce*`.
+  var _bouncesH: Bool { _canScrollH || alwaysBounceHorizontal }
+  var _bouncesV: Bool { _canScrollV || alwaysBounceVertical }
+
+  // The gesture may begin on a scrollable axis, or on an always-bounce axis —
+  // the same gate UIScrollView applies before a drag can start.
+  func _scrollPanCanBegin(horizontal: Bool) -> Bool {
+    if _canScrollH || _canScrollV { return true }
+    return horizontal ? alwaysBounceHorizontal : alwaysBounceVertical
+  }
+
+  /// The gate every scroll-driving pan must pass to begin: the dominant axis
+  /// must be movable (scrollable or always-bounce) and `touch-action` must
+  /// allow that axis along the whole path from the touched element up to this
+  /// view. The host's own scroll pan and the `.interactive` dismissal driver's
+  /// pan share it, so a refused drag neither scrolls nor dismisses.
+  func _scrollPanAllowed(horizontal: Bool, at point: CGPoint) -> Bool {
+    guard _scrollPanCanBegin(horizontal: horizontal) else { return false }
+    // `touch-action`: don't start a pan along an axis the touched element (or
+    // anything between it and this view) keeps for itself, e.g. a slider.
+    let axes = _touchActionAt(point)
+    if horizontal && axes & 1 == 0 { return false }
+    if !horizontal && axes & 2 == 0 { return false }
+    return true
+  }
+
+  func _scrollPanAllowed(_ pan: UIPanGestureRecognizer) -> Bool {
+    let velocity = pan.velocity(in: self)
+    return _scrollPanAllowed(horizontal: abs(velocity.x) > abs(velocity.y), at: pan.location(in: self))
+  }
+
   private func _clampScrollOffset(_ offset: CGPoint) -> CGPoint {
     CGPoint(
       x: _canScrollH ? max(0, min(offset.x, max(0, contentSize.width  - bounds.width))) : 0,
@@ -1722,9 +1773,10 @@ extension MasonUIView {
   private func _rubberBanded(_ o: CGPoint) -> CGPoint {
     let hiX = max(0, contentSize.width - bounds.width)
     let hiY = max(0, contentSize.height - bounds.height)
+    // A bounce-only axis has an empty range; it still resists past both edges.
     return CGPoint(
-      x: _canScrollH ? _rubberAxis(o.x, 0, hiX, bounds.width) : 0,
-      y: _canScrollV ? _rubberAxis(o.y, 0, hiY, bounds.height) : 0
+      x: _bouncesH ? _rubberAxis(o.x, 0, _canScrollH ? hiX : 0, bounds.width) : 0,
+      y: _bouncesV ? _rubberAxis(o.y, 0, _canScrollV ? hiY : 0, bounds.height) : 0
     )
   }
 
@@ -1741,31 +1793,83 @@ extension MasonUIView {
 
   // MARK: Pan handler
 
+  // Pan began after the gesture gate; the recognizer's own hysteresis has
+  // already required real movement, matching UIScrollView's willBeginDragging.
+  func _scrollPanBegan() {
+    _panActive = true
+    _stopScrollAnimation()
+    _isScrolling = true
+    _stopScrollDeceleration()
+    _scrollPanStartOffset = contentOffset
+    _scrollPanTranslation = .zero
+    // `.interactive` is handled by the driver scroll view's own pan, which
+    // gives UIKit a real UIScrollView drag to track; `.onDrag` snap-dismisses.
+    if keyboardDismissMode == .onDrag {
+      window?.endEditing(true)
+    }
+  }
+
+  // Lazily owns the hidden UIScrollView whose pan drives `.interactive`
+  // dismissal. UIKit's finger tracking is private to UIScrollView, but it runs
+  // on the scroll view's pan recognizer wherever that recognizer is attached —
+  // re-attaching it to this view makes our drags real UIScrollView drags for
+  // dismissal purposes only. The driver stays a plain (hidden, non-interactive)
+  // subview so `window` resolves for the dismissal machinery; it plays no role
+  // in layout, painting, or hit testing.
+  func _updateKeyboardDismissDriver() {
+    guard keyboardDismissMode == .interactive else {
+      guard let driver = _keyboardDismissDriver else { return }
+      if driver.panGestureRecognizer.view === self {
+        removeGestureRecognizer(driver.panGestureRecognizer)
+      }
+      node.suppressChildOperations { driver.removeFromSuperview() }
+      _keyboardDismissDriver = nil
+      return
+    }
+    if _keyboardDismissDriver == nil {
+      let driver = _MasonDismissalDriver(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+      driver.owner = self
+      driver.isHidden = true
+      driver.isUserInteractionEnabled = false
+      driver.isAccessibilityElement = false
+      driver.accessibilityElementsHidden = true
+      driver.showsVerticalScrollIndicator = false
+      driver.showsHorizontalScrollIndicator = false
+      driver.keyboardDismissMode = .interactive
+      driver.alwaysBounceVertical = true
+      driver.alwaysBounceHorizontal = true
+      node.suppressChildOperations { addSubview(driver) }
+      _keyboardDismissDriver = driver
+    }
+    let pan = _keyboardDismissDriver!.panGestureRecognizer
+    if pan.view !== self { addGestureRecognizer(pan) }
+  }
+
+  // Pan ended/cancelled; momentum or spring-back continues from `velocity`.
+  func _scrollPanEnded(_ velocity: CGPoint) {
+    _panActive = false
+    _startScrollDeceleration(velocity)
+  }
+
   @objc func _handleScrollPan(_ gesture: UIPanGestureRecognizer) {
     switch gesture.state {
     case .began:
-      _panActive = true
-      _stopScrollAnimation()
-      _isScrolling = true
-      _stopScrollDeceleration()
-      _scrollPanStartOffset = contentOffset
-      _scrollPanTranslation = .zero
+      _scrollPanBegan()
 
     case .changed:
       let t = gesture.translation(in: self)
       _scrollPanTranslation = t
       let raw = CGPoint(
-        x: _scrollPanStartOffset.x - (_canScrollH ? t.x : 0),
-        y: _scrollPanStartOffset.y - (_canScrollV ? t.y : 0)
+        x: _scrollPanStartOffset.x - (_bouncesH ? t.x : 0),
+        y: _scrollPanStartOffset.y - (_bouncesV ? t.y : 0)
       )
       _setScrollOrigin(_pixelAligned(_rubberBanded(raw)))
 
     case .ended, .cancelled:
-      _panActive = false
       let v = gesture.velocity(in: self)
-      _startScrollDeceleration(CGPoint(
-        x: _canScrollH ? -v.x : 0,
-        y: _canScrollV ? -v.y : 0
+      _scrollPanEnded(CGPoint(
+        x: _bouncesH ? -v.x : 0,
+        y: _bouncesV ? -v.y : 0
       ))
 
     default: break
@@ -1863,14 +1967,14 @@ extension MasonUIView {
     var doneY = true
     // If relayout makes an axis non-scrollable mid-gesture, clear any stale
     // offset instead of stopping the display link with it still overscrolled.
-    if _canScrollH {
-      (o.x, v.x, doneX) = _integrateScrollAxis(o.x, v.x, 0, hiX, dt)
+    if _bouncesH {
+      (o.x, v.x, doneX) = _integrateScrollAxis(o.x, v.x, 0, _canScrollH ? hiX : 0, dt)
     } else if o.x != 0 {
       o.x = 0
       v.x = 0
     }
-    if _canScrollV {
-      (o.y, v.y, doneY) = _integrateScrollAxis(o.y, v.y, 0, hiY, dt)
+    if _bouncesV {
+      (o.y, v.y, doneY) = _integrateScrollAxis(o.y, v.y, 0, _canScrollV ? hiY : 0, dt)
     } else if o.y != 0 {
       o.y = 0
       v.y = 0
@@ -2182,24 +2286,31 @@ private final class _MasonScrollPanDelegate: NSObject, UIGestureRecognizerDelega
   weak var owner: MasonUIView?
 
   func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-    guard let v = owner else { return false }
-    guard v._canScrollH || v._canScrollV else { return false }
-    // `touch-action`: don't start a pan along an axis the touched element (or
-    // anything between it and this view) keeps for itself, e.g. a slider.
-    if let pan = gestureRecognizer as? UIPanGestureRecognizer {
-      let axes = v._touchActionAt(pan.location(in: v))
-      let velocity = pan.velocity(in: v)
-      let horizontal = abs(velocity.x) > abs(velocity.y)
-      if horizontal && axes & 1 == 0 { return false }
-      if !horizontal && axes & 2 == 0 { return false }
-    }
-    return true
+    guard let v = owner, let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+    return v._scrollPanAllowed(pan)
   }
 
   func gestureRecognizer(
     _ gestureRecognizer: UIGestureRecognizer,
     shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
   ) -> Bool { true }
+}
+
+// The dismissal driver must stay a real UIScrollView — its built-in pan
+// recognizer requires the scroll view itself as delegate — so the host scroll
+// gate moves into this subclass: UIKit asks the delegate (the driver) before
+// the pan begins, where the driver's own always-bounce axes would otherwise
+// engage dismissal on drags the host refuses. UIScrollView's own begin logic
+// still runs through `super` once the host gate allows the drag.
+private final class _MasonDismissalDriver: UIScrollView {
+  weak var owner: MasonUIView?
+
+  override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    if gestureRecognizer === panGestureRecognizer,
+       let v = owner, let pan = gestureRecognizer as? UIPanGestureRecognizer,
+       !v._scrollPanAllowed(pan) { return false }
+    return super.gestureRecognizerShouldBegin(gestureRecognizer)
+  }
 }
 
 // Skips the backing store (and draw(_:)) while the owning view paints nothing.
