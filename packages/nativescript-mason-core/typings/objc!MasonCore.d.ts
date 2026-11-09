@@ -1885,6 +1885,8 @@ declare class MasonUIView extends UIView implements MasonElementObjc {
 
 	scrollBarWidthCompat: MasonDimensionCompat;
 
+	userScrollEnabled: boolean;
+
 	readonly debugDescription: string; // inherited from NSObjectProtocol
 
 	readonly description: string; // inherited from NSObjectProtocol

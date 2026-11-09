@@ -66,6 +66,7 @@ try {
 import MasonCore
 let engine = NSCMason()
 let view = engine.createView()
+view.userScrollEnabled = false
 view.display = .Flex
 view.addView(UILabel())
 view.computeWithSize(300, 100)
@@ -78,6 +79,7 @@ view.computeWithSize(300, 100)
 void checkCore(void) {
   NSCMason *engine = [NSCMason new];
   MasonUIView *view = [engine createView];
+  view.userScrollEnabled = NO;
   [view addView:[UILabel new]];
 }
 int main(void) { checkCore(); return MasonCoreVersionNumber >= 0 ? 0 : 1; }

@@ -3151,6 +3151,8 @@ declare const enum MasonTextWrap {
 
 declare class MasonUIView extends UIView implements MasonElementObjc {
 
+	userScrollEnabled: boolean;
+
 	static alloc(): MasonUIView; // inherited from NSObject
 
 	static appearance(): MasonUIView; // inherited from UIAppearance

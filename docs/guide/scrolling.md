@@ -66,6 +66,37 @@ Scroll containers can be nested to any depth, on both axes. A common pattern is 
 
 Supported values: `auto`, `none`, `manipulation`, `pan-x`, `pan-left`, `pan-right`, `pan-y`, `pan-up`, `pan-down`, `pinch-zoom`, and combinations such as `pan-x pinch-zoom`.
 
+## Suspending user scrolling on iOS
+
+`MasonUIView.userScrollEnabled` defaults to `true`. Set it to `false` on the
+main thread to cancel that viewport's active pan and momentum and refuse new
+scroll drags. Suspension preserves the exact offset, including fractional
+rubber-band overscroll, without changing overflow or layout.
+
+For a created iOS native viewport:
+
+```ts
+const native = feed.nativeViewProtected as MasonUIView;
+native.userScrollEnabled = false;
+feed.scrollTo({ top: 200, behavior: 'smooth' }); // programmatic seeks still work
+native.userScrollEnabled = true;
+```
+
+Enabling restores the scroll and interactive keyboard-dismissal pans' previous
+enabled flags. It permits fresh gestures without restarting cancelled motion.
+Other recognizers, including an ancestor pan and content taps, are unaffected.
+The flag applies to one viewport; nested viewports have their own flags.
+
+Programmatic scrolling, including an already running smooth seek, remains
+available during suspension. It can change the offset. Layout and overflow
+changes retain their existing behavior; this flag does not override their
+clamping rules. `touch-action` only gates gesture begin and does not replace
+suspension of active motion.
+
+This API requires a native rebuild from source containing the change. The
+published core `1.0.0-beta.7` binary does not provide it. Android and Windows
+scroll behavior is unchanged.
+
 ## Reading and setting the scroll position
 
 Every MasonKit element has the DOM scrolling API. All values are CSS pixels.

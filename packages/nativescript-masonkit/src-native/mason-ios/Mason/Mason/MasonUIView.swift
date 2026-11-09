@@ -666,6 +666,43 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
       if isScrollContainer != oldValue { node.appliedStyleVersion = .max }
     }
   }
+  /// Enables user-driven scrolling. Disabling cancels this host's pan and
+  /// momentum without assigning an offset, including during rubber-banding.
+  /// Programmatic scrolling remains available; enabling permits fresh gestures
+  /// without restarting cancelled motion. Call on the main thread, like UIKit.
+  @objc public var userScrollEnabled = true {
+    didSet {
+      guard userScrollEnabled != oldValue else { return }
+      if !userScrollEnabled {
+        // Set the input gate before disabling recognizers: UIKit may deliver
+        // .cancelled synchronously, and ordinary cancellation starts momentum.
+        _panActive = false
+        if _scrollGestureDelegate != nil {
+          _scrollPanEnabledBeforeSuspension = _scrollPanGesture.isEnabled
+          _scrollPanGesture.isEnabled = false
+        }
+        if let pan = _keyboardDismissDriver?.panGestureRecognizer {
+          _dismissalPanEnabledBeforeSuspension = pan.isEnabled
+          pan.isEnabled = false
+        }
+        _stopScrollDeceleration()
+        // An explicit smooth seek is not user motion and keeps running.
+        _isScrolling = _scrollAnimationLink != nil
+      } else {
+        if let enabled = _scrollPanEnabledBeforeSuspension {
+          _scrollPanGesture.isEnabled = enabled
+          _scrollPanEnabledBeforeSuspension = nil
+        }
+        if let enabled = _dismissalPanEnabledBeforeSuspension {
+          _keyboardDismissDriver?.panGestureRecognizer.isEnabled = enabled
+          _dismissalPanEnabledBeforeSuspension = nil
+        }
+      }
+    }
+  }
+  private var _scrollPanEnabledBeforeSuspension: Bool?
+  private var _dismissalPanEnabledBeforeSuspension: Bool?
+
   // `UIScrollView.KeyboardDismissMode` for this bounds.origin scroll host.
   // `.onDrag` resigns the first responder once a scroll drag begins.
   // `.interactive` is real finger tracking: UIKit only implements it inside
@@ -746,6 +783,10 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
     d.owner = self
     _scrollGestureDelegate = d
     _scrollPanGesture.delegate = d
+    if !userScrollEnabled {
+      _scrollPanEnabledBeforeSuspension = _scrollPanGesture.isEnabled
+      _scrollPanGesture.isEnabled = false
+    }
     addGestureRecognizer(_scrollPanGesture)
   }
 
@@ -1725,6 +1766,7 @@ extension MasonUIView {
   // The gesture may begin on a scrollable axis, or on an always-bounce axis —
   // the same gate UIScrollView applies before a drag can start.
   func _scrollPanCanBegin(horizontal: Bool) -> Bool {
+    guard userScrollEnabled else { return false }
     if _canScrollH || _canScrollV { return true }
     return horizontal ? alwaysBounceHorizontal : alwaysBounceVertical
   }
@@ -1796,6 +1838,7 @@ extension MasonUIView {
   // Pan began after the gesture gate; the recognizer's own hysteresis has
   // already required real movement, matching UIScrollView's willBeginDragging.
   func _scrollPanBegan() {
+    guard userScrollEnabled else { return }
     _panActive = true
     _stopScrollAnimation()
     _isScrolling = true
@@ -1824,6 +1867,7 @@ extension MasonUIView {
       }
       node.suppressChildOperations { driver.removeFromSuperview() }
       _keyboardDismissDriver = nil
+      _dismissalPanEnabledBeforeSuspension = nil
       return
     }
     if _keyboardDismissDriver == nil {
@@ -1840,6 +1884,10 @@ extension MasonUIView {
       driver.alwaysBounceHorizontal = true
       node.suppressChildOperations { addSubview(driver) }
       _keyboardDismissDriver = driver
+      if !userScrollEnabled {
+        _dismissalPanEnabledBeforeSuspension = driver.panGestureRecognizer.isEnabled
+        driver.panGestureRecognizer.isEnabled = false
+      }
     }
     let pan = _keyboardDismissDriver!.panGestureRecognizer
     if pan.view !== self { addGestureRecognizer(pan) }
@@ -1848,10 +1896,12 @@ extension MasonUIView {
   // Pan ended/cancelled; momentum or spring-back continues from `velocity`.
   func _scrollPanEnded(_ velocity: CGPoint) {
     _panActive = false
+    guard userScrollEnabled else { return }
     _startScrollDeceleration(velocity)
   }
 
   @objc func _handleScrollPan(_ gesture: UIPanGestureRecognizer) {
+    guard userScrollEnabled else { return }
     switch gesture.state {
     case .began:
       _scrollPanBegan()
@@ -1953,6 +2003,7 @@ extension MasonUIView {
   }
 
   @objc func _scrollDecelerationStep() {
+    guard userScrollEnabled, _scrollDecelerationLink != nil else { return }
     // Advance to when this frame is shown, so a late or 120Hz frame keeps the same motion.
     let now = _scrollDecelerationLink?.targetTimestamp ?? CACurrentMediaTime()
     let dt = CGFloat(min(max(now - _scrollDecelerationTime, 0), 0.05))

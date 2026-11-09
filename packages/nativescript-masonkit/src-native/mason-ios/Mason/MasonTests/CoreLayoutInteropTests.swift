@@ -396,3 +396,171 @@ final class CoreLayoutInteropTests: XCTestCase {
     XCTAssertTrue(view._scrollPanCanBegin(horizontal: false))
   }
 }
+
+// Xplat #221: input suspension is independent of overflow and programmatic seeks.
+private final class ScrollTestPan: UIPanGestureRecognizer {
+  var phase: UIGestureRecognizer.State = .cancelled
+  override var state: UIGestureRecognizer.State {
+    get { phase }
+    set { phase = newValue }
+  }
+  override func velocity(in view: UIView?) -> CGPoint { CGPoint(x: 0, y: -600) }
+  override func translation(in view: UIView?) -> CGPoint { CGPoint(x: 0, y: -80) }
+}
+
+extension CoreLayoutInteropTests {
+  private func suspensionFixture() -> MasonUIView {
+    let view = MasonUIView(mason: mason)
+    view.frame = CGRect(x: 0, y: 0, width: 100, height: 100)
+    view.isScrollContainer = true
+    view.overflowY = .Scroll
+    view.contentSize = CGSize(width: 100, height: 600)
+    return view
+  }
+
+  // Exercise the existing cancellation path on UIKit, rather than inferring it
+  // from source. Recognizer cancellation alone deliberately retains momentum.
+  func test_scrollCancellationAloneStillStartsMomentum() {
+    let view = suspensionFixture()
+    view.contentOffset = CGPoint(x: 0, y: 100)
+    view._scrollPanBegan()
+    view._handleScrollPan(ScrollTestPan())
+    XCTAssertTrue(view.dragging)
+    RunLoop.main.run(until: Date().addingTimeInterval(0.08))
+    XCTAssertGreaterThan(view.contentOffset.y, 100)
+    view.webScrollTo(0, 100, smooth: false)
+  }
+
+  // KVC exercises the public ObjC/NativeScript boundary and lets this same
+  // regression compile against the old framework: it fails on the missing API.
+  private func suspend(_ view: MasonUIView, enabled: Bool = false) -> Bool {
+    let available = view.responds(to: NSSelectorFromString("setUserScrollEnabled:"))
+    XCTAssertTrue(available, "Mason must expose userScrollEnabled to native callers")
+    guard available else { return false }
+    view.setValue(enabled, forKey: "userScrollEnabled")
+    return true
+  }
+
+  func test_scrollSuspensionStopsMomentumWithoutClampingOverscroll() {
+    for y: CGFloat in [-23.375, 100.125, 521.375] {
+      let view = suspensionFixture()
+      view.overflowX = .Scroll
+      view.contentSize.width = 600
+      view.bounds.origin = CGPoint(x: -13.375, y: y)
+      view._scrollPanBegan()
+      view._scrollPanEnded(CGPoint(x: 0, y: 600))
+      XCTAssertTrue(view.dragging)
+      guard suspend(view) else { return }
+      XCTAssertEqual(view.contentOffset.x, -13.375)
+      XCTAssertEqual(view.contentOffset.y, y)
+      XCTAssertFalse(view.dragging)
+      RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+      XCTAssertEqual(view.contentOffset.x, -13.375)
+      XCTAssertEqual(view.contentOffset.y, y, "no momentum or spring-back while suspended")
+      XCTAssertEqual(view.overflowY, .Scroll)
+      XCTAssertEqual(view.contentSize.height, 600)
+      XCTAssertTrue(suspend(view, enabled: true))
+      RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+      XCTAssertEqual(view.contentOffset.x, -13.375)
+      XCTAssertEqual(view.contentOffset.y, y, "resume must not restart cancelled motion")
+    }
+  }
+
+  func test_scrollSuspensionCancelsPanAndKeepsOtherRecognizersAndSeeks() {
+    let view = suspensionFixture()
+    let ancestor = UIView()
+    ancestor.addSubview(view)
+    let parentPan = UIPanGestureRecognizer()
+    ancestor.addGestureRecognizer(parentPan)
+    let contentTap = UITapGestureRecognizer()
+    view.addGestureRecognizer(contentTap)
+    view.keyboardDismissMode = .interactive
+    view.contentOffset = CGPoint(x: 0, y: 120)
+    view._scrollPanBegan()
+    guard suspend(view) else { return }
+    view._handleScrollPan(ScrollTestPan())
+    let lateChange = ScrollTestPan()
+    lateChange.phase = .changed
+    view._handleScrollPan(lateChange)
+    XCTAssertEqual(view.contentOffset.y, 120, "late pan updates must not move the suspended viewport")
+    XCTAssertFalse(view.dragging, "late cancellation must not start deceleration")
+    XCTAssertFalse(view._scrollPanAllowed(horizontal: false, at: .zero))
+    XCTAssertFalse(view._keyboardDismissDriver!.panGestureRecognizer.isEnabled)
+    XCTAssertTrue(parentPan.isEnabled)
+    XCTAssertTrue(contentTap.isEnabled)
+    view.webScrollTo(0, 230, smooth: false)
+    XCTAssertEqual(view.contentOffset.y, 230)
+    XCTAssertTrue(suspend(view), "repeated suspension is harmless")
+    XCTAssertTrue(suspend(view, enabled: true))
+    XCTAssertTrue(view._scrollPanAllowed(horizontal: false, at: .zero))
+    XCTAssertTrue(view._keyboardDismissDriver!.panGestureRecognizer.isEnabled)
+    view._scrollPanBegan()
+    XCTAssertTrue(view.dragging, "fresh gestures work after resume")
+    view._scrollPanEnded(.zero)
+  }
+}
+
+extension CoreLayoutInteropTests {
+  func test_scrollSuspensionBeforeLazyGestureAndDriverCreation() {
+    let view = MasonUIView(mason: mason)
+    guard suspend(view) else { return }
+    view.isScrollContainer = true
+    view.alwaysBounceVertical = true
+    view.keyboardDismissMode = .interactive
+    XCTAssertFalse(view._scrollPanCanBegin(horizontal: false))
+    XCTAssertTrue(view.gestureRecognizers!.compactMap { $0 as? UIPanGestureRecognizer }.allSatisfy { !$0.isEnabled })
+    XCTAssertTrue(suspend(view, enabled: true))
+    XCTAssertTrue(view._scrollPanCanBegin(horizontal: false))
+    XCTAssertTrue(view._keyboardDismissDriver!.panGestureRecognizer.isEnabled)
+  }
+
+  func test_scrollSuspensionDoesNotEnablePreviouslyDisabledPan() {
+    let view = suspensionFixture()
+    let pan = view.gestureRecognizers!.compactMap { $0 as? UIPanGestureRecognizer }.first!
+    pan.isEnabled = false
+    view.keyboardDismissMode = .interactive
+    view._keyboardDismissDriver!.panGestureRecognizer.isEnabled = false
+    guard suspend(view) else { return }
+    XCTAssertTrue(suspend(view, enabled: true))
+    XCTAssertFalse(pan.isEnabled, "resume restores the host pan's previous flag")
+    XCTAssertFalse(view._keyboardDismissDriver!.panGestureRecognizer.isEnabled,
+                   "resume restores the dismissal pan's previous flag")
+  }
+}
+
+extension CoreLayoutInteropTests {
+  func test_scrollSuspensionKeepsSmoothProgrammaticScrollingAvailable() {
+    let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+    let host = UIView(frame: window.bounds)
+    window.addSubview(host)
+    defer { window.isHidden = true }
+    let view = suspensionFixture()
+    host.addSubview(view)
+    let scale = NSCMason.scale
+    view.display = .Block
+    view.setSize(100 * scale, 100 * scale)
+    let content = MasonUIView(mason: mason)
+    content.setSize(100 * scale, 600 * scale)
+    view.addView(content)
+    view.computeWithSize(100 * scale, 100 * scale)
+    view.markRootComputeApplied(100 * scale, 100 * scale)
+    // Exercise queued UIKit layout on an attached, computed viewport as well
+    // as the isolated motion fixtures above.
+    view.bounds.origin.y = -23.375
+    view._scrollPanBegan()
+    view._scrollPanEnded(.zero)
+    guard suspend(view) else { return }
+    view.layoutIfNeeded()
+    RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+    XCTAssertEqual(view.contentOffset.y, -23.375, "layout without geometry changes must preserve the suspended pose")
+    XCTAssertTrue(suspend(view, enabled: true))
+    view.webScrollTo(0, 300, smooth: true)
+    guard suspend(view) else { return }
+    RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+    XCTAssertEqual(view.contentOffset.y, 300, accuracy: 0.5, "an explicit seek already in progress continues")
+    view.webScrollTo(0, 200, smooth: true)
+    RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+    XCTAssertEqual(view.contentOffset.y, 200, accuracy: 0.5, "new smooth seeks work while suspended")
+    XCTAssertFalse(view.dragging)
+  }
+}
