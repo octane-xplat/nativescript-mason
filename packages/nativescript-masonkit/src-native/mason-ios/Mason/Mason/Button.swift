@@ -11,6 +11,9 @@ import UIKit
 @objcMembers
 @objc(MasonButton)
 public class Button: UIControl,MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener, TextContainer, SingleLineTextBaselineProviding {
+  // Mirrors geometry animations onto the sibling outset-shadow layer.
+  public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+
   public let node: MasonNode
   public let mason: NSCMason
   

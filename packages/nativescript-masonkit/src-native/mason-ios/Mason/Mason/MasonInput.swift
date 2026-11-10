@@ -54,6 +54,9 @@ internal extension UIView {
 @objcMembers
 @objc(MasonInput)
 public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListener{
+  // Mirrors geometry animations onto the sibling outset-shadow layer.
+  public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+
   func onStyleChange(_ low: UInt64, _ high: UInt64) {
     let state = StateKeys(low: low, high: high)
     let color = state.contains(.color)

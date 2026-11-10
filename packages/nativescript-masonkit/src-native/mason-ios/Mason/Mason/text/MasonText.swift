@@ -261,6 +261,22 @@ public class MasonTextLayer: CALayer {
     needsDisplayOnBoundsChange = true
   }
 
+  // Animations added here move only the view; its sibling shadow layer needs them too.
+  public override func add(_ anim: CAAnimation, forKey key: String?) {
+    super.add(anim, forKey: key)
+    MasonShadowTracking.add(anim, forKey: key, on: self)
+  }
+
+  public override func removeAnimation(forKey key: String) {
+    super.removeAnimation(forKey: key)
+    MasonShadowTracking.remove(forKey: key, on: self)
+  }
+
+  public override func removeAllAnimations() {
+    super.removeAllAnimations()
+    MasonShadowTracking.remove(forKey: nil, on: self)
+  }
+
   // A text-clipped background above paints through this text.
   public override func setNeedsDisplay() {
     super.setNeedsDisplay()

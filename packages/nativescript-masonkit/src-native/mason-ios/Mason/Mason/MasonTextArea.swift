@@ -11,6 +11,9 @@ import UIKit
 @objcMembers
 public class MasonTextArea: MasonTextInput, MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener {
 
+	// Mirrors geometry animations onto the sibling outset-shadow layer.
+	public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+
 	public let node: MasonNode
 	public let mason: NSCMason
 

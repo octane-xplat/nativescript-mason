@@ -67,6 +67,22 @@ public class MasonImageLayer: CALayer {
   /// The SVG's whole object-fit box; `contentsLayer` shows the part inside the element.
   private var svgDrawSize: CGSize = .zero
 
+  // Animations added here move only the view; its sibling shadow layer needs them too.
+  public override func add(_ anim: CAAnimation, forKey key: String?) {
+    super.add(anim, forKey: key)
+    MasonShadowTracking.add(anim, forKey: key, on: self)
+  }
+
+  public override func removeAnimation(forKey key: String) {
+    super.removeAnimation(forKey: key)
+    MasonShadowTracking.remove(forKey: key, on: self)
+  }
+
+  public override func removeAllAnimations() {
+    super.removeAllAnimations()
+    MasonShadowTracking.remove(forKey: nil, on: self)
+  }
+
   /// Rasterizes the SVG at its shown size and device scale; again when that or `currentColor` changes.
   func updateSvgContents() {
     guard let doc = svg, let view = view else { return }

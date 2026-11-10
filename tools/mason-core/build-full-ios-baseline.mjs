@@ -12,8 +12,8 @@ const original = resolve(iosSourceRoot, '..');
 const stage = resolve(workspaceRoot, 'tmp/mason-full-ios-baseline');
 const derived = resolve(workspaceRoot, 'tmp/mason-full-ios-derived');
 const engine = resolve(workspaceRoot, 'dist/native/mason-core/ios/aarch64-apple-ios-sim/libMasonCore.a');
-const selected = ['CoreLayoutInteropTests', 'HTMLParserTests', 'MasonTextNodeTests', 'InputAppearanceTests', 'AuthorChildrenTests', 'AnonymousContainerRemovalTests'];
-const testFiles = ['CoreLayoutInteropTests.swift', 'MasonTests.swift', 'MasonTextNodeTests.swift', 'InputAppearanceTests.swift', 'AuthorChildrenTests.swift', 'AnonymousContainerRemovalTests.swift'];
+const selected = ['CoreLayoutInteropTests', 'HTMLParserTests', 'MasonTextNodeTests', 'InputAppearanceTests', 'AuthorChildrenTests', 'AnonymousContainerRemovalTests', 'ShadowTrackingTests'];
+const testFiles = ['CoreLayoutInteropTests.swift', 'MasonTests.swift', 'MasonTextNodeTests.swift', 'InputAppearanceTests.swift', 'AuthorChildrenTests.swift', 'AnonymousContainerRemovalTests.swift', 'ShadowTrackingTests.swift'];
 const hash = (filename) => createHash('sha256').update(readFileSync(filename)).digest('hex');
 function write(name, text) {
   const filename = resolve(stage, name);

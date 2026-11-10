@@ -9,6 +9,9 @@ import UIKit
 @objc(MasonScroll)
 @objcMembers
 public class Scroll: UIScrollView, UIScrollViewDelegate,MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener {
+  // Mirrors geometry animations onto the sibling outset-shadow layer.
+  public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+
   func onStyleChange(_ low: UInt64, _ high: UInt64) {
     if isScrollHandlingStyleChange { return }
     isScrollHandlingStyleChange = true

@@ -13,8 +13,13 @@ import UIKit
 /// gets a pre-blurred nine-slice image with the element cleared out instead: a mask
 /// would do it too, but is rendered offscreen every frame.
 class MasonShadowLayer: CALayer {
-  
+
   weak var masonStyle: MasonStyle?
+
+  /// The view layer this shadow mirrors. Set in `updateBounds`; lets
+  /// `action(forKey:)` hand back whatever implicit animation the view's layer
+  /// would use right now, so an animation block on the view moves both.
+  weak var trackedLayer: CALayer?
 
   private var casters: [CALayer] = []
 
@@ -59,8 +64,31 @@ class MasonShadowLayer: CALayer {
 
   // Disable implicit CALayer animations so the shadow snaps with its item during
   // reflow instead of trailing behind (it's repositioned every layout pass).
+  // Inside a UIView/Core Animation block the tracked view's layer supplies the
+  // block's implicit-animation action; answering it here lets Core Animation
+  // attach the same implicit animation to the shadow, so it moves WITH the
+  // view. Outside an animation block a view-backed layer answers NSNull and
+  // the write snaps to its destination.
   override func action(forKey event: String) -> CAAction? {
+    if let tracked = trackedLayer, let action = tracked.action(forKey: event), !(action is NSNull) {
+      return action
+    }
     return NSNull()
+  }
+
+  /// Animation keys whose value space is identical on this layer and the view
+  /// layer, so an animation added to the view's layer can be replayed on the
+  /// shadow. `bounds`, `position` and `anchorPoint` are excluded: the expanded
+  /// frame carries the shadow's padding, so absolute values from the view layer
+  /// would land wrong — moves through those keys still track via `action(forKey:)`,
+  /// whose implicit actions are delta-based and mirror correctly.
+  static func mirrorsAnimations(forKey key: String) -> Bool {
+    switch key {
+    case "transform", "zPosition", "opacity":
+      return true
+    default:
+      return key.hasPrefix("transform.")
+    }
   }
   
   private func resolveOutsetShadows() -> [BoxShadow] {
@@ -78,6 +106,7 @@ class MasonShadowLayer: CALayer {
   /// The layer lives in the superview's layer, as a sibling below the view.
   func updateBounds(viewBounds: CGRect, viewLayer: CALayer) {
     guard let style = masonStyle else { return }
+    trackedLayer = viewLayer
 
     let outsetShadows = resolveOutsetShadows()
     if outsetShadows.isEmpty {
@@ -85,7 +114,11 @@ class MasonShadowLayer: CALayer {
       return
     }
 
-    isHidden = false
+    // Render state a sibling can't inherit stays glued to the view: a hidden or
+    // fading element keeps a matching shadow.
+    isHidden = viewLayer.isHidden
+    if opacity != viewLayer.opacity { opacity = viewLayer.opacity }
+    if zPosition != viewLayer.zPosition { zPosition = viewLayer.zPosition }
 
     // Calculate max shadow expansion
     var maxExpand: CGFloat = 0
@@ -321,5 +354,39 @@ class MasonShadowLayer: CALayer {
       bottomRight: adjustCorner(radius.bottomRight),
       bottomLeft: adjustCorner(radius.bottomLeft)
     )
+  }
+}
+
+/// The outset shadow is a sibling in the superlayer, so animations added to a
+/// view's layer move only the view. A view's backing layer forwards geometry
+/// animations here so the shadow animates alongside (view.animate, keyframes,
+/// UIKit transitions) instead of waiting for the model value at the end.
+enum MasonShadowTracking {
+  static func add(_ anim: CAAnimation, forKey key: String?, on layer: CALayer) {
+    (layer.delegate as? MasonElement)?.style.forwardShadowAnimation(anim, forKey: key)
+  }
+
+  static func remove(forKey key: String?, on layer: CALayer) {
+    (layer.delegate as? MasonElement)?.style.forwardShadowAnimationRemoval(forKey: key)
+  }
+}
+
+/// Backing layer for Mason views that can carry a box-shadow but need no other
+/// custom layer behaviour. Views with their own layer class forward through
+/// `MasonShadowTracking` directly.
+class MasonShadowTrackingLayer: CALayer {
+  override func add(_ anim: CAAnimation, forKey key: String?) {
+    super.add(anim, forKey: key)
+    MasonShadowTracking.add(anim, forKey: key, on: self)
+  }
+
+  override func removeAnimation(forKey key: String) {
+    super.removeAnimation(forKey: key)
+    MasonShadowTracking.remove(forKey: key, on: self)
+  }
+
+  override func removeAllAnimations() {
+    super.removeAllAnimations()
+    MasonShadowTracking.remove(forKey: nil, on: self)
   }
 }

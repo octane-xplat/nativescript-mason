@@ -2373,6 +2373,22 @@ final class MasonViewLayer: CALayer {
     }
   }
 
+  // Animations added here move only the view; its sibling shadow layer needs them too.
+  override func add(_ anim: CAAnimation, forKey key: String?) {
+    super.add(anim, forKey: key)
+    MasonShadowTracking.add(anim, forKey: key, on: self)
+  }
+
+  override func removeAnimation(forKey key: String) {
+    super.removeAnimation(forKey: key)
+    MasonShadowTracking.remove(forKey: key, on: self)
+  }
+
+  override func removeAllAnimations() {
+    super.removeAllAnimations()
+    MasonShadowTracking.remove(forKey: nil, on: self)
+  }
+
   override func display() {
     (delegate as? MasonUIView)?.style.refreshShadowMode(self)
     if let view = delegate as? MasonUIView, view.applyLayerPaintIfEligible() {

@@ -12,7 +12,10 @@ import UIKit
 @objc(MasonList)
 @objcMembers
 public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSourcePrefetching {
-  
+
+  // Mirrors geometry animations onto the sibling outset-shadow layer.
+  public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+
   public var delegate: MasonListDelegate?
   
   @objc(MasonListDelegate)

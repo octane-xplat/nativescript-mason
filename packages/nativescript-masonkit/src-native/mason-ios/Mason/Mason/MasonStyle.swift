@@ -3285,6 +3285,9 @@ public class MasonStyle: NSObject {
   }()
   private var shadowLayerAdded = false
   private weak var shadowLayerParent: CALayer?
+  private var shadowGeometryObservers: [NSKeyValueObservation] = []
+  private weak var shadowObservedLayer: CALayer?
+  private var shadowObservedBoundsSize: CGSize = .zero
 
   /// An opaque color fills the whole border box, hiding whatever lies under the element.
   internal var paintsOpaqueBorderBox: Bool {
@@ -3324,6 +3327,7 @@ public class MasonStyle: NSObject {
     // it; hosted in the superview it would escape the mask, so it is hidden instead.
     guard hasOutsetShadows, !isMasked else {
       if shadowLayerAdded { mShadowLayer.isHidden = true }
+      stopShadowGeometryObservation()
       return
     }
     mShadowLayer.isHidden = false
@@ -3342,12 +3346,70 @@ public class MasonStyle: NSObject {
       shadowLayerParent = host
     }
 
+    if shadowObservedLayer !== view.layer {
+      shadowGeometryObservers.forEach { $0.invalidate() }
+      shadowGeometryObservers.removeAll()
+      // The sibling shadow can't inherit the view layer's geometry: transform,
+      // center and visibility writes bypass layout entirely, so mirror them.
+      observeShadowGeometry(\.position, on: view)
+      observeShadowGeometry(\.transform, on: view)
+      observeShadowGeometry(\.anchorPoint, on: view)
+      observeShadowGeometry(\.zPosition, on: view)
+      observeShadowGeometry(\.isHidden, on: view)
+      observeShadowGeometry(\.opacity, on: view)
+      // A scrolled view's bounds.origin churns every frame; resync only on size.
+      shadowObservedBoundsSize = view.bounds.size
+      shadowGeometryObservers.append(view.layer.observe(\.bounds, options: []) { [weak self, weak view] _, _ in
+        guard let self = self, let view = view, view.bounds.size != self.shadowObservedBoundsSize else { return }
+        self.shadowObservedBoundsSize = view.bounds.size
+        self.syncTrackedShadowGeometry(view)
+      })
+      shadowObservedLayer = view.layer
+    }
+
     mShadowLayer.updateBounds(viewBounds: viewBounds, viewLayer: view.layer)
+  }
+
+  /// Re-run the shadow sync for a geometry change that bypassed layout.
+  private func syncTrackedShadowGeometry(_ view: UIView) {
+    let sync = { [weak self] in self?.syncShadowLayer(view, viewBounds: CGRect(origin: .zero, size: view.bounds.size)) }
+    if Thread.isMainThread { sync() } else { DispatchQueue.main.async { _ = sync() } }
+  }
+
+  /// One geometry key on the view's layer. Any change re-runs the shadow sync —
+  /// inside an animation block the shadow then inherits the same animation.
+  private func observeShadowGeometry<T>(_ keyPath: WritableKeyPath<CALayer, T>, on view: UIView) {
+    shadowGeometryObservers.append(view.layer.observe(keyPath, options: []) { [weak self, weak view] _, _ in
+      guard let self = self, let view = view else { return }
+      self.syncTrackedShadowGeometry(view)
+    })
+  }
+
+  /// The sibling outset shadow isn't a sublayer of the view, so animations
+  /// added to the view's layer can't reach it; the backing layer forwards them.
+  internal func forwardShadowAnimation(_ anim: CAAnimation, forKey key: String?) {
+    guard shadowLayerAdded, !mShadowLayer.isHidden else { return }
+    let keyPath = (anim as? CAPropertyAnimation)?.keyPath
+    let mirrorKey = keyPath ?? key
+    guard let mirrorKey = mirrorKey, MasonShadowLayer.mirrorsAnimations(forKey: mirrorKey) else { return }
+    mShadowLayer.add(anim, forKey: key ?? mirrorKey)
+  }
+
+  internal func forwardShadowAnimationRemoval(forKey key: String?) {
+    guard shadowLayerAdded else { return }
+    if let key = key { mShadowLayer.removeAnimation(forKey: key) } else { mShadowLayer.removeAllAnimations() }
+  }
+
+  private func stopShadowGeometryObservation() {
+    shadowGeometryObservers.forEach { $0.invalidate() }
+    shadowGeometryObservers.removeAll()
+    shadowObservedLayer = nil
   }
   
   /// Detach the outset-shadow layer (it lives in the superview's layer, so
   /// removing the child alone leaves a ghost shadow). Call on view removal.
   internal func removeShadowLayer() {
+    stopShadowGeometryObservation()
     if shadowLayerAdded {
       mShadowLayer.removeFromSuperlayer()
       shadowLayerAdded = false
@@ -3359,6 +3421,7 @@ public class MasonStyle: NSObject {
   /// Reset shadow-layer bookkeeping when the layer was pulled externally.
   /// Idempotent; does NOT touch the layer (the caller already removed it).
   internal func markShadowLayerDetached() {
+    stopShadowGeometryObservation()
     shadowLayerAdded = false
     shadowLayerParent = nil
   }
