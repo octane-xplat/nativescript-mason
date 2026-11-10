@@ -15,15 +15,15 @@ The beta ships arm64 iOS device/Simulator and Android arm64-v8a artifacts.
 The raw source directory is not an installable plugin. Do not install core and full
 MasonKit in the same app: their native class and library names overlap.
 
-## iOS user-scroll suspension in source builds
+## iOS user-scroll suspension
 
 The native `MasonUIView.userScrollEnabled` flag cancels user pans and momentum
 without changing the exact offset or overflow. Programmatic seeks remain
 available. It defaults to `true`; restoring it allows fresh gestures. Apply it
 to each created viewport whose input should be suspended, on the main thread.
 See [the scrolling contract](../../docs/guide/scrolling.md#suspending-user-scrolling-on-ios).
-This API requires rebuilding the native dependency from this source revision;
-the published `1.0.0-beta.7` binary does not include it.
+Published binaries include this API starting with `1.0.0-beta.8`; earlier
+releases require rebuilding the native dependency from source.
 
 ## Shared iOS font support
 
