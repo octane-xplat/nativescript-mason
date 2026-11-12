@@ -247,3 +247,29 @@ Actual iOS/Android inset dispatch and layout remain unqualified. This resolver
 covers Mason style buffers; it does not add `env()` support to ordinary
 NativeScript controls or media queries. Xplat's qualification warning remains
 until native layout is verified.
+
+## Temporary paint presentation
+
+`ViewBase.createPaintPresentation()` acquires one temporary radius/shadow owner.
+Use it for layout-projection correction without replacing authored NativeScript
+style values. `read()` returns the base paint, `write()` replaces the temporary
+correction, and `clear()` restores values still owned by the handle. Changes
+made through Mason Style setters are retained, including authored writes equal
+to the displayed correction. Value and write revision must both match before
+restoration. Dispose the handle before detaching its
+consumer; acquiring a second handle for the same view throws.
+
+```ts
+const presentation = view.createPaintPresentation();
+const base = presentation.read();
+presentation.write({ borderRadius: '40px', boxShadow: base.boxShadow });
+// End projection or restore before measuring.
+presentation.clear();
+// Consumer teardown; repeated disposal is safe.
+presentation.dispose();
+```
+
+This is a JavaScript/declaration API over the existing native paint engine.
+It requires no new Swift/Kotlin ABI. It is not in the original beta.8 tarball;
+consumers need the source change or the Octane Xplat beta.8 patch. It does not
+add new clipping, nonuniform corner precision, or multiple-shadow correction.

@@ -1,3 +1,4 @@
+import { recordPaintWrite } from './paint-presentation';
 import { layout as coreLayout } from '@nativescript/core/utils';
 import { cssUnits } from './units';
 import { displayDensity, masonLayout } from './display-density';
@@ -6232,6 +6233,7 @@ export class Style {
   }
 
   set borderRadius(value: string) {
+    recordPaintWrite(this, 'borderRadius');
     value = this.coerceCssStringValue(value);
     if ((__ANDROID__ || __APPLE__) && this.nativeView && !this._pseudo && this._writeBorderRadius(value, deviceScale())) {
       return;
@@ -6247,6 +6249,7 @@ export class Style {
 
   /** One corner from a core length (dip number or `{ value, unit }`) without the string round trip; false when it needs one. */
   _writeCornerLength(corner: number, value: unknown, scale = deviceScale()): boolean {
+    recordPaintWrite(this, 'borderRadius');
     let type = 0;
     let amount: number;
     if (typeof value === 'number') {
@@ -6278,6 +6281,7 @@ export class Style {
 
   /** Writes one corner from plain CSS (`8px`, `50%`, `8px 4px`); false when the value needs the full parser. */
   _writeCornerCss(corner: number, css: string, scale = deviceScale()): boolean {
+    recordPaintWrite(this, 'borderRadius');
     if (!this.nativeView || this._pseudo || !this.style_view) return false;
     const t = fastRadiusTokens(css, scale);
     if (!t || t.length < 1 || t.length > 2) return false;
@@ -6317,6 +6321,7 @@ export class Style {
   }
 
   _writeCornerRadius(corner: number, radius: readonly [string, string], shorthand: string, scale = deviceScale()): boolean {
+    recordPaintWrite(this, 'borderRadius');
     if (!this.nativeView || this._pseudo || !this.style_view) return false;
     const h = fastRadiusTokens(radius[0], scale);
     const v = radius[1] === radius[0] ? h : fastRadiusTokens(radius[1], scale);
@@ -6731,6 +6736,7 @@ export class Style {
   }
 
   set boxShadow(value: string) {
+    recordPaintWrite(this, 'boxShadow');
     value = this.coerceCssStringValue(value);
     this.setPseudoCssStringValue(
       'box-shadow',

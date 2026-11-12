@@ -48,6 +48,7 @@ export { Scroll } from './scroll';
 export { ViewBase, Event } from './common';
 export type { ScrollBehavior, ScrollLogicalPosition, ScrollToOptions, ScrollIntoViewOptions } from './common';
 export { Style } from './style';
+export type { PaintPresentation, PaintSnapshot } from './paint-presentation';
 export { setCssEnvironment, clearCssEnvironment, bindCssEnvironment, refreshCssEnvironment } from './css-environment';
 export type { CssSafeAreaInsets, CssEnvironmentHost, CssEnvironmentSource } from './css-environment';
 export { setCssDiagnostics, getCssDiagnostics, clearCssDiagnostics, formatCssDiagnostics, cssDiagnosticsEnabled } from './diagnostics';

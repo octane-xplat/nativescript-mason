@@ -553,3 +553,5 @@ export declare function setBoxShadowRenderMode(mode: BoxShadowRenderMode): void;
  * useful when visually comparing the two backends at equal fidelity.
  */
 export declare function setBoxShadowSoftwareRasterScale(scale: number | null): void;
+
+export type { PaintPresentation, PaintSnapshot } from './paint-presentation';

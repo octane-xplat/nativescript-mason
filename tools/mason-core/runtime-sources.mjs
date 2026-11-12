@@ -209,17 +209,29 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
     visit(member);
     if (delegatesToSetter) delegates.push(setterName(member));
   }
-  const gate = "        if (typeof value === 'number') {";
-  if (output.split(gate).length !== 2) throw new Error('Review core environment number gate.');
-  output = output.replace(gate,
-    `        const resolved = environmentDelegates.has(name) ? value :
+  // Scope the adapter to its top-level wrapper. Emitted JS changes indentation
+  // and other setters also contain numeric gates; neither identifies ownership.
+  const adapted = ts.createSourceFile('style.ts', output, ts.ScriptTarget.Latest, true);
+  const wrappers = adapted.statements.filter((node) => ts.isBlock(node) &&
+    node.statements.some((statement) => ts.isVariableStatement(statement) &&
+      statement.declarationList.declarations.some((declaration) =>
+        ts.isIdentifier(declaration.name) && declaration.name.text === 'proto' &&
+        declaration.initializer?.getText(adapted).includes('Style.prototype'))));
+  if (wrappers.length !== 1) throw new Error('Review core environment style wrapper.');
+  const wrapper = wrappers[0];
+  let adapter = wrapper.getText(adapted);
+  const gate = "if (typeof value === 'number') {";
+  if (adapter.split(gate).length !== 2) throw new Error('Review core environment number gate.');
+  adapter = adapter.replace(gate,
+    `const resolved = environmentDelegates.has(name) ? value :
           environmentStyleValue(this, name, value);
         if (typeof resolved === 'number') {`);
   const call = 'set.call(this, value);';
-  if (output.split(call).length !== 3) throw new Error('Review core environment style adapter.');
-  output = output.replaceAll(call, 'set.call(this, resolved);');
-  output = output.replace('  const proto = Style.prototype',
-    `  const environmentDelegates = new Set(${JSON.stringify(delegates)});\n  const proto = Style.prototype`);
+  if (adapter.split(call).length !== 3) throw new Error('Review core environment style adapter.');
+  adapter = adapter.replaceAll(call, 'set.call(this, resolved);');
+  adapter = adapter.replace('const proto = Style.prototype',
+    `const environmentDelegates = new Set(${JSON.stringify(delegates)});\n  const proto = Style.prototype`);
+  output = output.slice(0, wrapper.getStart(adapted)) + adapter + output.slice(wrapper.end);
   for (const name of ['padding', 'margin', 'inset']) {
     const signature = `set ${name}Css(value`;
     const node = style.members.find((member) => ts.isSetAccessorDeclaration(member) && nameOf(member, file) === `${name}Css`);

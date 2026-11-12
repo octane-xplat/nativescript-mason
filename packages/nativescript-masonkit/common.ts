@@ -1,3 +1,4 @@
+import { createPaintPresentation, type PaintPresentation } from './paint-presentation';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import {
@@ -514,6 +515,17 @@ export function setWindowsInnerHTML(build: (view: any, html: string) => void) {
 }
 
 export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
+  /** Acquire temporary radius/shadow presentation without changing authored styles.
+   * One owner per view. Dispose before detaching or replacing the consumer. */
+  createPaintPresentation(): PaintPresentation {
+    return createPaintPresentation(this, () => {
+      if (!('_styleHelper' in this) || !(this._styleHelper instanceof MasonStyle)) {
+        throw new Error('Mason: paint presentation requires a Mason style owner');
+      }
+      return this._styleHelper;
+    });
+  }
+
   _children: (NSView | { text?: string } | TextNode)[] = [];
   [isMasonView_] = false;
 
