@@ -1349,6 +1349,9 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   /** Lay out the non-Mason views in this root's subtree from the frames Mason set. */
   _masonLayoutForeignDescendants(): void {
     if (!__APPLE__) return;
+    // Let UIKit refresh descendant safe areas after Mason changes their frames.
+    // Core's foreign-view pass must not clip against the previous geometry.
+    this.nativeViewProtected?.layoutIfNeeded();
     const visit = (view: any) => {
       view.eachChildView((child: any) => {
         if (child[isMasonView_]) {
