@@ -69,9 +69,10 @@ try {
     'panel-helpers.windows.js', 'scroll/index.windows.js', 'svg-path.windows.js',
     'tree/index.windows.js', 'utils/index.windows.js', 'view/index.windows.js',
   ];
-  assert.equal(javascript.length, 34 + windowsRuntime.length);
-  for (const name of windowsRuntime) {
-    assert.ok(javascript.some((entry) => entry.name === name), `Missing Windows runtime: ${name}`);
+  assert.equal(javascript.length, 35 + windowsRuntime.length);
+  assert.ok(existsSync(resolve(root, 'paint-presentation.d.ts')), 'Missing public paint declarations');
+  for (const name of [...windowsRuntime, 'paint-presentation.js']) {
+    assert.ok(javascript.some((entry) => entry.name === name), `Missing packed runtime: ${name}`);
   }
   for (const { name } of javascript) {
     const source = readFileSync(resolve(root, name), 'utf8');
