@@ -254,10 +254,16 @@ until native layout is verified.
 Use it for layout-projection correction without replacing authored NativeScript
 style values. `read()` returns the base paint, `write()` replaces the temporary
 correction, and `clear()` restores values still owned by the handle. Changes
-made through Mason Style setters are retained, including authored writes equal
+made through the view’s ordinary NativeScript style setters are retained,
+including authored writes equal
 to the displayed correction. Value and write revision must both match before
 restoration. Dispose the handle before detaching its
 consumer; acquiring a second handle for the same view throws.
+
+Use `view.style` for authored updates while a handle is active. Direct native
+writes or writes through an independently created `Style` wrapper must not race
+the handle; those writers are outside this ownership contract. Read-only
+wrappers remain useful for diagnostics.
 
 ```ts
 const presentation = view.createPaintPresentation();
