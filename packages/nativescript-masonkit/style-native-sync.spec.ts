@@ -4,6 +4,8 @@ vi.mock('./fonts', () => ({ pickFontFamily: () => undefined }));
 
 import { styleUnderTest } from '../../tools/testing/mason-test-kit/style-under-test';
 import { isMasonView_ } from './symbols';
+import { styleKey } from '../../tools/testing/mason-test-kit/style-keys';
+import { displayDensity } from './display-density';
 
 // Exercise the real platform dispatch with a live JS buffer; native geometry
 // and cache invalidation are covered by the Swift/Kotlin tests.
@@ -105,6 +107,32 @@ describe('native style dispatch for ordinary views', () => {
     expect(write.mock.invocationCallOrder[0]).toBeLessThan(directSync.mock.invocationCallOrder[0]);
     expect(directSync).toHaveBeenCalledExactlyOnceWith(...words);
     expect(sync).not.toHaveBeenCalled();
+  });
+
+  it.runIf(__APPLE__ || __ANDROID__)('reads native numeric radii without relying on a wrapper CSS cache', () => {
+    const { style, view } = styleUnderTest();
+    const css = { borderRadius: '' };
+    const scale = __ANDROID__ ? displayDensity() : 1;
+    Reflect.set(style, 'nativeView', { style: css });
+    if (__ANDROID__) {
+      vi.stubGlobal('org', { nativescript: { mason: { masonkit: {
+        NodeHelper: { getShared: () => ({ getBorderRadius: () => css.borderRadius }) },
+      } } } });
+    }
+    for (const corner of ['TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT']) {
+      for (const axis of ['X', 'Y']) {
+        view.setFloat32(styleKey(`BORDER_RADIUS_${corner}_${axis}_VALUE`), 40 * scale, true);
+      }
+    }
+    expect(style.borderRadius).toBe('40px');
+    for (const corner of ['TOP_LEFT', 'TOP_RIGHT', 'BOTTOM_RIGHT', 'BOTTOM_LEFT']) {
+      for (const axis of ['X', 'Y']) {
+        view.setFloat32(styleKey(`BORDER_RADIUS_${corner}_${axis}_VALUE`), 30 * scale, true);
+      }
+    }
+    expect(style.borderRadius).toBe('30px');
+    css.borderRadius = '25%';
+    expect(style.borderRadius).toBe('25%');
   });
 
   it('forwards every dirty word as int32 without combining them into a JS number', () => {

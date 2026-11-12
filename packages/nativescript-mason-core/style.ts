@@ -6214,11 +6214,14 @@ export class Style {
     }
     if (this._borderRadiusCss === null) this._borderRadiusCss = this._radiusCssFromBuffer();
     if (__ANDROID__) {
-      return this._borderRadiusCss ?? nodeHelper().getBorderRadius(this.nativeView);
+      const css = this._borderRadiusCss ?? nodeHelper().getBorderRadius(this.nativeView);
+      // Fast numeric writes update the style buffer without a cached CSS string.
+      return css || (this.style_view ? this._radiusCssFromBuffer() : '');
     }
 
     if (__APPLE__) {
-      return this._borderRadiusCss ?? this.appleStyle.borderRadius;
+      const css = this._borderRadiusCss ?? this.appleStyle.borderRadius;
+      return css || (this.style_view ? this._radiusCssFromBuffer() : '');
     }
 
     if (__WINDOWS__ && this.style_view) {
