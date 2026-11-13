@@ -90,6 +90,7 @@ manifest.masonCorePrototype = {
 // Match pnpm pack's manifest serialization so the inventory survives packing.
 writeFileSync(resolve(output, 'package.json'), JSON.stringify(manifest, null, 2));
 copyFileSync(resolve(workspaceRoot, 'packages/nativescript-mason-core/README.md'), resolve(output, 'README.md'));
+copyFileSync(resolve(coreSourceRoot, 'CHANGELOG.md'), resolve(output, 'CHANGELOG.md'));
 // Hash every shipped file, including resource/privacy bundles and dependency headers.
 function files(directory) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

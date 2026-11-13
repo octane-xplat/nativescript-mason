@@ -82,6 +82,8 @@ Application.run({
 
 ### UIKit material layout roots (iOS)
 
+Available in `1.0.0-beta.10` for iOS.
+
 `View.materialViewClass` creates a Mason container whose native root is a `UIVisualEffectView`. It defaults to block layout; its normal style selects flex or grid. Children are native subviews of the effect's `contentView`. A decoration view paints the same node's box styles without owning another layout node. The caller owns the effect and its updates.
 
 ```ts

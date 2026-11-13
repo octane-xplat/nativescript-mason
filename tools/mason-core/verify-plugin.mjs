@@ -50,8 +50,11 @@ try {
     assert.equal(createHash('sha256').update(readFileSync(resolve(root, name))).digest('hex'), sha256, name);
   }
   for (const name of [
+    'CHANGELOG.md',
+    'view/index.ios.js', 'view/index.d.ts', 'typings/objc!MasonCore.d.ts',
     'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/MasonCore',
     'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/MasonCore',
+    'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/Headers/MasonCore-Swift.h',
     'platforms/ios/include/module.modulemap',
     'platforms/ios/Resources/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
     'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/SDWebImage_SDWebImage.bundle/PrivacyInfo.xcprivacy',
@@ -62,6 +65,10 @@ try {
     'platforms/windows/x64/NativeScript.Mason.dll',
     'platforms/windows/x64/NativeScript.Mason.winmd',
   ]) assert.ok(existsSync(resolve(root, name)), `Missing native plugin input: ${name}`);
+  assert.match(readFileSync(resolve(root, 'view/index.ios.js'), 'utf8'), /static get materialViewClass\(\)\s*\{\s*return MaterialView;\s*\}/);
+  assert.match(readFileSync(resolve(root, 'view/index.d.ts'), 'utf8'), /static readonly materialViewClass: typeof View;/);
+  assert.match(readFileSync(resolve(root, 'typings/objc!MasonCore.d.ts'), 'utf8'), /declare class MasonMaterialUIView extends UIVisualEffectView/);
+  assert.match(readFileSync(resolve(root, 'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/Headers/MasonCore-Swift.h'), 'utf8'), /@interface MasonMaterialUIView : UIVisualEffectView/);
   assert.equal(manifest.nativescript.platforms.windows, '0.1.0');
   const javascript = inventory.filter(({ name }) => name.endsWith('.js'));
   const windowsRuntime = [
