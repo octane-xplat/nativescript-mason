@@ -645,6 +645,7 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
     context.restoreGState()
   }
 
+  private let paintsSharedNode: Bool
   public let node: MasonNode
   public let mason: NSCMason
 
@@ -810,12 +811,13 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
   // Keeps fixed boxes on their root when it moves; returns early if there are none.
   public override var frame: CGRect {
     didSet {
-      if frame.origin != oldValue.origin { MasonPositioning.rootDidMove(self) }
+      if !paintsSharedNode && frame.origin != oldValue.origin { MasonPositioning.rootDidMove(self) }
     }
   }
 
   public override func layoutSubviews() {
     super.layoutSubviews()
+    guard !paintsSharedNode else { return }
     // Skip layout during scroll steps — bounds.origin changes only shift the
     // visible window, not child positions.
     guard !_isScrolling else { return }
@@ -887,15 +889,18 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
     }
   }
 
-  init(mason doc: NSCMason) {
-    node = doc.createNode()
+  init(mason doc: NSCMason, painting sharedNode: MasonNode? = nil) {
+    paintsSharedNode = sharedNode != nil
+    node = sharedNode ?? doc.createNode()
     mason = doc
     super.init(frame: .zero)
     isOpaque = false
     setComputeCache(.init(width: -2, height: -2))
     computeCacheDirty = false
-    node.view = self
-    style.setStyleChangeListener(listener: self)
+    if !paintsSharedNode {
+      node.view = self
+      style.setStyleChangeListener(listener: self)
+    }
     // Redraw bg/border when bounds.origin shifts during scroll.
     contentMode = .redraw
     // Mason positions children itself and doesn't use layout margins.
@@ -2397,4 +2402,95 @@ final class MasonViewLayer: CALayer {
     }
     super.display()
   }
+}
+
+
+/// A native host can place one Mason node's children inside UIKit's content view.
+internal protocol MasonNativeChildHosting: AnyObject {
+  var layoutChildHost: UIView { get }
+  var layoutChildOffset: Int { get }
+}
+
+/// The UIKit effect itself is the native layout root. The decoration shares its
+/// node and style; it never measures, adopts children, or creates another node.
+@objcMembers
+@objc(MasonMaterialUIView)
+public final class MasonMaterialUIView: UIVisualEffectView, MasonElement, MasonElementObjc, MasonEventTarget, StyleChangeListener, MasonNativeChildHosting {
+  public let node: MasonNode
+  public let mason: NSCMason
+  public var uiView: UIView { self }
+  public var style: MasonStyle { node.style }
+  private var decoration: MasonUIView!
+  private var materialCornerRadii: [CGFloat] = []
+  internal var layoutChildHost: UIView { contentView }
+  internal var layoutChildOffset: Int { 1 }
+
+  init(mason doc: NSCMason) {
+    mason = doc
+    node = doc.createNode()
+    super.init(effect: nil)
+    node.view = self
+    style.setStyleChangeListener(listener: self)
+    style.display = .Block
+    setComputeCache(.init(width: -2, height: -2))
+    computeCacheDirty = false
+    decoration = MasonUIView(mason: doc, painting: node)
+    decoration.isUserInteractionEnabled = false
+    decoration.isAccessibilityElement = false
+    decoration.accessibilityElementsHidden = true
+    contentView.addSubview(decoration)
+    isUserInteractionEnabled = true
+    insetsLayoutMarginsFromSafeArea = false
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  func onStyleChange(_ low: UInt64, _ high: UInt64) {
+    decoration?.invalidateDrawFlags()
+    setNeedsLayout()
+    MasonNode.invalidateDescendantTextViews(inheritedBy: self.node, low, high)
+  }
+
+  public override func layoutSubviews() {
+    super.layoutSubviews()
+    autoComputeIfRoot()
+    decoration.frame = CGRect(origin: .zero, size: bounds.size)
+    decoration.invalidateDrawFlags()
+    // Native corner shaping is independent of CSS overflow clipping. The
+    // standard applyBox path applies clipping directly to this effect view.
+    if #available(iOS 26.0, *) {
+      let border = style.mBorderRender
+      let box = CGRect(origin: .zero, size: bounds.size)
+      border.resolve(for: box)
+      let r = border.radius
+      let next = [r.topLeft, r.topRight, r.bottomLeft, r.bottomRight].map { $0.resolved(rect: box).x }
+      guard next != materialCornerRadii else { return }
+      materialCornerRadii = next
+      cornerConfiguration = .corners(
+        topLeftRadius: .fixed(Double(r.topLeft.resolved(rect: box).x)),
+        topRightRadius: .fixed(Double(r.topRight.resolved(rect: box).x)),
+        bottomLeftRadius: .fixed(Double(r.bottomLeft.resolved(rect: box).x)),
+        bottomRightRadius: .fixed(Double(r.bottomRight.resolved(rect: box).x)))
+    }
+  }
+
+  public override var frame: CGRect {
+    didSet {
+      if frame.origin != oldValue.origin { MasonPositioning.rootDidMove(self) }
+    }
+  }
+
+  public func addView(_ view: UIView) { addView(view, at: -1) }
+
+  public func addView(_ view: UIView, at index: Int) {
+    let child = mason.nodeForView(view)
+    if child.parent === node {
+      if view.superview == nil { node.suppressChildOperations { contentView.addSubview(view) } }
+      return
+    }
+    node.addChildAt(child, index)
+  }
+
+  public func removeView(_ view: UIView) { _ = node.removeChild(mason.nodeForView(view)) }
+  public func removeView(at index: Int) { _ = node.removeChildAt(index: index) }
 }

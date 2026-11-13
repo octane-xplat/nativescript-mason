@@ -4,6 +4,8 @@ import { Style } from '../style';
 import { Tree } from '../tree';
 import { isMasonView_, isPlaceholder_, native_, style_ } from '../symbols';
 
+type MasonIOSLayoutView = MasonUIView | MasonMaterialUIView;
+
 /** Views with queued native inserts (see `View._addViewToNativeVisualTree`). */
 let pendingAddHosts = 0;
 
@@ -23,13 +25,22 @@ export class View extends ViewBase {
     this[isMasonView_] = true;
   }
 
-  get _view() {
-    if (!this[native_]) {
-      const view = Tree.instance.createView() as never;
-      this[native_] = view;
-      return view;
-    }
-    return this[native_] as never as MasonUIView;
+  /** UIKit effect roots inherit the same measurement and child lifecycle. */
+  static get materialViewClass(): typeof View { return MaterialView; }
+
+  protected createMasonLayoutView(): MasonIOSLayoutView {
+    return Tree.instance.createView() as never;
+  }
+
+  get _view(): MasonIOSLayoutView {
+    const existing: unknown = this[native_];
+    if (existing instanceof MasonUIView || existing instanceof MasonMaterialUIView) return existing;
+    if (existing != null) throw new Error('Expected an iOS Mason layout root.');
+    const view = this.createMasonLayoutView();
+    // Core's inherited symbol index describes property setters, not this native
+    // storage slot. Reflect preserves the existing slot without a false cast.
+    Reflect.set(this, native_, view);
+    return view;
   }
 
   get _styleHelper(): Style {
@@ -161,5 +172,15 @@ export class View extends ViewBase {
     }
     // @ts-ignore
     super._removeViewFromNativeVisualTree(view);
+  }
+}
+
+
+/** iOS material leaf: one Mason node, with UIVisualEffectView as its native root. */
+class MaterialView extends View {
+  protected createMasonLayoutView(): MasonIOSLayoutView {
+    const document = Tree.instance.native;
+    if (!(document instanceof NSCMason)) throw new Error('Expected the iOS Mason document.');
+    return document.createMaterialView();
   }
 }

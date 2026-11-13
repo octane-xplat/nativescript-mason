@@ -17,8 +17,11 @@ const devices = JSON.parse(run('xcrun', ['simctl', 'list', 'devices', '-j'], tru
 const selected = Object.values(devices.devices).flat().find((entry) => entry.udid === device);
 if (!selected || (!override && selected.name !== 'Mason core extraction')) throw new Error('Use the dedicated Mason core extraction simulator.');
 const fullBaseline = process.argv.includes('--full-baseline');
+const materialOnly = process.argv.includes('--material');
+if (fullBaseline && materialOnly) throw new Error('Choose the full baseline or material tests.');
+const materialTests = ['test_coreMaterialHostsOneFlexBoxAndNativeChildren', 'test_coreMaterialIndexedInsertionRemovalAndReplacement', 'test_coreMaterialGridBoxInsetsResizeAndIntrinsicMeasurement', 'test_coreMaterialRootKeepsDirectUIKitGroupingHierarchy', 'test_coreMaterialCornersAndOverflowStayOnTheEffectRoot'];
 const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'tmp/mason-full-ios-baseline/manifest.json'), 'utf8')) : null;
-const expectedTests = baseline?.testCount ?? 30;
+const expectedTests = materialOnly ? materialTests.length : (baseline?.testCount ?? 35);
 const products = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-derived/Build/Products' : 'tmp/mason-core-ios-derived/Build/Products');
 const plans = readdirSync(products).filter((name) => name.endsWith('.xctestrun'));
 if (plans.length !== 1) throw new Error('Build the core iOS test bundle first; expected exactly one test plan.');
@@ -33,7 +36,7 @@ try {
     'test-without-building', '-xctestrun', resolve(products, plans[0]),
     '-destination', `platform=iOS Simulator,id=${device}`,
     '-parallel-testing-enabled', 'NO', '-maximum-concurrent-test-simulator-destinations', '1',
-    ...(baseline ? baseline.tests.map(({ name }) => `-only-testing:MasonTests/${name}`) : ['-only-testing:MasonTests/CoreLayoutInteropTests']),
+    ...(materialOnly ? materialTests.map((name) => `-only-testing:MasonTests/CoreLayoutInteropTests/${name}`) : baseline ? baseline.tests.map(({ name }) => `-only-testing:MasonTests/${name}`) : ['-only-testing:MasonTests/CoreLayoutInteropTests']),
     '-resultBundlePath', bundle, '-collect-test-diagnostics', 'never',
     '-test-timeouts-enabled', 'YES', '-maximum-test-execution-time-allowance', '120',
   ], { cwd: workspaceRoot, stdio: 'inherit' });

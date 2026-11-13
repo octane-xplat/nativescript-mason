@@ -80,6 +80,34 @@ Application.run({
 });
 ```
 
+### UIKit material layout roots (iOS)
+
+`View.materialViewClass` creates a Mason container whose native root is a `UIVisualEffectView`. It defaults to block layout; its normal style selects flex or grid. Children are native subviews of the effect's `contentView`. A decoration view paints the same node's box styles without owning another layout node. The caller owns the effect and its updates.
+
+```ts
+import { Label } from '@nativescript/core';
+import { View } from '@octane-xplat/nativescript-mason-core';
+
+const MaterialView = View.materialViewClass; // iOS only
+const root = new MaterialView();
+root.ios.effect = UIBlurEffect.effectWithStyle(8); // SystemMaterial
+root.style.width = 72;
+root.style.height = 48;
+root.style.display = 'flex';
+root.style.alignItems = 'center';
+root.style.justifyContent = 'center';
+const label = new Label();
+label.text = 'Glass';
+root.addChild(label);
+```
+
+Effect changes retain the same node and children. Grouping effects use the same host class, so child effect views can remain direct children of the group's `contentView`. Native UIKit controls material rendering; this host uses circular native corner configuration on iOS 26+. Elliptical material corners and older-system material corner shaping remain gaps. Runtime tests of a material host do not qualify every effect, older OS rendering, or real child input in a consuming framework.
+
+```ts
+// Continue with the same root and child list.
+root.ios.effect = UIBlurEffect.effectWithStyle(7); // another native blur style
+```
+
 Portable helpers remain directly accessible through their file subpaths:
 
 ```ts

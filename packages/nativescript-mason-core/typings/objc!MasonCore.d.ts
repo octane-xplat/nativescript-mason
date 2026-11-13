@@ -916,6 +916,92 @@ declare const enum MasonListStyleType {
 	Decimal = 5
 }
 
+declare class MasonMaterialUIView extends UIVisualEffectView implements MasonElementObjc {
+
+	static alloc(): MasonMaterialUIView; // inherited from NSObject
+
+	static appearance(): MasonMaterialUIView; // inherited from UIAppearance
+
+	/**
+	 * @since 8.0
+	 */
+	static appearanceForTraitCollection(trait: UITraitCollection): MasonMaterialUIView; // inherited from UIAppearance
+
+	/**
+	 * @since 8.0
+	 * @deprecated 9.0
+	 */
+	static appearanceForTraitCollectionWhenContainedIn(trait: UITraitCollection, ContainerClass: typeof NSObject | null): MasonMaterialUIView; // inherited from UIAppearance
+
+	/**
+	 * @since 9.0
+	 */
+	static appearanceForTraitCollectionWhenContainedInInstancesOfClasses(trait: UITraitCollection, containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): MasonMaterialUIView; // inherited from UIAppearance
+
+	/**
+	 * @since 5.0
+	 * @deprecated 9.0
+	 */
+	static appearanceWhenContainedIn(ContainerClass: typeof NSObject | null): MasonMaterialUIView; // inherited from UIAppearance
+
+	/**
+	 * @since 9.0
+	 */
+	static appearanceWhenContainedInInstancesOfClasses(containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): MasonMaterialUIView; // inherited from UIAppearance
+
+	static new(): MasonMaterialUIView; // inherited from NSObject
+
+	readonly mason: NSCMason;
+
+	readonly debugDescription: string; // inherited from NSObjectProtocol
+
+	readonly description: string; // inherited from NSObjectProtocol
+
+	readonly hash: number; // inherited from NSObjectProtocol
+
+	readonly isProxy: boolean; // inherited from NSObjectProtocol
+
+	readonly node: MasonNode; // inherited from MasonElementObjc
+
+	readonly style: MasonStyle; // inherited from MasonElementObjc
+
+	readonly superclass: typeof NSObject; // inherited from NSObjectProtocol
+
+	readonly uiView: UIView; // inherited from MasonElementObjc
+
+	readonly  // inherited from NSObjectProtocol
+
+	addView(view: UIView): void;
+
+	addViewAt(view: UIView, index: number): void;
+
+	class(): typeof NSObject;
+
+	conformsToProtocol(aProtocol: any /* Protocol */): boolean;
+
+	isEqual(object: any): boolean;
+
+	isKindOfClass(aClass: typeof NSObject): boolean;
+
+	isMemberOfClass(aClass: typeof NSObject): boolean;
+
+	performSelector(aSelector: string): any;
+
+	performSelectorWithObject(aSelector: string, object: any): any;
+
+	performSelectorWithObjectWithObject(aSelector: string, object1: any, object2: any): any;
+
+	removeView(view: UIView): void;
+
+	removeViewAt(index: number): void;
+
+	respondsToSelector(aSelector: string): boolean;
+
+	retainCount(): number;
+
+	self(): this;
+}
+
 declare class MasonMouseEvent extends MasonEvent {
 
 	static alloc(): MasonMouseEvent; // inherited from NSObject
@@ -1145,6 +1231,8 @@ declare class MasonScroll extends UIScrollView implements MasonElementObjc, UISc
 	 * @since 9.0
 	 */
 	static appearanceWhenContainedInInstancesOfClasses(containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): MasonScroll; // inherited from UIAppearance
+
+	static layerClass(): typeof NSObject;
 
 	static new(): MasonScroll; // inherited from NSObject
 
@@ -2215,6 +2303,8 @@ declare class NSCMason extends NSObject {
 	clear(): void;
 
 	configureStyleForView(view: UIView, block: (p1: MasonStyle) => void): void;
+
+	createMaterialView(): MasonMaterialUIView;
 
 	createNode(): MasonNode;
 

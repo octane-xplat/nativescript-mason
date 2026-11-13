@@ -1242,8 +1242,9 @@ extension MasonNode {
     }
     children = next
     // Direct children, run containers included, belong to this node and are subviews here.
-    if let host = view {
-      var viewIndex = 0
+    if let view = view {
+      let host = (view as? MasonNativeChildHosting)?.layoutChildHost ?? view
+      var viewIndex = (view as? MasonNativeChildHosting)?.layoutChildOffset ?? 0
       for child in next {
         child.parent = self
         guard let childView = child.view else { continue }

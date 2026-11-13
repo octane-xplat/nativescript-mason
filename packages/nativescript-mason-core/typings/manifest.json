@@ -1,6 +1,6 @@
 {
   "androidHostSha256": "ea689c9ca63260008b2c7cdf76aa4d862b13d44014323a4ba90a09579db3e441",
-  "iosHostSha256": "ea1ddcb6bd1fc120c0048d26376e9e751ad1da96859df2df811a9f8daea230a3",
+  "iosHostSha256": "44b0c73438194095b52c610adb09c6112ebff063af413b047e58ffa9ec14995d",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
@@ -26,7 +26,7 @@
     },
     {
       "name": "objc!MasonCore.d.ts",
-      "sha256": "3ee28d4b7a437a03498c3a519f4e97269c417822300596b64c246b70b18ed247"
+      "sha256": "4990f2b7c5427c76041ab87073b18fd96e915dd59a46f83c140b1c17ce45febd"
     },
     {
       "name": "objc!FontManager.d.ts",

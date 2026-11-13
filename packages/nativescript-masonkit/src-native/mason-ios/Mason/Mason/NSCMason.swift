@@ -348,6 +348,8 @@ public class NSCMason: NSObject {
     return MasonDocument(mason: self)
   }
   
+  public func createMaterialView() -> MasonMaterialUIView { MasonMaterialUIView(mason: self) }
+
   public func createView()-> MasonUIView {
     let view = MasonUIView(mason: self)
     

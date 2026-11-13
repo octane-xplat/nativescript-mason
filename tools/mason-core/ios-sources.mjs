@@ -28,7 +28,7 @@ export function projectIosSource(name) {
   const source = new SwiftSource(nativeSource('ios', name));
   if (name === 'NSCMason.swift') {
     source.remove('htmlParser');
-    for (const node of source.nodes.filter((node) => node.kind === 'func_decl' && node.name?.startsWith('create') && !['createView()', 'createScrollView()', 'createNode()', 'createNode(measure:)'].includes(node.name))) source.edit(node);
+    for (const node of source.nodes.filter((node) => node.kind === 'func_decl' && node.name?.startsWith('create') && !['createView()', 'createMaterialView()', 'createScrollView()', 'createNode()', 'createNode(measure:)'].includes(node.name))) source.edit(node);
     source.statement('if event.type == "click" && !event.defaultPrevented');
   }
   if (name === 'MasonNode.swift') {
@@ -135,6 +135,7 @@ export function projectIosSource(name) {
       ['    if obj is TextContainer { b |= textBit }', ''],
     ],
     'MasonUIView.swift': [
+      ['    MasonNode.invalidateDescendantTextViews(inheritedBy: self.node, low, high)', ''],
       ['    MasonNode.invalidateDescendantTextViews(inheritedBy: node, low, high)', ''],
       ['    MasonNode.invalidateDescendantDefaultAttributes(node)', ''],
       ['    let hasListMarkers = self.hasListMarkers', ''],

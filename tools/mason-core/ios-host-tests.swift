@@ -274,3 +274,150 @@ extension CoreLayoutInteropTests {
     }
   }
 }
+
+extension CoreLayoutInteropTests {
+  @objc func test_coreMaterialHostsOneFlexBoxAndNativeChildren() {
+    let scale = NSCMason.scale
+    let root = mason.createMaterialView()
+    root.effect = UIBlurEffect(style: .systemMaterial)
+    XCTAssertTrue(root.node.view === root)
+    XCTAssertEqual(root.style.display, .Block)
+    root.style.display = .Flex
+    root.style.alignItems = .Center
+    root.style.justifyContent = .Center
+    root.style.size = MasonSize(.Points(72 * scale), .Points(48 * scale))
+    let child = MasonUIView(mason: mason)
+    child.setSize(24 * scale, 24 * scale)
+    root.addView(child)
+    root.computeWithSize(72 * scale, 48 * scale)
+    root.layoutIfNeeded()
+    XCTAssertTrue(child.superview === root.contentView)
+    XCTAssertEqual(root.node.children.count, 1)
+    XCTAssertEqual(child.frame, CGRect(x: 24, y: 12, width: 24, height: 24))
+    XCTAssertEqual(root.contentView.bounds.size, root.bounds.size)
+    XCTAssertNil(root.layer.mask)
+    XCTAssertFalse(root.clipsToBounds)
+    XCTAssertFalse(root.contentView.subviews[0].isUserInteractionEnabled)
+    let hit = root.hitTest(CGPoint(x: 36, y: 24), with: nil)
+    XCTAssertTrue(hit === child, "hit=\(String(describing: hit)) root=\(root.frame) content=\(root.contentView.frame) enabled=\(root.isUserInteractionEnabled)/\(root.contentView.isUserInteractionEnabled)")
+  }
+
+  @objc func test_coreMaterialIndexedInsertionRemovalAndReplacement() {
+    let root = mason.createMaterialView()
+    root.effect = UIBlurEffect(style: .systemMaterial)
+    let first = MasonUIView(mason: mason)
+    let second = MasonUIView(mason: mason)
+    let third = MasonUIView(mason: mason)
+    root.addView(first)
+    root.addView(third)
+    root.addView(second, at: 1)
+    XCTAssertEqual(root.node.children.count, 3)
+    XCTAssertTrue(root.contentView.subviews[1] === first)
+    XCTAssertTrue(root.contentView.subviews[2] === second)
+    XCTAssertTrue(root.contentView.subviews[3] === third)
+    root.removeView(second)
+    XCTAssertNil(second.superview)
+    XCTAssertNil(second.node.parent)
+    root.effect = UIBlurEffect(style: .systemThinMaterial)
+    XCTAssertTrue(first.superview === root.contentView)
+    XCTAssertTrue(third.superview === root.contentView)
+    root.removeView(first)
+    root.removeView(third)
+    XCTAssertEqual(root.node.children.count, 0)
+    XCTAssertEqual(root.contentView.subviews.count, 1)
+  }
+
+  @objc func test_coreMaterialGridBoxInsetsResizeAndIntrinsicMeasurement() {
+    let scale = NSCMason.scale
+    let root = mason.createMaterialView()
+    root.effect = UIBlurEffect(style: .systemMaterial)
+    root.style.display = .Grid
+    root.style.gridTemplateColumns = "1fr 1fr"
+    root.style.padding = MasonRect(.Points(8 * scale), .Points(8 * scale), .Points(8 * scale), .Points(8 * scale))
+    root.style.border = "2px solid red"
+    let label = UILabel()
+    label.text = "Hi"
+    root.addView(label)
+    root.style.size = MasonSize(.Points(100 * scale), .Points(60 * scale))
+    root.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertEqual(label.frame.minX, 10, accuracy: 0.5)
+    XCTAssertEqual(label.frame.minY, 10, accuracy: 0.5)
+    XCTAssertEqual(label.frame.width, 40, accuracy: 0.5)
+    root.style.size = MasonSize(.Points(200 * scale), .Points(80 * scale))
+    root.computeWithSize(200 * scale, 80 * scale)
+    XCTAssertEqual(label.frame.width, 90, accuracy: 0.5)
+    XCTAssertEqual(root.bounds.size, CGSize(width: 200, height: 80))
+    root.style.display = .Block
+    root.style.size = MasonSize(.Auto, .Auto)
+    root.computeWithSize(-2, -2)
+    let before = root.frame.size
+    label.text = "A longer dynamic material label"
+    mason.invalidateForeignView(label)
+    root.computeWithSize(-2, -2)
+    XCTAssertGreaterThan(root.frame.width, before.width)
+    XCTAssertEqual(root.frame.width, label.frame.width + 20, accuracy: 0.5)
+  }
+
+  @objc func test_coreMaterialRootKeepsDirectUIKitGroupingHierarchy() {
+    let scale = NSCMason.scale
+    let group = mason.createMaterialView()
+    let glass = mason.createMaterialView()
+    if #available(iOS 26.0, *) {
+      group.effect = UIGlassContainerEffect()
+      glass.effect = UIGlassEffect(style: .regular)
+    }
+    group.style.display = .Flex
+    group.style.alignItems = .Center
+    group.style.justifyContent = .Center
+    group.style.size = MasonSize(.Points(200 * scale), .Points(60 * scale))
+    glass.style.size = MasonSize(.Points(72 * scale), .Points(40 * scale))
+    group.addView(glass)
+    group.computeWithSize(200 * scale, 60 * scale)
+    group.layoutIfNeeded()
+    glass.layoutIfNeeded()
+    XCTAssertTrue(glass.superview === group.contentView)
+    XCTAssertTrue(glass.node.parent === group.node)
+    XCTAssertEqual(glass.frame, CGRect(x: 64, y: 10, width: 72, height: 40))
+    XCTAssertEqual(group.node.children.count, 1)
+    XCTAssertNil(group.layer.mask)
+  }
+}
+
+
+extension CoreLayoutInteropTests {
+  @objc func test_coreMaterialCornersAndOverflowStayOnTheEffectRoot() {
+    let scale = NSCMason.scale
+    let root = mason.createMaterialView()
+    root.effect = UIBlurEffect(style: .systemMaterial)
+    root.style.size = MasonSize(.Points(72 * scale), .Points(48 * scale))
+    root.style.borderRadius = "12px 8px 4px 2px"
+    root.computeWithSize(72 * scale, 48 * scale)
+    root.layoutIfNeeded()
+    XCTAssertNil(root.layer.mask)
+    XCTAssertFalse(root.clipsToBounds)
+    if #available(iOS 26.0, *) {
+      XCTAssertEqual(root.effectiveRadius(corner: .topLeft), 12, accuracy: 0.5)
+      XCTAssertEqual(root.effectiveRadius(corner: .topRight), 8, accuracy: 0.5)
+      XCTAssertEqual(root.effectiveRadius(corner: .bottomRight), 4, accuracy: 0.5)
+      XCTAssertEqual(root.effectiveRadius(corner: .bottomLeft), 2, accuracy: 0.5)
+    }
+    root.style.overflow = MasonPoint(.Hidden, .Hidden)
+    root.computeWithSize(72 * scale, 48 * scale)
+    XCTAssertTrue(root.clipsToBounds)
+    XCTAssertNotNil(root.layer.mask)
+    root.style.overflow = MasonPoint(.Visible, .Visible)
+    root.computeWithSize(72 * scale, 48 * scale)
+    XCTAssertFalse(root.clipsToBounds)
+    XCTAssertNil(root.layer.mask)
+    root.style.borderRadius = "25%"
+    for size in [Float(64), Float(128)] {
+      root.style.size = MasonSize(.Points(size * scale), .Points(size * scale))
+      root.computeWithSize(size * scale, size * scale)
+      root.setNeedsLayout()
+      root.layoutIfNeeded()
+      if #available(iOS 26.0, *) {
+        XCTAssertEqual(root.effectiveRadius(corner: .topLeft), CGFloat(size / 4), accuracy: 0.5)
+      }
+    }
+  }
+}

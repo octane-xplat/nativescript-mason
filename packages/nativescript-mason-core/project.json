@@ -190,6 +190,11 @@
       "cache": false,
       "options": { "command": "node tools/mason-core/verify-ios-host.mjs" }
     },
+    "test.host.ios.material": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": { "command": "node tools/mason-core/run-ios-tests.mjs --material" }
+    },
     "test.host.ios": {
       "executor": "nx:run-commands",
       "cache": false,

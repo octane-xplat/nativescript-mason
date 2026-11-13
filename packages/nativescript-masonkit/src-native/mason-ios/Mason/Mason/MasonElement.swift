@@ -483,10 +483,18 @@ extension MasonElement {
     }
   }
 
+  /// UIKit's contentView is transparent to the owning Mason layout tree.
+  private var hasMasonLayoutParent: Bool {
+    if MasonViewKind.isElement(uiView.superview) { return true }
+    guard let parent = node.layoutParent?.view as? MasonNativeChildHosting else { return false }
+    return uiView.superview === parent.layoutChildHost
+  }
+
   /// True when the pending setNeedsLayout is guaranteed to reach autoComputeIfRoot.
   private var autoComputeWillRun: Bool {
-    guard let view = uiView as? MasonUIView, view.window != nil, !view.isScrollingNow else { return false }
-    guard let superview = view.superview, !MasonViewKind.isElement(superview) else { return false }
+    guard uiView.window != nil, uiView is MasonUIView || uiView is MasonMaterialUIView else { return false }
+    if let view = uiView as? MasonUIView, view.isScrollingNow { return false }
+    guard let superview = uiView.superview, !hasMasonLayoutParent else { return false }
     let size = superview.bounds.size
     return size.width > 0 || size.height > 0
   }
@@ -494,7 +502,7 @@ extension MasonElement {
   /// Auto-compute layout when this is a root Mason view (parent isn't a
   /// MasonElement). Call from layoutSubviews; mirrors Android's onMeasure.
   public func autoComputeIfRoot() {
-    guard !MasonViewKind.isElement(uiView.superview) else { return }
+    guard !hasMasonLayoutParent else { return }
     guard let parentSize = uiView.superview?.bounds.size else { return }
     // Zero parent bounds (transitions, pre-Auto-Layout): skip but keep dirty
     // flags so the next real-size call recomputes instead of hitting stale cache.
@@ -555,7 +563,7 @@ extension MasonElement {
   public func markRootComputeApplied() {
     // A synchronous host measurement supersedes any provisional queued pass.
     node.nestedComputePending = false
-    guard !MasonViewKind.isElement(uiView.superview) else { return }
+    guard !hasMasonLayoutParent else { return }
     guard let parentSize = uiView.superview?.bounds.size else { return }
     _hostRootSize = .zero
     _lastAutoComputeSize = parentSize
@@ -570,7 +578,7 @@ extension MasonElement {
   public func markRootComputeApplied(_ width: Float, _ height: Float) {
     // A synchronous host measurement supersedes any provisional queued pass.
     node.nestedComputePending = false
-    guard !MasonViewKind.isElement(uiView.superview) else { return }
+    guard !hasMasonLayoutParent else { return }
     guard let parentSize = uiView.superview?.bounds.size else { return }
     _hostRootSize = CGSize(width: CGFloat(width), height: CGFloat(height))
     _lastAutoComputeSize = parentSize

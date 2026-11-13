@@ -30,7 +30,8 @@ class NodeUtils {
       return
     }
     node.suppressChildOperations {
-      parent.addSubview(view)
+      let host = (parent as? MasonNativeChildHosting)?.layoutChildHost ?? parent
+      host.addSubview(view)
     }
   }
   
@@ -39,7 +40,9 @@ class NodeUtils {
     guard let parent = node.view else { return }
     if MasonViewKind.textContainer(parent) != nil {return}
     node.suppressChildOperations {
-      parent.insertSubview(view, at: index)
+      let host = (parent as? MasonNativeChildHosting)?.layoutChildHost ?? parent
+      let offset = (parent as? MasonNativeChildHosting)?.layoutChildOffset ?? 0
+      host.insertSubview(view, at: index + offset)
     }
   }
   
@@ -50,7 +53,8 @@ class NodeUtils {
     if MasonViewKind.textContainer(parent) != nil {return}
     node.suppressChildOperations {
       // only remove if child belongs to parent
-      if(parent == view.superview){
+      let host = (parent as? MasonNativeChildHosting)?.layoutChildHost ?? parent
+      if(host == view.superview){
         view.removeFromSuperview()
       } else if let element = MasonViewKind.element(view), element.node.style.position == .Fixed {
         // Fixed views live under their containing block, not their tree parent.
