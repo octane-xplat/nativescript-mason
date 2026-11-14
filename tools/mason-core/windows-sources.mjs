@@ -15,7 +15,7 @@ export const windowsHostFiles = Object.freeze([
   'Node.h', 'Node.cpp', 'Node.idl',
   'MeasureOutput.h', 'MeasureOutput.cpp',
   'Mason.h', 'Mason.cpp', 'Mason.idl', 'MasonEnums.idl',
-  'Invalidation.h', 'LeafCommon.h', 'PanelCore.h',
+  'Invalidation.h', 'LeafCommon.h', 'PanelCore.h', 'LayoutOwnership.h',
   'View.h', 'View.cpp', 'View.idl',
   'Event.h', 'Event.cpp', 'Event.idl', 'Events.h', 'Events.cpp',
   'Element.idl',

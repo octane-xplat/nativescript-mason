@@ -92,17 +92,7 @@ namespace mason_panel
 
     inline bool HasMasonAncestor(mux::UIElement const& element)
     {
-        auto fe = element.try_as<mux::FrameworkElement>();
-        if (!fe) return false;
-        auto parent = fe.Parent();
-        while (parent)
-        {
-            if (parent.try_as<nsm::IMasonElement>()) return true;
-            auto pfe = parent.try_as<mux::FrameworkElement>();
-            if (!pfe) break;
-            parent = pfe.Parent();
-        }
-        return false;
+        return mason_ownership::ParentOf(element.try_as<mux::FrameworkElement>()) != nullptr;
     }
 
     // A ScrollViewer around a Mason panel (a scroll element): the panel's node carries the element's
@@ -181,6 +171,27 @@ namespace mason_panel
         muxc::UIElementCollection const& children, winrt::Windows::Foundation::Size const& available)
     {
         const bool isRoot = !HasMasonAncestor(self);
+        auto* rootNode = winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(node);
+        if (isRoot && mason_leaf::t_computeDepth != 0)
+        {
+            if (!rootNode->ForeignMeasurePending)
+            {
+                rootNode->ForeignMeasurePending = true;
+                mason_position::Defer(self, [weak = winrt::make_weak(self)]
+                {
+                    if (auto view = weak.get())
+                    {
+                        if (auto element = view.try_as<nsm::IMasonElement>())
+                        {
+                            auto* impl = winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(element.Node());
+                            impl->ForeignMeasurePending = false;
+                            view.InvalidateMeasure();
+                        }
+                    }
+                });
+            }
+            return rootNode->RootDesiredSize;
+        }
         // Before any child is measured: changing a TextBlock's inlines mid-measure costs far more.
         if (isRoot) mason_leaf::FlushBeforeCompute();
         mux::UIElement layer{ nullptr };
@@ -199,12 +210,16 @@ namespace mason_panel
             mason_visual::g_computeScale = mason_visual::RasterScale(self);
             const bool wf = std::isfinite(available.Width);
             const bool hf = std::isfinite(available.Height);
-            node.ComputeSize(
-                wf ? nsm::AvailableSpaceType::Definite : nsm::AvailableSpaceType::MaxContent, available.Width,
-                hf ? nsm::AvailableSpaceType::Definite : nsm::AvailableSpaceType::MaxContent, available.Height);
+            {
+                mason_leaf::ComputeScope computing;
+                node.ComputeSize(
+                    wf ? nsm::AvailableSpaceType::Definite : nsm::AvailableSpaceType::MaxContent, available.Width,
+                    hf ? nsm::AvailableSpaceType::Definite : nsm::AvailableSpaceType::MaxContent, available.Height);
+            }
+            rootNode->RootDesiredSize = rootNode->LayoutSize();
             mason_leaf::FlushAfterCompute();
             if (layer) mason_position::MeasureLayer(layer, available);
-            return winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(node)->LayoutSize();
+            return rootNode->RootDesiredSize;
         }
 
         // The root's compute sizes a nested panel, after this measure. Reporting the last layout's size

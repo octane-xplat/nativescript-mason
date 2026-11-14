@@ -8,6 +8,7 @@
 #include <winrt/Microsoft.UI.Xaml.Media.h>
 #include <winrt/NativeScript.Mason.h>
 #include "LeafCommon.h"
+#include "LayoutOwnership.h"
 #include "Node.h"
 #include "StyleKeys.h"
 #include <unordered_map>
@@ -31,8 +32,7 @@ namespace mason_leaf
                 cur.InvalidateArrange();
                 top = cur;
             }
-            auto parent = cur.Parent();
-            cur = parent ? parent.try_as<winrt::Microsoft::UI::Xaml::FrameworkElement>() : nullptr;
+            cur = mason_ownership::ParentOf(cur);
         }
         if (top) top.InvalidateMeasure();
     }

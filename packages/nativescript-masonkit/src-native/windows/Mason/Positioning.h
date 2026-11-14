@@ -26,6 +26,7 @@
 #include <winrt/NativeScript.Mason.h>
 #include "BufferUtil.h"
 #include "Node.h"
+#include "LayoutOwnership.h"
 #include "FixedLayer.h"
 #include "FixedSlot.h"
 
@@ -569,8 +570,7 @@ namespace mason_position
         while (cur)
         {
             if (cur.try_as<nsm::IMasonElement>()) root = cur;
-            auto parent = cur.Parent();
-            cur = parent ? parent.try_as<mux::FrameworkElement>() : nullptr;
+            cur = mason_ownership::ParentOf(cur);
         }
         // Only containers running mason_panel's Arrange know to arrange a layer.
         if (!root || !(root.try_as<nsm::View>() || root.try_as<nsm::Li>() || root.try_as<nsm::List>())) return nullptr;

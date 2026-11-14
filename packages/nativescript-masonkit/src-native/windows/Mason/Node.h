@@ -106,6 +106,9 @@ namespace winrt::NativeScript::Mason::implementation
         float ArrangeY{ 0.0f };
         // The scroll extent a scroller's content last measured at.
         winrt::Windows::Foundation::Size MeasuredExtent{ -1.0f, -1.0f };
+        // Last independent-root measure, safe to read inside a foreign callback.
+        winrt::Windows::Foundation::Size RootDesiredSize{ 0.0f, 0.0f };
+        bool ForeignMeasurePending{ false };
 
     private:
         // C trampoline registered with mason_node_set_context; recovers `this` from measure_data

@@ -17,6 +17,17 @@ namespace mason_leaf
     // the measure pass ends: a layout during arrange makes XAML schedule another pass.
     inline thread_local std::vector<std::function<void()>> t_afterCompute;
 
+    // A foreign leaf can measure another native container while Rust computes
+    // its outer tree. That independent root must wait until the borrow ends.
+    inline thread_local unsigned t_computeDepth = 0;
+    struct ComputeScope
+    {
+        ComputeScope() { ++t_computeDepth; }
+        ~ComputeScope() { --t_computeDepth; }
+        ComputeScope(ComputeScope const&) = delete;
+        ComputeScope& operator=(ComputeScope const&) = delete;
+    };
+
     // Mason elements whose measure and arrange were invalidated since the last root compute. Their
     // ancestors were invalidated with them, so a later walk can stop there.
     inline thread_local std::unordered_set<void*> t_invalidated;

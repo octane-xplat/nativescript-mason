@@ -108,6 +108,7 @@
     <ClInclude Include="MeasureOutput.h" />
     <ClInclude Include="Mason.h" />
     <ClInclude Include="Invalidation.h" />
+    <ClInclude Include="LayoutOwnership.h" />
     <ClInclude Include="LeafCommon.h" />
     <ClInclude Include="PanelCore.h" />
     <ClInclude Include="View.h" />
