@@ -13,6 +13,7 @@
 // Header-only so the thin panel classes can share it without an extra translation unit.
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <vector>
 #include <winrt/NativeScript.Mason.h>
@@ -66,11 +67,27 @@ namespace mason_panel
         };
         auto w = size(fe.Width(), true);
         auto h = size(fe.Height(), false);
-        auto minW = limit(fe.MinWidth(), 0.0), minH = limit(fe.MinHeight(), 0.0);
         auto maxW = limit(fe.MaxWidth(), std::numeric_limits<double>::infinity());
         auto maxH = limit(fe.MaxHeight(), std::numeric_limits<double>::infinity());
-        auto m = fe.Margin();
         auto* node = winrt::get_self<winrt::NativeScript::Mason::implementation::Node>(leaf);
+        // XAML cannot tell an authored 0 min from its default, so a reported 0 keeps the
+        // leaf's current min — the JS bridge writes authored mins (or 'auto') into the
+        // leaf's style buffer, and only a positive XAML min should override it.
+        auto minAxis = [&node](double xaml, uint32_t typeOffset, uint32_t valueOffset) -> Length
+        {
+            if (std::isfinite(xaml) && xaml > 0.0) return { 1, static_cast<float>(xaml) };
+            uint32_t size = 0;
+            if (const uint8_t* data = node->StyleData(size); data && typeOffset < size && valueOffset + sizeof(float) <= size)
+            {
+                Length current{ static_cast<signed char>(data[typeOffset]), 0.0f };
+                memcpy(&current.value, data + valueOffset, sizeof(float));
+                return current;
+            }
+            return { 0, 0.0f };
+        };
+        auto minW = minAxis(fe.MinWidth(), mason_style_keys::kMinWidthType, mason_style_keys::kMinWidthValue);
+        auto minH = minAxis(fe.MinHeight(), mason_style_keys::kMinHeightType, mason_style_keys::kMinHeightValue);
+        auto m = fe.Margin();
         mason_style_set_box_size(node->MasonPtr(), node->NodePtr(), w.type, w.value, h.type, h.value,
             minW.type, minW.value, minH.type, minH.value, maxW.type, maxW.value, maxH.type, maxH.value,
             static_cast<float>(m.Left), static_cast<float>(m.Top), static_cast<float>(m.Right), static_cast<float>(m.Bottom));

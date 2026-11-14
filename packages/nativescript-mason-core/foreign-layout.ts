@@ -61,9 +61,12 @@ function add(properties: unknown[], write: (property: LayoutProperty) => Write):
 // Windows panels copy these from the XAML element on every measure.
 if (!__WINDOWS__) {
   add([widthProperty, heightProperty, maxWidthProperty, maxHeightProperty, marginTopProperty, marginRightProperty, marginBottomProperty, marginLeftProperty], scalar);
-  // Core's 0 default would disable Mason's automatic minimum size.
-  add([minWidthProperty, minHeightProperty], (p) => scalar(p, 'auto'));
 }
+// Core's 0 default would disable Mason's automatic minimum size. Windows copies
+// the box from the XAML element too, but XAML cannot tell an authored 0 min
+// from its default, so the bridge writes this pair everywhere and the panel's
+// box sync preserves the leaf's current min when the element reports none.
+add([minWidthProperty, minHeightProperty], (p) => scalar(p, 'auto'));
 add([flexGrowProperty, flexShrinkProperty, flexBasisProperty, aspectRatioProperty, positionProperty, leftProperty, rightProperty, topProperty, bottomProperty], scalar);
 add([alignSelfProperty, justifySelfProperty], selfAlign);
 add(gridEdges, () => writeGrid);
