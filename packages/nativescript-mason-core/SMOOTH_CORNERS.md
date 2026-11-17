@@ -62,11 +62,12 @@ borders. Android elevation outlines are not supplied by this API.
   synthetic touch rejection and detach. Synthetic MotionEvents and native handler
   calls do not establish real OS-input behavior or pixel parity.
 - iOS: simulator/device engine archives and simulator Swift/Objective-C hosts
-  compile and link. Three native corner tests executed on an iPhone 13 Pro Max
-  running iOS 27.0.1: two passed and one exposed stale same-size clipping.
-  The style-version fix builds, but its rerun was blocked by another device
-  reservation after two ten-minute waits. iOS runtime qualification is incomplete;
-  compilation does not establish a pass. No real OS-input testing was performed.
+  compile and link. All three native corner tests pass on an iPhone 13 Pro Max
+  running iOS 27.0.1, including same-size clipping updates, resize, reset, mask
+  ownership and disposal. The complete core suite passes 36/38 tests: the scroll
+  cancellation/momentum and suspension/overscroll tests fail on that device.
+  These tests do not enable smooth corners; their failures remain unresolved.
+  No real OS-input testing was performed. The simulator suite remains unexecuted.
 - UIKit material effect roots reject this setting: their native effect surface
   needs its own adapter. Text/widgets/foreign controls, Android physical devices, shadow
   raster quality, border-image combinations and complex filters remain unqualified.
