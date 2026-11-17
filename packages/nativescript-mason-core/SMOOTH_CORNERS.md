@@ -62,11 +62,13 @@ borders. Android elevation outlines are not supplied by this API.
   synthetic touch rejection and detach. Synthetic MotionEvents and native handler
   calls do not establish real OS-input behavior or pixel parity.
 - iOS: simulator/device engine archives and simulator Swift/Objective-C hosts
-  compile and link. Native XCTest coverage is included; execution and real input
-  depend on access to the authorized simulator. Do not treat compilation as a
-  runtime qualification.
+  compile and link. Three native corner tests executed on an iPhone 13 Pro Max
+  running iOS 27.0.1: two passed and one exposed stale same-size clipping.
+  The style-version fix builds, but its rerun was blocked by another device
+  reservation after two ten-minute waits. iOS runtime qualification is incomplete;
+  compilation does not establish a pass. No real OS-input testing was performed.
 - UIKit material effect roots reject this setting: their native effect surface
-  needs its own adapter. Text/widgets/foreign controls, physical devices, shadow
+  needs its own adapter. Text/widgets/foreign controls, Android physical devices, shadow
   raster quality, border-image combinations and complex filters remain unqualified.
 - Windows has Rust/C geometry availability but no WinUI outline adapter. AppKit,
   GTK and other hosts have no renderer supplied here. The TypeScript helper throws
@@ -79,6 +81,15 @@ iOS tests use `MASON_CORE_IOS_DEVICE=91D40099-A056-497D-A572-ADDDFD6A8F23 node
 tools/mason-core/run-ios-tests.mjs --smooth-corners`. The build prerequisites are
 `build-native.mjs ios`, `build-android-jni.mjs`, and each platform's
 `build-*-host.mjs --tests` under `tools/mason-core`.
+
+For a connected physical iPhone, build the device engine first and set
+`MASON_CORE_IOS_DEVICE` to its UDID and `MASON_CORE_IOS_SIGNING_TEAM` to a local
+development team when running `build-ios-host.mjs --device --tests`. Set
+`MASON_CORE_IOS_PROVISIONING_UPDATES=1` only when automatic provisioning is needed.
+Run `MASON_CORE_IOS_DEVICE=UDID node tools/mason-core/run-ios-tests.mjs --device
+--smooth-corners` under a separate device reservation. The generated project uses
+a minimal scene-based app host with dedicated bundle identifiers; the source demo
+project is unchanged. Omit `--smooth-corners` to run the complete core suite.
 
 Adapted algorithms and reference code retain the MIT notices in
 `LICENSE-LISSE`, included in native outputs and packages.

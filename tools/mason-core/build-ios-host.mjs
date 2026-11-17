@@ -4,6 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
 import { nativeSource, restoreStagedIosReferences } from './native-sources.mjs';
+import { projectIosDeviceTestHost, iosDeviceTestApp } from './ios-device-test-host.mjs';
 import { iosSourceRoot, iosHostFiles, projectIosSource, backgroundGlyphProtocol } from './ios-sources.mjs';
 
 const device = process.argv.includes('--device');
@@ -17,7 +18,11 @@ const artifactRoot = resolve(workspaceRoot, 'dist/native/mason-core/ios');
 const engine = resolve(artifactRoot, device ? 'aarch64-apple-ios/libMasonCore.a' : 'aarch64-apple-ios-sim/libMasonCore.a');
 const tests = process.argv.includes('--tests');
 const fontHeaders = resolve(workspaceRoot, 'tmp/mason-core-ios-packages/artifacts/font-manager/FontManager/FontManager.xcframework', device ? 'ios-arm64' : 'ios-arm64_x86_64-simulator', 'Headers');
-if (tests && device) throw new Error('Native host tests require the dedicated simulator.');
+const signedTests = tests && device;
+const signingTeam = process.env.MASON_CORE_IOS_SIGNING_TEAM;
+const physicalDevice = process.env.MASON_CORE_IOS_DEVICE;
+const testBundleId = signedTests ? 'org.octanexplat.mason.smoothcorners.tests' : 'org.nativescript.mason.MasonTests';
+if (signedTests && (!signingTeam || !physicalDevice)) throw new Error('Physical tests require MASON_CORE_IOS_SIGNING_TEAM and MASON_CORE_IOS_DEVICE.');
 if (!existsSync(engine)) throw new Error('Build nativescript-mason-core:build.native.ios first.');
 rmSync(stage, { recursive: true, force: true });
 mkdirSync(resolve(stage, 'include'), { recursive: true });
@@ -44,6 +49,7 @@ let pbx = restoreStagedIosReferences(readFileSync(resolve(originalProject, 'proj
 const keep = new Set(iosHostFiles);
 if (tests) {
   keep.add('CoreLayoutInteropTests.swift');
+  if (signedTests) { keep.add('AppDelegate.swift'); write('MasonDemo/AppDelegate.swift', iosDeviceTestApp); }
   const originalTests = readFileSync(resolve(iosSourceRoot, '../MasonTests/CoreLayoutInteropTests.swift'), 'utf8').replace('@testable import Mason', '@testable import MasonCore');
   write('MasonTests/CoreLayoutInteropTests.swift', originalTests + '\n' + readFileSync(resolve(workspaceRoot, 'tools/mason-core/ios-host-tests.swift'), 'utf8'));
 }
@@ -58,7 +64,8 @@ pbx = pbx.replace(/\s*"OTHER_LDFLAGS\[[^\n]+\]" = \([\s\S]*?\);/g, '');
 pbx = pbx.replaceAll('MACH_O_TYPE = mh_dylib;', 'MACH_O_TYPE = staticlib;');
 if (tests) {
   // The XCTest bundle is the final host and links the external library once.
-  const settings = `PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.MasonTests;
+  const settings = `PRODUCT_BUNDLE_IDENTIFIER = ${testBundleId};
+                ${signedTests ? 'BUNDLE_LOADER = "$(TEST_HOST)"; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MasonDemo.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/MasonDemo";' : ''}
                 SWIFT_INCLUDE_PATHS = ("$(inherited)", "${fontHeaders}");
                 LIBRARY_SEARCH_PATHS = ("$(inherited)", "${resolve(fontHeaders, '..')}");
                 OTHER_LDFLAGS = ("$(inherited)", "-lFontManager", "-liconv", "-lresolv");`;
@@ -77,6 +84,7 @@ pbx = pbx.replaceAll('MODULEMAP_FILE = "";', `MODULEMAP_FILE = "${resolve(stage,
 pbx = pbx.replaceAll('PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";', 'PRODUCT_NAME = MasonCore;');
 pbx = pbx.replaceAll('PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.Mason;', 'PRODUCT_BUNDLE_IDENTIFIER = org.nativescript.mason.MasonCore;');
 pbx = pbx.replaceAll('Mason.framework', 'MasonCore.framework');
+if (signedTests) pbx = projectIosDeviceTestHost(pbx);
 write('Mason.xcodeproj/project.pbxproj', pbx);
 for (const name of ['xcshareddata/xcschemes/Mason.xcscheme', 'project.xcworkspace/contents.xcworkspacedata', 'project.xcworkspace/xcshareddata/swiftpm/Package.resolved']) {
   const filename = resolve(project, name);
@@ -91,12 +99,14 @@ if (chmod.error) throw chmod.error;
 if (chmod.status !== 0) process.exit(chmod.status ?? 1);
 const args = [
   '-project', project, '-scheme', 'Mason', '-configuration', tests ? 'Debug' : 'Release',
-  '-sdk', sdk, '-destination', device ? 'generic/platform=iOS' : 'generic/platform=iOS Simulator',
+  '-sdk', sdk, '-destination', signedTests ? `platform=iOS,id=${physicalDevice}` : device ? 'generic/platform=iOS' : 'generic/platform=iOS Simulator',
   '-derivedDataPath', derived,
   '-clonedSourcePackagesDirPath', resolve(workspaceRoot, 'tmp/mason-core-ios-packages'),
   '-disableAutomaticPackageResolution', '-onlyUsePackageVersionsFromResolvedFile',
   'ENABLE_CODE_COVERAGE=NO', 'CLANG_COVERAGE_MAPPING=NO',
-  'ARCHS=arm64', 'ONLY_ACTIVE_ARCH=YES', 'CODE_SIGNING_ALLOWED=NO',
+  'ARCHS=arm64', 'ONLY_ACTIVE_ARCH=YES', `CODE_SIGNING_ALLOWED=${signedTests ? 'YES' : 'NO'}`,
+  ...(signedTests ? [`DEVELOPMENT_TEAM=${signingTeam}`, 'CODE_SIGN_STYLE=Automatic'] : []),
+  ...(signedTests && process.env.MASON_CORE_IOS_PROVISIONING_UPDATES === '1' ? ['-allowProvisioningUpdates'] : []),
   tests ? 'build-for-testing' : 'build',
 ];
 if (!existsSync(fontHeaders)) {

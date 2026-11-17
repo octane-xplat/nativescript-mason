@@ -11,33 +11,37 @@ function run(command, args, capture = false) {
   return result.stdout;
 }
 
+const physical = process.argv.includes('--device');
 const override = process.env.MASON_CORE_IOS_DEVICE;
+if (physical && !override) throw new Error('Physical tests require an explicit MASON_CORE_IOS_DEVICE.');
 const device = override ?? readFileSync(resolve(workspaceRoot, 'tmp/mason-core-ios-test-device.txt'), 'utf8').trim();
-const devices = JSON.parse(run('xcrun', ['simctl', 'list', 'devices', '-j'], true));
+const devices = physical ? { devices: {} } : JSON.parse(run('xcrun', ['simctl', 'list', 'devices', '-j'], true));
 const selected = Object.values(devices.devices).flat().find((entry) => entry.udid === device);
-if (!selected || (!override && selected.name !== 'Mason core extraction')) throw new Error('Use the dedicated Mason core extraction simulator.');
+if (!physical && (!selected || (!override && selected.name !== 'Mason core extraction'))) throw new Error('Use the dedicated Mason core extraction simulator.');
 const fullBaseline = process.argv.includes('--full-baseline');
 const materialOnly = process.argv.includes('--material');
 const smoothOnly = process.argv.includes('--smooth-corners');
 const smoothTests = ['test_coreSmoothCornersUpdateResizeResetAndOwnership', 'test_coreSmoothCornersOverflowHitRegionsAndMaskComposition', 'test_coreSmoothCornersRepeatedUpdatesAndDisposal'];
+if (physical && (fullBaseline || materialOnly)) throw new Error('Physical execution currently supports the core test suite only.');
 if (fullBaseline && materialOnly) throw new Error('Choose the full baseline or material tests.');
 const materialTests = ['test_coreMaterialHostsOneFlexBoxAndNativeChildren', 'test_coreMaterialIndexedInsertionRemovalAndReplacement', 'test_coreMaterialGridBoxInsetsResizeAndIntrinsicMeasurement', 'test_coreMaterialRootKeepsDirectUIKitGroupingHierarchy', 'test_coreMaterialCornersAndOverflowStayOnTheEffectRoot'];
 const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'tmp/mason-full-ios-baseline/manifest.json'), 'utf8')) : null;
 const expectedTests = smoothOnly ? smoothTests.length : materialOnly ? materialTests.length : (baseline?.testCount ?? 38);
-const products = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-derived/Build/Products' : 'tmp/mason-core-ios-derived/Build/Products');
+const products = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-derived/Build/Products' : `tmp/mason-core-ios-derived${physical ? '-device' : ''}/Build/Products`);
 const plans = readdirSync(products).filter((name) => name.endsWith('.xctestrun'));
 if (plans.length !== 1) throw new Error('Build the core iOS test bundle first; expected exactly one test plan.');
-const results = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-tests' : 'tmp/mason-core-ios-tests', String(Date.now()));
+const results = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-tests' : physical ? 'tmp/mason-core-ios-device-tests' : 'tmp/mason-core-ios-tests', String(Date.now()));
 mkdirSync(results, { recursive: true });
 const bundle = resolve(results, 'tests.xcresult');
 
 try {
-  if (selected.state !== 'Booted') run('xcrun', ['simctl', 'boot', device]);
-  run('xcrun', ['simctl', 'bootstatus', device, '-b']);
+  if (!physical && selected.state !== 'Booted') run('xcrun', ['simctl', 'boot', device]);
+  if (!physical) run('xcrun', ['simctl', 'bootstatus', device, '-b']);
   const execution = spawnSync('xcodebuild', [
     'test-without-building', '-xctestrun', resolve(products, plans[0]),
-    '-destination', `platform=iOS Simulator,id=${device}`,
-    '-parallel-testing-enabled', 'NO', '-maximum-concurrent-test-simulator-destinations', '1',
+    '-destination', `platform=${physical ? 'iOS' : 'iOS Simulator'},id=${device}`,
+    '-parallel-testing-enabled', 'NO',
+    ...(physical ? [] : ['-maximum-concurrent-test-simulator-destinations', '1']),
     ...(smoothOnly ? smoothTests.map((name) => `-only-testing:MasonTests/CoreLayoutInteropTests/${name}`) : materialOnly ? materialTests.map((name) => `-only-testing:MasonTests/CoreLayoutInteropTests/${name}`) : baseline ? baseline.tests.map(({ name }) => `-only-testing:MasonTests/${name}`) : ['-only-testing:MasonTests/CoreLayoutInteropTests']),
     '-resultBundlePath', bundle, '-collect-test-diagnostics', 'never',
     '-test-timeouts-enabled', 'YES', '-maximum-test-execution-time-allowance', '120',
@@ -50,7 +54,7 @@ try {
   assert.equal(summary.failedTests, 0);
   assert.equal(summary.skippedTests, 0);
   assert.equal(execution.status, 0, 'Native iOS test execution failed.');
-  console.log(`All ${expectedTests} native ${fullBaseline ? 'full baseline' : 'core layout/foreign-view'} tests passed on the dedicated iOS simulator.`);
+  console.log(`All ${expectedTests} native ${fullBaseline ? 'full baseline' : 'core layout/foreign-view'} tests passed on ${physical ? 'the selected physical iPhone' : 'the dedicated iOS simulator'}.`);
 } finally {
-  run('xcrun', ['simctl', 'shutdown', device]);
+  if (!physical) run('xcrun', ['simctl', 'shutdown', device]);
 }
