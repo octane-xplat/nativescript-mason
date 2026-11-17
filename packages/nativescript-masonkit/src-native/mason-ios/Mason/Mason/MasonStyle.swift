@@ -3446,6 +3446,9 @@ public class MasonStyle: NSObject {
     if values != nil && node.view is MasonMaterialUIView { return false }
     guard mBorderRender.setSmoothCorners(values) else { return false }
     smoothCornersEverSet = true
+    // This configuration lives outside the Rust style buffer. Include it in
+    // applyToView's style version so unchanged bounds still refresh clipping.
+    styleVersion &+= 1
     node.markDirty()
     if let view = node.view {
       (view as? MasonElement)?.requestLayout()
