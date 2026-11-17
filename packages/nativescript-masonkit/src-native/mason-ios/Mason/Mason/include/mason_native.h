@@ -606,4 +606,11 @@ struct CMasonMinMax mason_util_create_track_sizing_function_with_type_value(int3
 
 void mason_util_destroy_string(char *string);
 
+uintptr_t mason_smooth_corners_path(double width,
+                                    double height,
+                                    const double *corners,
+                                    uintptr_t corners_len,
+                                    double *output,
+                                    uintptr_t output_len);
+
 #endif  /* MASON_C_H */

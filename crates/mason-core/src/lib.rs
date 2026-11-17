@@ -37,6 +37,7 @@ mod tree;
 mod tree_inline;
 pub mod utils;
 mod writing_mode;
+pub mod smooth_corners;
 
 #[inline]
 pub(crate) fn scrollable_overflow_rect_from_size(size: Size<f32>) -> Rect<f32> {

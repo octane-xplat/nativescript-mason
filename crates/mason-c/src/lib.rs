@@ -5,6 +5,7 @@ pub mod ffi;
 pub mod node;
 pub mod style;
 pub mod util;
+pub mod smooth_corners;
 
 #[derive(Debug)]
 pub struct CMason(Mason);
