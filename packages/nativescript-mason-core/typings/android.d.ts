@@ -1117,7 +1117,7 @@ declare module org {
 					public uniformRadius(this_: number, width: number): number;
 					public hasCornerShape(): boolean;
 					public cornerShapeHash(): number;
-					public addShapePath(h: globalAndroid.graphics.Path, f: globalAndroid.graphics.RectF, x: androidNative.Array<number>): void;
+					public addShapePath(w: globalAndroid.graphics.Path, h: globalAndroid.graphics.RectF, f: androidNative.Array<number>): void;
 					public hasRadii(): boolean;
 					public copyRadii(out: androidNative.Array<number>): void;
 					public getRadii(): androidNative.Array<number>;
@@ -3494,6 +3494,7 @@ declare module org {
 					public setViewport(width: number, height: number): void;
 					public createNode(children: androidNative.Array<org.nativescript.mason.masonkit.Node> | null): org.nativescript.mason.masonkit.Node;
 					public createNode(): org.nativescript.mason.masonkit.Node;
+					public static nativeSmoothCorners(param0: number, param1: number, param2: androidNative.Array<number>): androidNative.Array<number> | null;
 					public static getShared(): org.nativescript.mason.masonkit.Mason;
 					public static nativeUaDefaultForTag(param0: string): androidNative.Array<number>;
 				}
@@ -3508,6 +3509,7 @@ declare module org {
 				export module Mason {
 					export class Companion {
 						public static class: java.lang.Class<org.nativescript.mason.masonkit.Mason.Companion>;
+						public nativeSmoothCorners(width: number, height: number, corners: androidNative.Array<number>): androidNative.Array<number> | null;
 						public getShared(): org.nativescript.mason.masonkit.Mason;
 						public nativeUaDefaultForTag(tag: string): androidNative.Array<number>;
 					}
@@ -5775,6 +5777,7 @@ declare module org {
 					public setBoxShadow(it: string): void;
 					public getTextShadow(): string;
 					public setTextShadow(this_$iv: string): void;
+					public setSmoothCorners(it: androidNative.Array<number> | null): boolean;
 					public getBorder(): string;
 					public setBorder(value: string): void;
 					public getBorderLeft(): string;
@@ -5837,9 +5840,9 @@ declare module org {
 					public setMaskBorderMode(value: string): void;
 					public getClipPath(): string;
 					public setClipPath(value: string): void;
-					public setBorderStyle($this$setBorderStyle_u24lambda_u2462: org.nativescript.mason.masonkit.enums.BorderStyle): void;
+					public setBorderStyle($this$setBorderStyle_u24lambda_u2464: org.nativescript.mason.masonkit.enums.BorderStyle): void;
 					public getBorderStyle(): org.nativescript.mason.masonkit.Rect<org.nativescript.mason.masonkit.enums.BorderStyle>;
-					public setBorderStyle($this$_set_borderStyle__u24lambda_u2466: org.nativescript.mason.masonkit.Rect<org.nativescript.mason.masonkit.enums.BorderStyle>): void;
+					public setBorderStyle($this$_set_borderStyle__u24lambda_u2468: org.nativescript.mason.masonkit.Rect<org.nativescript.mason.masonkit.enums.BorderStyle>): void;
 					public getBorderLeftStyle(): org.nativescript.mason.masonkit.enums.BorderStyle;
 					public setBorderLeftStyle(value: org.nativescript.mason.masonkit.enums.BorderStyle): void;
 					public getBorderTopStyle(): org.nativescript.mason.masonkit.enums.BorderStyle;
@@ -5857,10 +5860,10 @@ declare module org {
 					public getBorderBottomLeftRadius(): org.nativescript.mason.masonkit.Point<org.nativescript.mason.masonkit.LengthPercentage>;
 					public setBorderBottomLeftRadius(value: org.nativescript.mason.masonkit.Point<org.nativescript.mason.masonkit.LengthPercentage>): void;
 					public getBorderColor(): org.nativescript.mason.masonkit.Rect<java.lang.Integer>;
-					public setBorderColor($this$_set_borderColor__u24lambda_u2470: org.nativescript.mason.masonkit.Rect<java.lang.Integer>): void;
-					public setBorderColor($this$setBorderColor_u24lambda_u2474: number): void;
+					public setBorderColor($this$_set_borderColor__u24lambda_u2472: org.nativescript.mason.masonkit.Rect<java.lang.Integer>): void;
+					public setBorderColor($this$setBorderColor_u24lambda_u2476: number): void;
 					public getBorderWidth(): org.nativescript.mason.masonkit.Rect<org.nativescript.mason.masonkit.LengthPercentage>;
-					public setBorderWidth($this$_set_borderWidth__u24lambda_u2478: org.nativescript.mason.masonkit.Rect<org.nativescript.mason.masonkit.LengthPercentage>): void;
+					public setBorderWidth($this$_set_borderWidth__u24lambda_u2480: org.nativescript.mason.masonkit.Rect<org.nativescript.mason.masonkit.LengthPercentage>): void;
 					public getBorderLeftWidth(): org.nativescript.mason.masonkit.LengthPercentage;
 					public setBorderLeftWidth(value: org.nativescript.mason.masonkit.LengthPercentage): void;
 					public getBorderTopWidth(): org.nativescript.mason.masonkit.LengthPercentage;
@@ -5873,7 +5876,7 @@ declare module org {
 					public setBorderRightWidth(value: number, type: number): void;
 					public setBorderTopWidth(value: number, type: number): void;
 					public setBorderBottomWidth(value: number, type: number): void;
-					public setBorderWidth($this$setBorderWidth_u24lambda_u2482: number, param1: number): void;
+					public setBorderWidth($this$setBorderWidth_u24lambda_u2484: number, param1: number): void;
 					public getFlexGrow(): number;
 					public setFlexGrow(value: number): void;
 					public getFlexShrink(): number;

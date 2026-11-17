@@ -1717,6 +1717,8 @@ declare class MasonStyle extends NSObject {
 
 	setSizeWidthHeight(value: number, type: number): void;
 
+	setSmoothCorners(values: NSArray<number> | number[] | null): boolean;
+
 	setTextDecoration(css: string): void;
 
 	updateNativeStyle(): void;
@@ -2559,6 +2561,8 @@ declare function mason_release(mason: interop.Pointer | interop.Reference<any> |
 declare function mason_set_device_scale(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, scale: number): void;
 
 declare function mason_set_preflight(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, enabled: boolean): void;
+
+declare function mason_smooth_corners_path(width: number, height: number, corners: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null, corners_len: number, output: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null, output_len: number): number;
 
 declare function mason_style_chunk(mason: interop.Pointer | interop.Reference<any> | ArrayBufferLike | ArrayBufferView | null, chunk: number, out_len: interop.Pointer | interop.Reference<number> | ArrayBufferLike | ArrayBufferView | null): interop.Pointer | interop.Reference<any> | null;
 
