@@ -472,7 +472,7 @@ struct ClipPathValue: Equatable {
       CSSBorderRenderer.CornerRadius(horizontal: c[i].x.mason, vertical: c[i].y.mason, exponent: 1)
     }
     let radius = CSSBorderRenderer.BorderRadius(topLeft: corner(0), topRight: corner(1), bottomRight: corner(2), bottomLeft: corner(3))
-    return renderer.buildRoundedPath(in: r, radius: radius).cgPath
+    return renderer.buildRoundedPath(in: r, radius: radius, smooth: false).cgPath
   }
 
   /// `at <position>` in the reference box; the centre when omitted.
@@ -507,6 +507,24 @@ extension MasonStyle {
   /// False when `point` (view coordinates) lies outside the view's `clip-path`: CSS gives
   /// clipped-out regions no pointer events. True for every view without one.
   internal static func clipPathAllows(_ view: UIView, _ point: CGPoint) -> Bool {
+    if let element = view as? MasonElement, element.style.smoothCornersEverSet,
+       element.style.mBorderRender.smoothCorners != nil,
+       element.style.isValueInitialized {
+      let overflow = element.style.overflow
+      let layout = element.node.computedLayout
+      func clips(_ value: Overflow, _ content: Float, _ extent: CGFloat) -> Bool {
+        value == .Hidden || value == .Scroll || value == .Clip || (value == .Auto && CGFloat(content / NSCMason.scale) > extent)
+      }
+      let scrollClip = (view as? MasonUIView)?.isScrollContainer == true && overflow.y == .Visible
+        && CGFloat(layout.contentHeight / NSCMason.scale) > view.bounds.height
+      if clips(overflow.x, layout.contentWidth, view.bounds.width) || clips(overflow.y, layout.contentHeight, view.bounds.height) || scrollClip {
+        let renderer = element.style.mBorderRender
+        renderer.resolve(for: view.bounds)
+        let rect = CGRect(origin: .zero, size: view.bounds.size)
+        let local = CGPoint(x: point.x - view.bounds.minX, y: point.y - view.bounds.minY)
+        if !renderer.getClipPath(rect: rect, radius: renderer.radius).contains(local) { return false }
+      }
+    }
     guard let mask = view.layer.mask as? MasonMaskLayer, let shape = mask.clipShape else { return true }
     let p = CGPoint(x: point.x - view.bounds.minX, y: point.y - view.bounds.minY)
     return shape.contains(p, using: mask.clipEvenOdd ? .evenOdd : .winding)

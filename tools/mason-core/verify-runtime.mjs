@@ -56,13 +56,13 @@ try {
   const archive = resolve(artifacts, archives[0]);
   const entries = run('tar', ['-tzf', archive], temporary).trim().split('\n').map((name) => name.replace(/^package\//, ''));
   const modules = [
-    'css-environment', 'native-environment.ios', 'native-environment.android', 'native-environment.windows',
+    'smooth-corners', 'smooth-corners-config', 'css-environment', 'native-environment.ios', 'native-environment.android', 'native-environment.windows',
     'utils/index.windows', 'view/index.windows', 'scroll/index.windows',
     ...relocatedFiles.filter((name) => name.endsWith('.ts') && !name.endsWith('.d.ts')).map((name) => name.replace(/\.ts$/, '')),
     'common', 'index.ios', 'index.android', 'index.windows', 'tree/index.ios', 'tree/index.android', 'tree/index.windows',
   ];
   const expected = [
-    'LICENSE', 'README.md', 'ios-host-README.md', 'native-types-README.md', 'plugin-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
+    'LICENSE', 'LICENSE-LISSE', 'SMOOTH_CORNERS.md', 'README.md', 'ios-host-README.md', 'native-types-README.md', 'plugin-README.md', 'package.json', 'index.d.ts', 'layout-types.d.ts',
     'view/index.d.ts', 'scroll/index.d.ts', 'tree/index.d.ts', 'native-environment.d.ts',
     ...modules.flatMap((name) => [`${name}.js`, `${name}.d.ts`]),
     'typings/manifest.json',
@@ -122,9 +122,11 @@ try {
 `);
   writeFileSync(resolve(temporary, 'consumer.ts'), `
 import { Label } from '@nativescript/core';
-import { View, Scroll, bindCssEnvironment, setCssEnvironment, refreshCssEnvironment, type Length, type ScrollToOptions, type CssEnvironmentSource } from '@octane-xplat/nativescript-mason-core';
+import { View, Scroll, setSmoothCorners, bindCssEnvironment, setCssEnvironment, refreshCssEnvironment, type Length, type ScrollToOptions, type CssEnvironmentSource } from '@octane-xplat/nativescript-mason-core';
 import { Style } from '@octane-xplat/nativescript-mason-core/style';
 const root = new View();
+setSmoothCorners(root, { radius: 24, curve: 'clothoid' });
+setSmoothCorners(root, null);
 const source: CssEnvironmentSource = { read: () => null, subscribe: () => () => {} };
 const disconnect = bindCssEnvironment(root, source);
 setCssEnvironment(root, { top: 0, right: 0, bottom: 0, left: 0 });
@@ -136,6 +138,7 @@ root.style.display = 'grid';
 root.style.gridTemplateColumns = '1fr 1fr';
 root.addChild(new Label());
 const scroll = new Scroll();
+setSmoothCorners(scroll, { topLeft: 12, bottomRight: { radius: 24, curve: 'squircle' } });
 scroll.addChild(root);
 const seek: ScrollToOptions = { top: 100, behavior: 'smooth' };
 scroll.scrollTo(seek);

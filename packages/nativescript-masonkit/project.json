@@ -21,6 +21,7 @@
           "packages/nativescript-masonkit/nativescript.webpack.js",
           "packages/nativescript-masonkit/postcss-guard.js",
           "LICENSE",
+          "LICENSE-LISSE",
           {
             "glob": "**/*",
             "input": "packages/nativescript-masonkit/typings/",

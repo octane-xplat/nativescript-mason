@@ -35,6 +35,7 @@ for (const line of loads) assert.ok(Number.parseInt(line.trim().split(/\s+/).at(
 const hash = (file) => createHash('sha256').update(readFileSync(file)).digest('hex');
 copyFileSync(resolve(workspaceRoot, 'Cargo.lock'), resolve(output, 'Cargo.lock'));
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(output, 'LICENSE'));
+copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(output, 'LICENSE-LISSE'));
 writeFileSync(resolve(output, 'dependencies.txt'), run('rustup', ['run', toolchain, 'cargo', 'tree', '-p', 'mason-android', '--locked', '--target', target, '--edges', 'normal'], { stdio: 'pipe', env }));
 writeFileSync(resolve(output, 'manifest.json'), JSON.stringify({
   crate: 'mason-android', target, abi: 'arm64-v8a', toolchain,

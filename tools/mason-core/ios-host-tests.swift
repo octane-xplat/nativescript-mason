@@ -421,3 +421,105 @@ extension CoreLayoutInteropTests {
     }
   }
 }
+
+extension CoreLayoutInteropTests {
+  private func smoothConfig(_ radius: Double = 24, _ curve: Double = 0) -> [Double] {
+    Array(repeating: [radius, curve, 0.65, 4, 1], count: 4).flatMap { $0 }
+  }
+
+  @objc func test_coreSmoothCornersUpdateResizeResetAndOwnership() {
+    let host = UIView(frame: CGRect(x: 0, y: 0, width: 200, height: 100))
+    let view = MasonUIView(mason: mason)
+    host.addSubview(view)
+    view.frame = host.bounds
+    view.style.borderRadius = "8px"
+    view.style.boxShadow = "0px 2px 4px black"
+    let renderer = view.style.mBorderRender
+    for curve in 0...4 {
+      XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(24, Double(curve))))
+      renderer.resolve(for: view.bounds)
+      let path = renderer.getClipPath(rect: view.bounds, radius: renderer.radius)
+      XCTAssertFalse(path.contains(.zero))
+      XCTAssertTrue(path.contains(CGPoint(x: 100, y: 50)))
+      XCTAssertNil(view.layer.mask, "surface-only shaping must preserve overflow")
+      XCTAssertNil(view.layerCornerRadius(renderer.radius), "must use the shared outline")
+      XCTAssertFalse(view.applyLayerPaintIfEligible())
+    }
+    XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(24, 0)))
+    let first = renderer.getClipPath(rect: view.bounds, radius: renderer.radius).cgPath
+    XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(24, 4)))
+    let second = renderer.getClipPath(rect: view.bounds, radius: renderer.radius).cgPath
+    XCTAssertNotEqual(first, second)
+    XCTAssertEqual(first.boundingBoxOfPath.width, second.boundingBoxOfPath.width, accuracy: 0.00001)
+    XCTAssertEqual(first.boundingBoxOfPath.height, second.boundingBoxOfPath.height, accuracy: 0.00001)
+    XCTAssertFalse(view.style.setSmoothCorners([Double.nan]))
+    XCTAssertEqual(renderer.smoothCorners, smoothConfig(24, 4))
+    let resized = CGRect(x: 0, y: 0, width: 90, height: 30)
+    renderer.resolve(for: resized)
+    let path = renderer.getClipPath(rect: resized, radius: renderer.radius)
+    XCTAssertTrue(path.contains(CGPoint(x: 45, y: 15)))
+    XCTAssertTrue(view.style.setSmoothCorners(nil))
+    XCTAssertNil(renderer.smoothCorners)
+    XCTAssertEqual(renderer.radius.topLeft.resolved(rect: view.bounds).x, 8, accuracy: 0.01)
+    view.removeFromSuperview()
+    XCTAssertFalse(host.layer.sublayers?.contains { $0 is MasonShadowLayer } ?? false)
+  }
+
+  @objc func test_coreSmoothCornersOverflowHitRegionsAndMaskComposition() {
+    let scale = NSCMason.scale
+    let view = MasonUIView(mason: mason)
+    view.setSize(100 * scale, 60 * scale)
+    XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(24)))
+    view.style.overflow = MasonPoint(.Visible, .Visible)
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertTrue(MasonStyle.clipPathAllows(view, CGPoint(x: 1, y: 1)))
+    XCTAssertNil(view.layer.mask)
+    view.style.overflow = MasonPoint(.Hidden, .Hidden)
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertFalse(MasonStyle.clipPathAllows(view, CGPoint(x: 1, y: 1)))
+    XCTAssertTrue(MasonStyle.clipPathAllows(view, CGPoint(x: 50, y: 30)))
+    let oldPath = (view.layer.mask as? CAShapeLayer)?.path
+    XCTAssertNotNil(oldPath)
+    XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(24, 4)))
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertNotEqual(oldPath, (view.layer.mask as? CAShapeLayer)?.path)
+    view.style.clipPath = "inset(0px)"
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertTrue(view.layer.mask is MasonMaskLayer)
+    XCTAssertFalse(MasonStyle.clipPathAllows(view, CGPoint(x: 1, y: 1)))
+    view.style.overflow = MasonPoint(.Visible, .Visible)
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertTrue(view.layer.mask is MasonMaskLayer, "CSS clip-path retains its lifecycle owner")
+    XCTAssertTrue(MasonStyle.clipPathAllows(view, CGPoint(x: 1, y: 1)))
+    view.style.clipPath = "inset(0px round 8px)"
+    view.computeWithSize(100 * scale, 60 * scale)
+    let cssShape = (view.layer.mask as? MasonMaskLayer)?.clipShape
+    XCTAssertNotNil(cssShape)
+    XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(24, 3)))
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertEqual(cssShape, (view.layer.mask as? MasonMaskLayer)?.clipShape, "explicit CSS rounding stays independent")
+    view.style.clipPath = "none"
+    XCTAssertTrue(view.style.setSmoothCorners(nil))
+    view.computeWithSize(100 * scale, 60 * scale)
+    XCTAssertNil(view.layer.mask)
+  }
+
+  @objc func test_coreSmoothCornersRepeatedUpdatesAndDisposal() {
+    weak var released: MasonUIView?
+    autoreleasepool {
+      let view = MasonUIView(mason: mason)
+      released = view
+      view.setSize(200 * NSCMason.scale, 100 * NSCMason.scale)
+      let start = CFAbsoluteTimeGetCurrent()
+      for i in 0..<1000 {
+        XCTAssertTrue(view.style.setSmoothCorners(smoothConfig(Double(i % 40), Double(i % 5))))
+        view.computeWithSize(200 * NSCMason.scale, 100 * NSCMason.scale)
+        let renderer = view.style.mBorderRender
+        _ = renderer.getClipPath(rect: view.bounds, radius: renderer.radius)
+      }
+      print("SMOOTH_CORNERS_IOS 1000 update/layout/path iterations seconds=\(CFAbsoluteTimeGetCurrent() - start)")
+      XCTAssertTrue(view.style.setSmoothCorners(nil))
+    }
+    XCTAssertNil(released)
+  }
+}

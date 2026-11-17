@@ -18,10 +18,12 @@ const selected = Object.values(devices.devices).flat().find((entry) => entry.udi
 if (!selected || (!override && selected.name !== 'Mason core extraction')) throw new Error('Use the dedicated Mason core extraction simulator.');
 const fullBaseline = process.argv.includes('--full-baseline');
 const materialOnly = process.argv.includes('--material');
+const smoothOnly = process.argv.includes('--smooth-corners');
+const smoothTests = ['test_coreSmoothCornersUpdateResizeResetAndOwnership', 'test_coreSmoothCornersOverflowHitRegionsAndMaskComposition', 'test_coreSmoothCornersRepeatedUpdatesAndDisposal'];
 if (fullBaseline && materialOnly) throw new Error('Choose the full baseline or material tests.');
 const materialTests = ['test_coreMaterialHostsOneFlexBoxAndNativeChildren', 'test_coreMaterialIndexedInsertionRemovalAndReplacement', 'test_coreMaterialGridBoxInsetsResizeAndIntrinsicMeasurement', 'test_coreMaterialRootKeepsDirectUIKitGroupingHierarchy', 'test_coreMaterialCornersAndOverflowStayOnTheEffectRoot'];
 const baseline = fullBaseline ? JSON.parse(readFileSync(resolve(workspaceRoot, 'tmp/mason-full-ios-baseline/manifest.json'), 'utf8')) : null;
-const expectedTests = materialOnly ? materialTests.length : (baseline?.testCount ?? 35);
+const expectedTests = smoothOnly ? smoothTests.length : materialOnly ? materialTests.length : (baseline?.testCount ?? 38);
 const products = resolve(workspaceRoot, fullBaseline ? 'tmp/mason-full-ios-derived/Build/Products' : 'tmp/mason-core-ios-derived/Build/Products');
 const plans = readdirSync(products).filter((name) => name.endsWith('.xctestrun'));
 if (plans.length !== 1) throw new Error('Build the core iOS test bundle first; expected exactly one test plan.');
@@ -36,7 +38,7 @@ try {
     'test-without-building', '-xctestrun', resolve(products, plans[0]),
     '-destination', `platform=iOS Simulator,id=${device}`,
     '-parallel-testing-enabled', 'NO', '-maximum-concurrent-test-simulator-destinations', '1',
-    ...(materialOnly ? materialTests.map((name) => `-only-testing:MasonTests/CoreLayoutInteropTests/${name}`) : baseline ? baseline.tests.map(({ name }) => `-only-testing:MasonTests/${name}`) : ['-only-testing:MasonTests/CoreLayoutInteropTests']),
+    ...(smoothOnly ? smoothTests.map((name) => `-only-testing:MasonTests/CoreLayoutInteropTests/${name}`) : materialOnly ? materialTests.map((name) => `-only-testing:MasonTests/CoreLayoutInteropTests/${name}`) : baseline ? baseline.tests.map(({ name }) => `-only-testing:MasonTests/${name}`) : ['-only-testing:MasonTests/CoreLayoutInteropTests']),
     '-resultBundlePath', bundle, '-collect-test-diagnostics', 'never',
     '-test-timeouts-enabled', 'YES', '-maximum-test-execution-time-allowance', '120',
   ], { cwd: workspaceRoot, stdio: 'inherit' });

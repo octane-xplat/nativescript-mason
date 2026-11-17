@@ -380,10 +380,10 @@ extension CSSBorderRenderer {
       }
 
       // Keep struct in sync for hasRadii() checks
-      style.mBorderRender.radius.topLeft = CornerRadius(horizontal: corners[0].0, vertical: corners[0].1, exponent: 1)
-      style.mBorderRender.radius.topRight = CornerRadius(horizontal: corners[1].0, vertical: corners[1].1, exponent: 1)
-      style.mBorderRender.radius.bottomRight = CornerRadius(horizontal: corners[2].0, vertical: corners[2].1, exponent: 1)
-      style.mBorderRender.radius.bottomLeft = CornerRadius(horizontal: corners[3].0, vertical: corners[3].1, exponent: 1)
+      style.mBorderRender.cssRadius.topLeft = CornerRadius(horizontal: corners[0].0, vertical: corners[0].1, exponent: 1)
+      style.mBorderRender.cssRadius.topRight = CornerRadius(horizontal: corners[1].0, vertical: corners[1].1, exponent: 1)
+      style.mBorderRender.cssRadius.bottomRight = CornerRadius(horizontal: corners[2].0, vertical: corners[2].1, exponent: 1)
+      style.mBorderRender.cssRadius.bottomLeft = CornerRadius(horizontal: corners[3].0, vertical: corners[3].1, exponent: 1)
       style.mBorderRender.invalidateCache()
 
       if !style.inBatch {
@@ -628,10 +628,10 @@ extension CSSBorderRenderer {
     style.setFloat(StyleKeys.BORDER_RADIUS_BOTTOM_LEFT_EXPONENT, bl)
 
     // Keep struct in sync
-    style.mBorderRender.radius.topLeft.exponent = CGFloat(tl)
-    style.mBorderRender.radius.topRight.exponent = CGFloat(tr)
-    style.mBorderRender.radius.bottomRight.exponent = CGFloat(br)
-    style.mBorderRender.radius.bottomLeft.exponent = CGFloat(bl)
+    style.mBorderRender.cssRadius.topLeft.exponent = CGFloat(tl)
+    style.mBorderRender.cssRadius.topRight.exponent = CGFloat(tr)
+    style.mBorderRender.cssRadius.bottomRight.exponent = CGFloat(br)
+    style.mBorderRender.cssRadius.bottomLeft.exponent = CGFloat(bl)
     style.mBorderRender.invalidateCache()
 
     if !style.inBatch {

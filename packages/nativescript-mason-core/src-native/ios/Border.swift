@@ -375,7 +375,66 @@ public final class CSSBorderRenderer {
   public var bottom: BorderSide
   public var left: BorderSide
   
-  public var radius: BorderRadius { didSet { _hasRadii = nil } }
+  internal var cssRadius: BorderRadius = .zero { didSet { _hasRadii = nil } }
+  public var radius: BorderRadius {
+    get { smoothRadius ?? cssRadius }
+    set { cssRadius = newValue; _hasRadii = nil }
+  }
+  internal private(set) var smoothCorners: [Double]?
+  private var smoothRadius: BorderRadius?
+
+  /// Validated by Rust before replacing the current configuration. nil restores CSS radii.
+  internal func setSmoothCorners(_ values: [Double]?) -> Bool {
+    if let values {
+      guard values.count == 20,
+        stride(from: 0, to: 20, by: 5).allSatisfy({ Float(values[$0] * Double(NSCMason.scale)).isFinite }),
+        values.withUnsafeBufferPointer({
+        mason_smooth_corners_path(1, 1, $0.baseAddress, UInt($0.count), nil, 0)
+      }) > 0 else { return false }
+    }
+    smoothCorners = values
+    if let values {
+      func corner(_ i: Int) -> CornerRadius {
+        let r = MasonLengthPercentage.Points(Float(values[i * 5]) * NSCMason.scale)
+        return CornerRadius(horizontal: r, vertical: r, exponent: 1)
+      }
+      smoothRadius = BorderRadius(topLeft: corner(0), topRight: corner(1), bottomRight: corner(2), bottomLeft: corner(3))
+    } else { smoothRadius = nil }
+    _hasRadii = nil
+    invalidateCache()
+    return true
+  }
+
+  private func smoothPath(in rect: CGRect, radius: BorderRadius) -> UIBezierPath? {
+    guard var config = smoothCorners else { return nil }
+    let radii = [radius.topLeft, radius.topRight, radius.bottomRight, radius.bottomLeft]
+    for i in 0..<4 {
+      let r = radii[i].resolved(rect: rect)
+      config[i * 5] = Double(min(r.x, r.y))
+    }
+    // Bounded transport; largest current template is below 40 commands.
+    var commands = [Double](repeating: 0, count: 512)
+    let count = config.withUnsafeBufferPointer { input in
+      commands.withUnsafeMutableBufferPointer { output in
+        mason_smooth_corners_path(Double(max(0, rect.width)), Double(max(0, rect.height)), input.baseAddress, UInt(input.count), output.baseAddress, UInt(output.count))
+      }
+    }
+    guard count > 0, count <= commands.count else { return UIBezierPath() }
+    let p = CGMutablePath()
+    func point(_ i: Int) -> CGPoint { CGPoint(x: rect.minX + CGFloat(commands[i]), y: rect.minY + CGFloat(commands[i + 1])) }
+    for i in stride(from: 0, to: Int(count), by: 8) {
+      switch commands[i] {
+      case 0: p.move(to: point(i + 1))
+      case 1: p.addLine(to: point(i + 1))
+      case 2: p.addCurve(to: point(i + 5), control1: point(i + 1), control2: point(i + 3))
+      case 3:
+        let start = CGFloat(commands[i + 4]) * .pi / 180
+        p.addArc(center: point(i + 1), radius: CGFloat(commands[i + 3]), startAngle: start, endAngle: start + CGFloat(commands[i + 5]) * .pi / 180, clockwise: commands[i + 5] < 0)
+      default: p.closeSubpath()
+      }
+    }
+    return UIBezierPath(cgPath: p)
+  }
   private var _hasRadii: Bool?
   
   unowned(unsafe) var style: MasonStyle
@@ -703,7 +762,8 @@ public final class CSSBorderRenderer {
   
   public enum Side { case top, right, bottom, left }
   
-  internal func buildRoundedPath(in rect: CGRect, radius: BorderRadius) -> UIBezierPath {
+  internal func buildRoundedPath(in rect: CGRect, radius: BorderRadius, smooth: Bool = true) -> UIBezierPath {
+    if smooth, let smooth = smoothPath(in: rect, radius: radius) { return smooth }
     let p = UIBezierPath()
     var tl = radius.topLeft.resolved(rect: rect)
     var tr = radius.topRight.resolved(rect: rect)

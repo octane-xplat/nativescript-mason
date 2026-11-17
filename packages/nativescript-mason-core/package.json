@@ -11,6 +11,7 @@
     "*.md",
     "artifact-inventory.json",
     "LICENSE",
+    "LICENSE-LISSE",
     "typings",
     "utils",
     "view",

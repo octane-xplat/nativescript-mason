@@ -696,6 +696,9 @@ class Mason {
   }
 
   companion object {
+    @JvmStatic
+    external fun nativeSmoothCorners(width: Double, height: Double, corners: DoubleArray): DoubleArray?
+
     private const val LOG_EVENTS = false
 
     internal fun initLib() {

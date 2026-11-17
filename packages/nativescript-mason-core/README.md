@@ -309,3 +309,5 @@ This is a JavaScript/declaration API over the existing native paint engine.
 It requires no new Swift/Kotlin ABI. It is not in the original beta.8 tarball;
 consumers need the source change or the Octane Xplat beta.8 patch. It does not
 add new clipping, nonuniform corner precision, or multiple-shadow correction.
+
+Built-in native surface curves are documented in [SMOOTH_CORNERS.md](SMOOTH_CORNERS.md).

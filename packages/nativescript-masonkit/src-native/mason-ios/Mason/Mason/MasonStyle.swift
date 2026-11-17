@@ -3438,6 +3438,25 @@ public class MasonStyle: NSObject {
   }()
   
   
+  /// Native surface configuration in logical points. Returns false on invalid input,
+  /// preserving the previous configuration. nil restores the authored CSS shape.
+  internal var smoothCornersEverSet = false
+
+  @objc public func setSmoothCorners(_ values: [Double]?) -> Bool {
+    if values != nil && node.view is MasonMaterialUIView { return false }
+    guard mBorderRender.setSmoothCorners(values) else { return false }
+    smoothCornersEverSet = true
+    node.markDirty()
+    if let view = node.view {
+      (view as? MasonElement)?.requestLayout()
+      view.setNeedsLayout()
+      view.setNeedsDisplay()
+      (view as? MasonUIView)?.invalidateDrawFlags()
+      updateShadowLayer(for: view.bounds)
+    }
+    return true
+  }
+
   public var borderRadius: String = "" {
     didSet {
       CSSBorderRenderer.parseBorderRadius(self, borderRadius)
@@ -3461,13 +3480,13 @@ public class MasonStyle: NSObject {
 
   public var cornerShapeTopLeft: String {
     get {
-      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.radius.topLeft.exponent))
+      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.cssRadius.topLeft.exponent))
     }
     set {
       guard let exp = CSSBorderRenderer.parseCornerShapeToken(newValue) else { return }
       prepareMut()
       setFloat(StyleKeys.BORDER_RADIUS_TOP_LEFT_EXPONENT, exp)
-      mBorderRender.radius.topLeft.exponent = CGFloat(exp)
+      mBorderRender.cssRadius.topLeft.exponent = CGFloat(exp)
       mBorderRender.invalidateCache()
       if !inBatch {
         isDirty |= StateKeys.border.low
@@ -3479,13 +3498,13 @@ public class MasonStyle: NSObject {
 
   public var cornerShapeTopRight: String {
     get {
-      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.radius.topRight.exponent))
+      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.cssRadius.topRight.exponent))
     }
     set {
       guard let exp = CSSBorderRenderer.parseCornerShapeToken(newValue) else { return }
       prepareMut()
       setFloat(StyleKeys.BORDER_RADIUS_TOP_RIGHT_EXPONENT, exp)
-      mBorderRender.radius.topRight.exponent = CGFloat(exp)
+      mBorderRender.cssRadius.topRight.exponent = CGFloat(exp)
       mBorderRender.invalidateCache()
       if !inBatch {
         isDirty |= StateKeys.border.low
@@ -3497,13 +3516,13 @@ public class MasonStyle: NSObject {
 
   public var cornerShapeBottomRight: String {
     get {
-      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.radius.bottomRight.exponent))
+      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.cssRadius.bottomRight.exponent))
     }
     set {
       guard let exp = CSSBorderRenderer.parseCornerShapeToken(newValue) else { return }
       prepareMut()
       setFloat(StyleKeys.BORDER_RADIUS_BOTTOM_RIGHT_EXPONENT, exp)
-      mBorderRender.radius.bottomRight.exponent = CGFloat(exp)
+      mBorderRender.cssRadius.bottomRight.exponent = CGFloat(exp)
       mBorderRender.invalidateCache()
       if !inBatch {
         isDirty |= StateKeys.border.low
@@ -3515,13 +3534,13 @@ public class MasonStyle: NSObject {
 
   public var cornerShapeBottomLeft: String {
     get {
-      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.radius.bottomLeft.exponent))
+      return CSSBorderRenderer.exponentToCornerShapeToken(Float(mBorderRender.cssRadius.bottomLeft.exponent))
     }
     set {
       guard let exp = CSSBorderRenderer.parseCornerShapeToken(newValue) else { return }
       prepareMut()
       setFloat(StyleKeys.BORDER_RADIUS_BOTTOM_LEFT_EXPONENT, exp)
-      mBorderRender.radius.bottomLeft.exponent = CGFloat(exp)
+      mBorderRender.cssRadius.bottomLeft.exponent = CGFloat(exp)
       mBorderRender.invalidateCache()
       if !inBatch {
         isDirty |= StateKeys.border.low

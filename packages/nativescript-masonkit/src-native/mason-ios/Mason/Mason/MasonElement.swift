@@ -1345,14 +1345,14 @@ class MasonElementHelpers: NSObject {
     // Never touch clipsToBounds on UIScrollView here: changing it during
     // layoutSubviews corrupts UIKit's gesture graph (UIGestureGraphEdge
     // assertions). It's fixed to true at init.
-    let clipWork = !(view is UIScrollView) && (clipX || clipY || view.clipsToBounds || view.layer.mask != nil)
+    let clipWork = (!(view is UIScrollView) || node.style.smoothCornersEverSet) && (clipX || clipY || view.clipsToBounds || view.layer.mask != nil)
     if clipWork {
       CATransaction.begin()
       CATransaction.setDisableActions(true)
       var cornerClip: (radius: CGFloat, corners: CACornerMask)? = nil
       if clipBoth {
         // Both axes clip — use clipsToBounds (+ border-radius mask if needed)
-        view.clipsToBounds = true
+        if !(view is UIScrollView) { view.clipsToBounds = true }
         if MasonStyle.routeOverflowClip(view, hasRadii ? borderRender.getClipPath(rect: localBounds, radius: borderRender.radius).cgPath : nil) {
           // The CSS mask clips to the rounded box.
         } else if hasRadii, let corner = masonView?.layerCornerRadius(borderRender.radius) {
@@ -1363,9 +1363,7 @@ class MasonElementHelpers: NSObject {
           let clipPath = borderRender.getClipPath(rect: localBounds, radius: borderRender.radius)
           let newCGPath = clipPath.cgPath
           if let existing = view.layer.mask as? CAShapeLayer {
-            if existing.path == nil || existing.path!.boundingBoxOfPath != newCGPath.boundingBoxOfPath {
-              existing.path = newCGPath
-            }
+            if existing.path != newCGPath { existing.path = newCGPath }
             existing.frame = view.bounds
           } else {
             let maskLayer = CAShapeLayer()
@@ -1379,7 +1377,7 @@ class MasonElementHelpers: NSObject {
       } else if clipX || clipY {
         // Only one axis clips — use a layer mask that extends beyond
         // the view on the non-clipped axis so shadows/content can overflow.
-        view.clipsToBounds = false
+        if !(view is UIScrollView) { view.clipsToBounds = false }
 
         // Large overflow allowance for the unclipped axis
         let overflowPad: CGFloat = 10000
@@ -1404,7 +1402,7 @@ class MasonElementHelpers: NSObject {
         // Overflow visible: border-radius alone doesn't clip children (only the
         // element's own bg/border are rounded, drawn in draw()). A mask here would
         // clip the border stroke and overflowing children, so clear it.
-        view.clipsToBounds = false
+        if !(view is UIScrollView) { view.clipsToBounds = false }
         if MasonStyle.routeOverflowClip(view, nil) {
           // The CSS mask stays, without an overflow clip.
         } else if view.layer.mask != nil {

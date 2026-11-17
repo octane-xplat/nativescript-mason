@@ -147,6 +147,7 @@ function flattenHeader(triple, master, include, tempDir) {
 function buildDesktop(destination) {
   rmSync(destination, { recursive: true, force: true });
   prepareHeaders(resolve(destination, 'include'));
+  copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(destination, 'LICENSE-LISSE'));
   const master = resolve(destination, 'include/mason_native.h');
   const tempDir = mkdtempSync(resolve(tmpdir(), 'mason-core-desktop-headers-'));
   const artifacts = [];
@@ -203,6 +204,7 @@ export function buildNative(mode) {
   if (mode === 'desktop') return buildDesktop(destination);
   rmSync(destination, { recursive: true, force: true });
   prepareHeaders(resolve(destination, 'include'));
+  copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(destination, 'LICENSE-LISSE'));
   let targets;
   if (mode === 'host') {
     const version = run('rustup', ['run', toolchain, 'rustc', '-vV'], { stdio: 'pipe' });

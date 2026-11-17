@@ -3104,6 +3104,29 @@ class Style internal constructor(@Transient internal var node: Node) {
       notifyTextStyleChanged(StateKeys.TEXT_SHADOWS)
     }
 
+  // Immutable snapshot; callers never retain a mutable native configuration.
+  internal var smoothCorners: DoubleArray? = null
+    private set
+
+  /** TL,TR,BR,BL: radius in DIPs, curve 0..4, smoothing, exponent, preserve 0/1.
+   * Null restores CSS radii. Invalid values preserve the previous configuration. */
+  fun setSmoothCorners(values: DoubleArray?): Boolean {
+    if (values != null) {
+      if (Mason.nativeSmoothCorners(0.0, 0.0, values) == null) return false
+      if ((0 until 4).any { !(values[it * 5] * node.mason.scale).toFloat().isFinite() }) return false
+    }
+    smoothCorners = values?.copyOf()
+    invalidateBorderRenderer()
+    mBoxShadowRenderer.invalidate()
+    (node.view as? android.view.View)?.let { view ->
+      view.setWillNotDraw(false)
+      view.requestLayout()
+      view.invalidate()
+      (view.parent as? android.view.View)?.invalidate()
+    }
+    return true
+  }
+
   internal var mBorder: String = ""
   private var mBorderRendererOrNull: BorderRenderer? = null
   internal val mBorderRenderer: BorderRenderer
@@ -3118,6 +3141,7 @@ class Style internal constructor(@Transient internal var node: Node) {
 
   // Any non-zero border width or radius in the buffer (bit patterns, so -0 counts too).
   internal fun mayHaveBorderOrRadius(): Boolean {
+    if (smoothCorners != null) return true
     if (node.pseudoMask != 0) return true
     val v = values
     return v.getLong(StyleKeys.BORDER_LEFT_VALUE) != 0L ||

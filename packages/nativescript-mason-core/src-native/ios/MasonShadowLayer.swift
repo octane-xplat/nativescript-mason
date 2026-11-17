@@ -29,6 +29,8 @@ class MasonShadowLayer: CALayer {
   // Cache for invalidation
   private var cachedBounds: CGRect = .zero
   private var cachedShadowsHash: Int = 0
+  private var cachedSmoothCorners: [Double]?
+  private var rasterSmoothCorners: [Double]?
   private var cachedRadius: CSSBorderRenderer.BorderRadius = .zero
   private var cachedOutsetShadows: [BoxShadow] = []
   private var cachedOutsetHash: Int = 0
@@ -146,10 +148,11 @@ class MasonShadowLayer: CALayer {
     // The radius can arrive after the first layout; the casters and image follow it.
     style.mBorderRender.resolve(for: viewBounds)
     let radius = style.mBorderRender.radius
-    if cachedBounds != viewBounds || cachedShadowsHash != shadowsHash || cachedRadius != radius {
+    if cachedBounds != viewBounds || cachedShadowsHash != shadowsHash || cachedRadius != radius || cachedSmoothCorners != style.mBorderRender.smoothCorners {
       cachedBounds = viewBounds
       cachedShadowsHash = shadowsHash
       cachedRadius = radius
+      cachedSmoothCorners = style.mBorderRender.smoothCorners
       updateCasters(style, outsetShadows)
     }
     updateMode(viewLayer: viewLayer)
@@ -163,7 +166,7 @@ class MasonShadowLayer: CALayer {
     CATransaction.setDisableActions(true)
     defer { CATransaction.commit() }
     if useImage {
-      if rasterBounds != cachedBounds || rasterShadowsHash != cachedShadowsHash || rasterRadius != cachedRadius {
+      if rasterBounds != cachedBounds || rasterShadowsHash != cachedShadowsHash || rasterRadius != cachedRadius || rasterSmoothCorners != cachedSmoothCorners {
         renderImage(style, resolveOutsetShadows())
       }
     } else if contents != nil {
@@ -181,6 +184,7 @@ class MasonShadowLayer: CALayer {
     rasterBounds = cachedBounds
     rasterShadowsHash = cachedShadowsHash
     rasterRadius = cachedRadius
+    rasterSmoothCorners = cachedSmoothCorners
     let w = cachedBounds.width
     let h = cachedBounds.height
     let e = (bounds.width - w) / 2

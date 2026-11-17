@@ -132,6 +132,7 @@ writeFileSync(resolve(include, 'module.modulemap'), `module FontManager { umbrel
 module SDWebImage { umbrella "SDWebImage" export * module * { export * } }
 `);
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(output, 'LICENSE'));
+copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(output, 'LICENSE-LISSE'));
 for (const [checkout, name] of [['font-manager', 'FontManager'], ['SDWebImage', 'SDWebImage']]) {
   copyFileSync(resolve(workspaceRoot, 'tmp/mason-core-ios-packages/checkouts', checkout, 'LICENSE'), resolve(output, `${name}.LICENSE`));
 }

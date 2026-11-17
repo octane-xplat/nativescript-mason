@@ -40,6 +40,7 @@ cpSync(resolve(ios, 'Resources'), resolve(iosOutput, 'Resources'), { recursive: 
 mkdirSync(resolve(iosOutput, 'include'), { recursive: true });
 cpSync(resolve(ios, 'include/SDWebImage'), resolve(iosOutput, 'include/SDWebImage'), { recursive: true });
 writeFileSync(resolve(iosOutput, 'include/module.modulemap'), 'module SDWebImage { umbrella "SDWebImage" export * module * { export * } }\n');
+copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(output, 'LICENSE-LISSE'));
 // Keep dependency licenses and native build provenance with the package.
 for (const name of ['FontManager.LICENSE', 'SDWebImage.LICENSE', 'Package.resolved', 'manifest.json', 'simulator-manifest.json', 'device-manifest.json']) {
   copyFileSync(resolve(ios, name), resolve(iosOutput, name));

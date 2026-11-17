@@ -621,6 +621,8 @@ class BorderRenderer(private val style: Style) {
   }
 
   fun getClipPath(width: Float, height: Float): Path {
+    // Smooth descendant clipping uses the same surface outline as iOS.
+    if (style.smoothCorners != null) return getOuterClipPath(width, height)
     // Return cached clip path if nothing changed
     if (!clipPathDirty && width == lastClipWidth && height == lastClipHeight) {
       return clipPath
@@ -728,6 +730,13 @@ class BorderRenderer(private val style: Style) {
    * where border-radius clips everything including corners.
    */
   fun getOuterClipPath(width: Float, height: Float): Path {
+    if (style.smoothCorners != null) {
+      if (outerClipPathDirty || width != lastOuterClipWidth || height != lastOuterClipHeight) {
+        outerClipPath.set(smoothPath(width, height))
+        lastOuterClipWidth = width; lastOuterClipHeight = height; outerClipPathDirty = false
+      }
+      return outerClipPath
+    }
     if (!outerClipPathDirty && width == lastOuterClipWidth && height == lastOuterClipHeight && !outerClipPath.isEmpty) {
       return outerClipPath
     }
@@ -807,7 +816,45 @@ class BorderRenderer(private val style: Style) {
     return outerClipPath
   }
 
+  private fun smoothPath(width: Float, height: Float, radii: FloatArray = getRadii()): Path {
+    val config = style.smoothCorners!!.copyOf()
+    for (i in 0 until 4) config[i * 5] = minOf(radii[i * 2], radii[i * 2 + 1]).toDouble()
+    val values = Mason.nativeSmoothCorners(width.toDouble(), height.toDouble(), config) ?: return Path()
+    val path = Path()
+    for (i in values.indices step 8) {
+      fun v(offset: Int) = values[i + offset].toFloat()
+      when (values[i].toInt()) {
+        0 -> path.moveTo(v(1), v(2))
+        1 -> path.lineTo(v(1), v(2))
+        2 -> path.cubicTo(v(1), v(2), v(3), v(4), v(5), v(6))
+        3 -> path.arcTo(RectF(v(1) - v(3), v(2) - v(3), v(1) + v(3), v(2) + v(3)), v(4), v(5), false)
+        4 -> path.close()
+      }
+    }
+    return path
+  }
+
+  /** Same curved region used by overflow drawing and native touch dispatch. */
+  internal fun smoothOverflowContains(view: android.view.View, x: Float, y: Float): Boolean {
+    if (style.smoothCorners == null || !style.isValueInitialized) return true
+    val overflow = style.overflow
+    fun clips(value: org.nativescript.mason.masonkit.enums.Overflow, content: Float, extent: Int): Boolean = when (value) {
+      org.nativescript.mason.masonkit.enums.Overflow.Hidden,
+      org.nativescript.mason.masonkit.enums.Overflow.Scroll,
+      org.nativescript.mason.masonkit.enums.Overflow.Clip -> true
+      org.nativescript.mason.masonkit.enums.Overflow.Auto -> content > extent
+      else -> false
+    }
+    if (!clips(overflow.x, style.node.overflowWidth.toFloat(), view.width) &&
+        !clips(overflow.y, style.node.overflowHeight.toFloat(), view.height)) return true
+    updateCache(view.width.toFloat(), view.height.toFloat())
+    val region = android.graphics.Region()
+    region.setPath(getClipPath(view.width.toFloat(), view.height.toFloat()), android.graphics.Region(0, 0, view.width, view.height))
+    return region.contains(kotlin.math.floor(x).toInt(), kotlin.math.floor(y).toInt())
+  }
+
   fun uniformRadius(width: Float, height: Float): Float {
+    if (style.smoothCorners != null) return -1f
     if (topLeftExponent != 1f || topRightExponent != 1f ||
       bottomRightExponent != 1f || bottomLeftExponent != 1f
     ) return -1f
@@ -821,12 +868,14 @@ class BorderRenderer(private val style: Style) {
 
   /** True when a corner uses a corner-shape other than round. */
   fun hasCornerShape(): Boolean =
+    style.smoothCorners != null ||
     topLeftExponent != 1f || topRightExponent != 1f ||
       bottomRightExponent != 1f || bottomLeftExponent != 1f
 
   /** Hash of the corner-shape exponents, for caches keyed on the box shape. */
   fun cornerShapeHash(): Int {
-    var h = topLeftExponent.toBits()
+    var h = style.smoothCorners?.contentHashCode() ?: 0
+    h = 31 * h + topLeftExponent.toBits()
     h = 31 * h + topRightExponent.toBits()
     h = 31 * h + bottomRightExponent.toBits()
     return 31 * h + bottomLeftExponent.toBits()
@@ -837,6 +886,12 @@ class BorderRenderer(private val style: Style) {
    * to [path], so box shadows follow the same shape as the border and background.
    */
   fun addShapePath(path: Path, rect: RectF, radii: FloatArray) {
+    if (style.smoothCorners != null) {
+      val smooth = smoothPath(rect.width().coerceAtLeast(0f), rect.height().coerceAtLeast(0f), radii)
+      smooth.offset(rect.left, rect.top)
+      path.addPath(smooth)
+      return
+    }
     if (!hasCornerShape()) {
       path.addRoundRect(rect, radii, Path.Direction.CW)
       return
@@ -1089,6 +1144,14 @@ class BorderRenderer(private val style: Style) {
   // The eight radius types and eight values are contiguous (TL, TR, BR, BL; x then y),
   // so they are read as one word of types and four words of value pairs.
   private fun setCorners(viewWidth: Float, viewHeight: Float) {
+    style.smoothCorners?.let { config ->
+      val scale = style.node.mason.scale
+      topLeftCorner.set((config[0] * scale).toFloat(), (config[0] * scale).toFloat())
+      topRightCorner.set((config[5] * scale).toFloat(), (config[5] * scale).toFloat())
+      bottomRightCorner.set((config[10] * scale).toFloat(), (config[10] * scale).toFloat())
+      bottomLeftCorner.set((config[15] * scale).toFloat(), (config[15] * scale).toFloat())
+      return
+    }
     val values = style.values
     val little = values.order() == java.nio.ByteOrder.LITTLE_ENDIAN
     val types = values.getLong(StyleKeys.BORDER_RADIUS_TOP_LEFT_X_TYPE)
@@ -1148,6 +1211,16 @@ class BorderRenderer(private val style: Style) {
 
   /** The rounded edge [f] of the way from the border edge to the padding edge. */
   private fun buildEdgePath(f: Float, width: Float, height: Float, into: Path): Path {
+    if (style.smoothCorners != null) {
+      val l = leftWidth * f; val t = topWidth * f
+      val r = rightWidth * f; val b = bottomWidth * f
+      val radii = getRadii()
+      val insets = floatArrayOf(l, t, r, t, r, b, l, b)
+      for (i in radii.indices) radii[i] = (radii[i] - insets[i]).coerceAtLeast(0f)
+      into.set(smoothPath((width - l - r).coerceAtLeast(0f), (height - t - b).coerceAtLeast(0f), radii))
+      into.offset(l, t)
+      return into
+    }
     val l = leftWidth * f
     val t = topWidth * f
     val r = rightWidth * f
@@ -1303,6 +1376,7 @@ class BorderRenderer(private val style: Style) {
     }.also { strokePaintOrNull = it }
 
   private fun drawUniformSolid(canvas: Canvas, width: Float, height: Float): Boolean {
+    if (style.smoothCorners != null) return false
     if (topStyle != BorderStyle.Solid || rightStyle != BorderStyle.Solid ||
       bottomStyle != BorderStyle.Solid || leftStyle != BorderStyle.Solid
     ) return false

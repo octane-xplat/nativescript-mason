@@ -36,6 +36,7 @@ internal object HitTesting {
     val element = view as? Element ?: return !contains(view, x, y)
     // clip-path clips the element and its subtree, hit testing included.
     if (element.style.mClipPath?.contains(view, x, y) == false) return true
+    if (element.style.smoothCorners != null && !element.style.mBorderRenderer.smoothOverflowContains(view, x, y)) return true
     if (!element.style.isValueInitialized) return false
 
     val overflow = element.style.overflow

@@ -218,4 +218,106 @@ class MasonCoreHostInstrumentedTest {
       assertFalse(mason.inCompute)
     }
   }
+  private fun smoothConfig(radius: Double = 24.0, curve: Double = 0.0) =
+    DoubleArray(20) { i -> when (i % 5) { 0 -> radius; 1 -> curve; 2 -> 0.65; 3 -> 4.0; else -> 1.0 } }
+
+  @Test
+  fun smoothCornersUpdateResizeResetAndOwnership() {
+    lateinit var detached: View
+    instrumentation.runOnMainSync {
+      val mason = Mason().apply { setDeviceScale(1f) }
+      val parent = mason.createView(context)
+      val view = mason.createView(context)
+      parent.addView(view)
+      view.style.borderRadius = "8dppx"
+      view.style.boxShadow = "0px 2px 4px black"
+      layout(parent, 200, 100)
+      val renderer = view.style.mBorderRenderer
+      for (curve in 0..4) {
+        val config = smoothConfig(24.0, curve.toDouble())
+        assertTrue(view.style.setSmoothCorners(config))
+        config[0] = 0.0
+        renderer.updateCache(200f, 100f)
+        val path = renderer.getOuterClipPath(200f, 100f)
+        assertFalse(path.isEmpty)
+        assertEquals(-1f, renderer.uniformRadius(200f, 100f))
+        assertFalse(view.clipChildren)
+        assertTrue(renderer.hasCornerShape())
+        assertEquals(24.0, view.style.smoothCorners!![0], 0.0)
+      }
+      assertTrue(view.style.setSmoothCorners(smoothConfig()))
+      renderer.updateCache(200f, 100f)
+      val first = android.graphics.Path(renderer.getOuterClipPath(200f, 100f))
+      assertTrue(view.style.setSmoothCorners(smoothConfig(24.0, 4.0)))
+      renderer.updateCache(200f, 100f)
+      val second = renderer.getOuterClipPath(200f, 100f)
+      val difference = android.graphics.Path()
+      difference.op(first, second, android.graphics.Path.Op.XOR)
+      assertFalse(difference.isEmpty)
+      assertFalse(view.style.setSmoothCorners(doubleArrayOf(Double.NaN)))
+      assertEquals(4.0, view.style.smoothCorners!![1], 0.0)
+      renderer.invalidateSize()
+      renderer.updateCache(90f, 30f)
+      val bounds = android.graphics.RectF()
+      renderer.getOuterClipPath(90f, 30f).computeBounds(bounds, true)
+      assertEquals(90f, bounds.right, 0.01f)
+      assertEquals(30f, bounds.bottom, 0.01f)
+      assertTrue(view.style.setSmoothCorners(null))
+      renderer.updateCache(90f, 30f)
+      assertNull(view.style.smoothCorners)
+      assertEquals(8f, renderer.uniformRadius(90f, 30f), 0.01f)
+      parent.removeView(view)
+      detached = view
+      view.style.mBoxShadowRenderer.release()
+    }
+    instrumentation.waitForIdleSync()
+    instrumentation.runOnMainSync { assertNull(detached.parent) }
+  }
+
+  @Test
+  fun smoothCornersOverflowHitRegionsAndClipOwnership() {
+    instrumentation.runOnMainSync {
+      val mason = Mason().apply { setDeviceScale(1f) }
+      val view = mason.createView(context)
+      layout(view, 100, 60)
+      assertTrue(view.style.setSmoothCorners(smoothConfig()))
+      val visible = org.nativescript.mason.masonkit.enums.Overflow.Visible
+      val hidden = org.nativescript.mason.masonkit.enums.Overflow.Hidden
+      view.style.overflow = Point(visible, visible)
+      assertTrue(view.style.mBorderRenderer.smoothOverflowContains(view, 1f, 1f))
+      view.style.overflow = Point(hidden, hidden)
+      assertFalse(view.style.mBorderRenderer.smoothOverflowContains(view, 1f, 1f))
+      assertTrue(view.style.mBorderRenderer.smoothOverflowContains(view, 50f, 30f))
+      assertNull(HitTesting.elementFromPoint(view, 1f, 1f))
+      val event = android.view.MotionEvent.obtain(0, 0, android.view.MotionEvent.ACTION_DOWN, 1f, 1f, 0)
+      assertTrue(clipPathRejectsTouch(view, view.style, event))
+      view.style.clipPath = "inset(0px)"
+      val owner = view.style.mClipPath
+      view.style.overflow = Point(visible, visible)
+      assertFalse(clipPathRejectsTouch(view, view.style, event))
+      assertSame(owner, view.style.mClipPath)
+      view.style.setSmoothCorners(null)
+      assertSame(owner, view.style.mClipPath)
+      event.recycle()
+    }
+  }
+
+  @Test
+  fun smoothCornersRepeatedUpdates() {
+    instrumentation.runOnMainSync {
+      val mason = Mason().apply { setDeviceScale(1f) }
+      val view = mason.createView(context)
+      val start = System.nanoTime()
+      repeat(1000) { i ->
+        assertTrue(view.style.setSmoothCorners(smoothConfig((i % 40).toDouble(), (i % 5).toDouble())))
+        layout(view, 200, 100)
+        view.style.mBorderRenderer.updateCache(200f, 100f)
+        view.style.mBorderRenderer.getOuterClipPath(200f, 100f)
+      }
+      android.util.Log.i("SmoothCorners", "1000 update/layout/path iterations ns=${System.nanoTime() - start}")
+      assertTrue(view.style.setSmoothCorners(null))
+      view.style.mBoxShadowRenderer.release()
+    }
+  }
+
 }

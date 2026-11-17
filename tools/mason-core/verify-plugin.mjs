@@ -50,7 +50,7 @@ try {
     assert.equal(createHash('sha256').update(readFileSync(resolve(root, name))).digest('hex'), sha256, name);
   }
   for (const name of [
-    'CHANGELOG.md',
+    'CHANGELOG.md', 'LICENSE-LISSE', 'SMOOTH_CORNERS.md', 'smooth-corners.js', 'smooth-corners.d.ts', 'smooth-corners-config.js', 'smooth-corners-config.d.ts',
     'view/index.ios.js', 'view/index.d.ts', 'typings/objc!MasonCore.d.ts',
     'platforms/ios/MasonCore.xcframework/ios-arm64/MasonCore.framework/MasonCore',
     'platforms/ios/MasonCore.xcframework/ios-arm64-simulator/MasonCore.framework/MasonCore',

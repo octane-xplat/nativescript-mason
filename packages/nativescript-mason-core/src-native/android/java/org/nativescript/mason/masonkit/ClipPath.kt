@@ -745,6 +745,7 @@ class ClipPath internal constructor(private val style: Style) {
   private val key = FloatArray(24)
   private val nextKey = FloatArray(24)
   private var keyVersion = -1
+  private var smoothKey: DoubleArray? = null
   private val border = FloatArray(4)
   private val padding = FloatArray(4)
   private val margin = FloatArray(4)
@@ -777,7 +778,8 @@ class ClipPath internal constructor(private val style: Style) {
     if (value.shape == null) renderer.copyRadii(radii) else radii.fill(0f)
     radii.copyInto(k, 15)
     k[23] = Mason.shared.rootFontSize
-    if (keyVersion == version && k.contentEquals(key)) return path
+    if (keyVersion == version && k.contentEquals(key) && java.util.Arrays.equals(smoothKey, style.smoothCorners)) return path
+    smoothKey = style.smoothCorners?.copyOf()
     k.copyInto(key)
     keyVersion = version
     region = null
@@ -879,7 +881,8 @@ class ClipPath internal constructor(private val style: Style) {
  * take no pointer events); refusing the DOWN lets the parent offer it to what's beneath.
  */
 internal fun clipPathRejectsTouch(view: android.view.View, style: Style, ev: MotionEvent): Boolean {
-  val clip = style.mClipPath ?: return false
   if (ev.actionMasked != MotionEvent.ACTION_DOWN) return false
+  if (style.smoothCorners != null && !style.mBorderRenderer.smoothOverflowContains(view, ev.x, ev.y)) return true
+  val clip = style.mClipPath ?: return false
   return !clip.contains(view, ev.x, ev.y)
 }

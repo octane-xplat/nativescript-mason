@@ -98,6 +98,7 @@ else {
   copyFileSync(resolve(stage, 'masoncore/build/outputs/apk/androidTest/debug/masoncore-debug-androidTest.apk'), resolve(output, 'tests/MasonCore-tests.apk'));
 }
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(output, 'LICENSE'));
+copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(output, 'LICENSE-LISSE'));
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 writeFileSync(resolve(output, 'sources.json'), JSON.stringify(sources.map(({ name, originalName = name, text }) => ({
   name, originalName, originalSha256: hash(readFileSync(nativeSource('android', originalName))), projectedSha256: hash(text),

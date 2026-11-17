@@ -833,3 +833,21 @@ pub extern "system" fn Java_org_nativescript_mason_masonkit_Mason_nativeUaDefaul
         None => env.new_float_array(0_i32).unwrap().into_raw(),
     }
 }
+
+/// Shared Rust geometry; JNI only transports validated doubles.
+#[no_mangle]
+pub extern "system" fn Java_org_nativescript_mason_masonkit_Mason_nativeSmoothCorners<'a>(
+    env: JNIEnv<'a>, _: JClass<'a>, width: f64, height: f64,
+    input: jni::objects::JDoubleArray<'a>,
+) -> jni::objects::JDoubleArray<'a> {
+    use mason_core::smooth_corners::{decode, generate};
+    if env.get_array_length(&input).ok() != Some(20) {return jni::objects::JDoubleArray::default();}
+    let mut config=[0.;20];
+    if env.get_double_array_region(&input,0,&mut config).is_err() {return jni::objects::JDoubleArray::default();}
+    let Ok(corners)=decode(&config) else {return jni::objects::JDoubleArray::default();};
+    let Ok(path)=generate(width,height,corners) else {return jni::objects::JDoubleArray::default();};
+    let values:Vec<f64>=path.into_iter().flat_map(|c|c.packed()).collect();
+    let Ok(array)=env.new_double_array(values.len() as i32) else {return jni::objects::JDoubleArray::default();};
+    if env.set_double_array_region(&array,0,&values).is_err() {return jni::objects::JDoubleArray::default();}
+    array
+}

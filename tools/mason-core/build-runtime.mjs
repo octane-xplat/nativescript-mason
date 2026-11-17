@@ -32,7 +32,7 @@ for (const name of relocatedFiles) {
   copyFileSync(resolve(coreSourceRoot, name), filename);
 }
 // Core Windows leaves are independent adaptations; MasonKit retains its own copies.
-for (const name of ['css-environment.ts', 'native-environment.ios.ts', 'native-environment.android.ts', 'native-environment.windows.ts', 'native-environment.d.ts',
+for (const name of ['smooth-corners.ts', 'smooth-corners-config.ts', 'css-environment.ts', 'native-environment.ios.ts', 'native-environment.android.ts', 'native-environment.windows.ts', 'native-environment.d.ts',
   'utils/index.windows.ts', 'view/index.windows.ts', 'scroll/index.windows.ts']) {
   write(name, readFileSync(resolve(coreSourceRoot, name), 'utf8'));
 }
@@ -48,6 +48,8 @@ export { Scroll } from './scroll';
 export { ViewBase, Event } from './common';
 export type { ScrollBehavior, ScrollLogicalPosition, ScrollToOptions, ScrollIntoViewOptions } from './common';
 export { Style } from './style';
+export { setSmoothCorners } from './smooth-corners';
+export type { SmoothCorners, SmoothCorner, SmoothCornerCurve, SmoothCornerSurface } from './smooth-corners';
 export type { PaintPresentation, PaintSnapshot } from './paint-presentation';
 export { setCssEnvironment, clearCssEnvironment, bindCssEnvironment, refreshCssEnvironment } from './css-environment';
 export type { CssSafeAreaInsets, CssEnvironmentHost, CssEnvironmentSource } from './css-environment';
@@ -120,6 +122,8 @@ const manifest = {
 delete manifest.nativescript;
 writeFileSync(resolve(runtimeOutput, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
 copyFileSync(resolve(workspaceRoot, 'LICENSE'), resolve(runtimeOutput, 'LICENSE'));
+copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(runtimeOutput, 'LICENSE-LISSE'));
+copyFileSync(resolve(coreSourceRoot, 'SMOOTH_CORNERS.md'), resolve(runtimeOutput, 'SMOOTH_CORNERS.md'));
 copyFileSync(resolve(workspaceRoot, 'tools/mason-core/runtime-README.md'), resolve(runtimeOutput, 'README.md'));
 for (const name of ['native-types-README.md', 'plugin-README.md']) {
   copyFileSync(resolve(workspaceRoot, 'tools/mason-core', name), resolve(runtimeOutput, name));

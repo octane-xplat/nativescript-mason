@@ -252,6 +252,7 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
   }
 
   private func layerPaint() -> LayerPaint? {
+    if style.mBorderRender.smoothCorners != nil { return nil }
     if _cachedHasFilter || hasListMarkers || style.hasBorderImage { return nil }
     if _cachedHasBoxShadow && style.boxShadows.contains(where: { $0.inset }) { return nil }
     var paint = LayerPaint()
@@ -300,6 +301,7 @@ public class MasonUIView: UIView, MasonEventTarget, MasonElement, MasonElementOb
 
   /// The one circular radius of the rounded corners, scaled as CSS scales overlapping radii.
   internal func layerCornerRadius(_ r: CSSBorderRenderer.BorderRadius) -> (CGFloat, CACornerMask)? {
+    if style.mBorderRender.smoothCorners != nil { return nil }
     let corners = [r.topLeft, r.topRight, r.bottomRight, r.bottomLeft]
     let masks: [CACornerMask] = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMaxXMaxYCorner, .layerMinXMaxYCorner]
     var value: CGFloat = 0
