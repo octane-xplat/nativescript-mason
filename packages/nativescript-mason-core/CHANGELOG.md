@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.0-beta.12 — 2026-11-17
+
+- Fix `setSmoothCorners` on Android when NativeScript exposes the native style through `getStyle()`.
+
 ## 1.0.0-beta.11 — 2026-11-17
 
 - Add built-in smooth-corner geometry and native iOS/Android surface integration. See [SMOOTH_CORNERS.md](./SMOOTH_CORNERS.md) for configuration and qualification boundaries.

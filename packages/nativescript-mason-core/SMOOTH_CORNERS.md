@@ -60,7 +60,9 @@ borders. Android elevation outlines are not supplied by this API.
   `bun tools/smooth-corners/reference.ts FRAMEWORK_CHECKOUT LISSE_0_7_3_CORE_SOURCE`.
 - Android: native instrumentation covers update, resize, reset, clip ownership,
   synthetic touch rejection and detach. Synthetic MotionEvents and native handler
-  calls do not establish real OS-input behavior or pixel parity.
+  calls do not establish real OS-input behavior or pixel parity. An isolated
+  NativeScript Android consumer also verifies mixed settings, update and reset
+  through the native `getStyle()` bridge on the existing API 35 emulator.
 - iOS: simulator/device engine archives and simulator Swift/Objective-C hosts
   compile and link. All three native corner tests pass on an iPhone 13 Pro Max
   running iOS 27.0.1, including same-size clipping updates, resize, reset, mask
