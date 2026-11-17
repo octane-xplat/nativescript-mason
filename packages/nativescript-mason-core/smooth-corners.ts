@@ -9,8 +9,10 @@ export type SmoothCornerSurface = View | Scroll | { readonly _view: unknown };
 /** Shape the existing surface; overflow decides descendant clipping. Pass null
  * to restore authored CSS radii. Windows and non-Mason hosts throw explicitly. */
 export function setSmoothCorners(surface: SmoothCornerSurface, options: SmoothCorners | null): void {
-  const native = (surface as { readonly _view: unknown })._view as { style?: { setSmoothCorners?: (values: unknown) => boolean } };
-  if (typeof native?.style?.setSmoothCorners !== 'function') {
+  type NativeStyle = { setSmoothCorners?: (values: unknown) => boolean };
+  const native = (surface as { readonly _view: unknown })._view as { style?: NativeStyle; getStyle?: () => NativeStyle };
+  const style = native?.style ?? native?.getStyle?.();
+  if (typeof style?.setSmoothCorners !== 'function') {
     throw new Error('This Mason native host does not support smooth corners; iOS and Android adapters are required');
   }
   const values = options === null ? null : encodeSmoothCorners(options);
@@ -20,5 +22,5 @@ export function setSmoothCorners(surface: SmoothCornerSurface, options: SmoothCo
     values.forEach((value, index) => { array[index] = value; });
     input = array;
   }
-  if (!native.style.setSmoothCorners(input)) throw new RangeError('The native Mason surface rejected smooth corner settings');
+  if (!style.setSmoothCorners(input)) throw new RangeError('The native Mason surface rejected smooth corner settings');
 }

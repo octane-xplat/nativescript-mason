@@ -62,6 +62,21 @@ Application.run({
           check(label.parent === root && second.parent === nested, 'NativeScript ownership differs');
           const nativeClass = isIOS ? String(root.ios.class()) : String(root.android.getClass().getName());
           check(nativeClass.includes(isIOS ? 'MasonUIView' : 'org.nativescript.mason.masonkit.View'), `Unexpected native host: ${nativeClass}`);
+          if (!isIOS) {
+            check(typeof nested.android.getStyle === 'function', 'Android native style getter is missing');
+            const nativeStyle = nested.android.getStyle();
+            const stored = nativeStyle.getClass().getDeclaredField('smoothCorners');
+            stored.setAccessible(true);
+            core.setSmoothCorners(nested, { topLeft: { radius: 24, curve: 'squircle' }, bottomRight: 12 });
+            let corners = stored.get(nativeStyle);
+            check(corners != null && corners.length === 20 && corners[0] === 24 && corners[1] === 1 && corners[10] === 12, 'Mixed corners did not reach the native style');
+            core.setSmoothCorners(nested, 16);
+            corners = stored.get(nativeStyle);
+            check(corners != null && corners[0] === 16 && corners[15] === 16, 'Updated corners did not reach the native style');
+            core.setSmoothCorners(nested, null);
+            check(stored.get(nativeStyle) == null, 'Clearing corners did not reset the native style');
+            check(nested.parent === root && second.parent === nested, 'Smooth corner updates changed native ownership');
+          }
           report({ passed: true, platform: isIOS ? 'ios' : 'android', nativeClass, rootSize, labelSize, nestedSize, secondSize,
             evidence: 'NativeScript application and native bridge; OS input and release-size savings are not covered.' });
         } catch (error) {

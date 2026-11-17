@@ -33,7 +33,9 @@ const serial = candidates[0].split(/\s+/)[0];
 const device = (args, timeout) => run(['-s', serial, ...args], timeout);
 if (emulatorSerial) {
   assert.equal(device(['shell', 'getprop', 'ro.kernel.qemu']).trim(), '1');
-  assert.ok(device(['emu', 'avd', 'name']).split(/\r?\n/).includes('mason-core-extraction'), 'Use only the owned Mason core extraction AVD.');
+  const avd = process.env.MASON_CORE_ANDROID_AVD ?? 'mason-core-extraction';
+  assert.ok(['mason-core-extraction', 'elegant-fir-probe'].includes(avd), 'Unsupported Android consumer AVD.');
+  assert.ok(device(['emu', 'avd', 'name']).split(/\r?\n/).includes(avd), 'The selected Android consumer AVD does not match.');
 } else {
   assert.notEqual(device(['shell', 'getprop', 'ro.kernel.qemu']).trim(), '1');
 }

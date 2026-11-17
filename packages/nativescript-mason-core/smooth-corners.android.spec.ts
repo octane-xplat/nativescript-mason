@@ -8,7 +8,8 @@ it('converts Android settings to a native double array and clears without an arr
   Object.defineProperty(Array, 'create', { configurable: true, value: create });
   try {
     const calls: unknown[] = [];
-    const host = { _view: { style: { setSmoothCorners(values: unknown) { calls.push(values); return true; } } } };
+    const style = { setSmoothCorners(values: unknown) { expect(this).toBe(style); calls.push(values); return true; } };
+    const host = { _view: { getStyle() { return style; } } };
     setSmoothCorners(host, 12);
     setSmoothCorners(host, null);
     expect(create).toHaveBeenCalledExactlyOnceWith('double', 20);
