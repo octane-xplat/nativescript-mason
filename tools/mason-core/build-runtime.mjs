@@ -45,7 +45,7 @@ cpSync(resolve(coreSourceRoot, 'typings'), resolve(runtimeSourceRoot, 'typings')
 const entry = `/// <reference path="./typings/native.d.ts" />
 export { View } from './view';
 export { Scroll } from './scroll';
-export { ViewBase, Event } from './common';
+export { ViewBase, Event, PointerEvent } from './common';
 export type { ScrollBehavior, ScrollLogicalPosition, ScrollToOptions, ScrollIntoViewOptions } from './common';
 export { Style } from './style';
 export { setSmoothCorners } from './smooth-corners';

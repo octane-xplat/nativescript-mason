@@ -1080,6 +1080,8 @@ declare class MasonNode extends NSObject {
 
 	readonly parentNode: MasonNode | null;
 
+	pointerEvents: number;
+
 	readonly pseudoMask: number;
 
 	touchAction: number;
@@ -1167,6 +1169,73 @@ declare class MasonOverflowPointCompat extends NSObject {
 	x: MasonOverflow;
 
 	y: MasonOverflow;
+}
+
+declare class MasonPointerEvent extends MasonEvent {
+
+	static alloc(): MasonPointerEvent; // inherited from NSObject
+
+	static new(): MasonPointerEvent; // inherited from NSObject
+
+	readonly altKey: boolean;
+
+	readonly button: number;
+
+	readonly buttons: number;
+
+	readonly clientX: number;
+
+	readonly clientY: number;
+
+	readonly ctrlKey: boolean;
+
+	readonly height: number;
+
+	readonly isPrimary: boolean;
+
+	readonly metaKey: boolean;
+
+	readonly movementX: number;
+
+	readonly movementY: number;
+
+	readonly offsetX: number;
+
+	readonly offsetY: number;
+
+	readonly pageX: number;
+
+	readonly pageY: number;
+
+	readonly pointerId: number;
+
+	readonly pointerType: string;
+
+	readonly pressure: number;
+
+	readonly relatedTarget: any | null;
+
+	readonly screenX: number;
+
+	readonly screenY: number;
+
+	readonly shiftKey: boolean;
+
+	readonly tangentialPressure: number;
+
+	readonly tiltX: number;
+
+	readonly tiltY: number;
+
+	readonly twist: number;
+
+	readonly width: number;
+
+	readonly x: number;
+
+	readonly y: number;
+
+	static readonly types: NSSet<string>;
 }
 
 declare const enum MasonPosition {

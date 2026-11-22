@@ -11,11 +11,12 @@ export const iosHostFiles = Object.freeze([
   'Enums.swift', 'Extensions.swift', 'MasonCompat.swift', 'MasonElement.swift',
   'MasonEvent.swift', 'MasonEventTarget.swift', 'MasonGestureRecognizer.swift',
   'MasonLayout.swift', 'MasonLine.swift', 'MasonNode.swift', 'MasonPoint.swift',
-  'MasonPositioning.swift', 'MasonRect.swift', 'MasonShadowLayer.swift', 'MasonSize.swift',
+  'MasonPointerEvents.swift', 'MasonPositioning.swift', 'MasonRect.swift', 'MasonShadowLayer.swift', 'MasonSize.swift',
   'MasonStyle.swift', 'MasonUIView.swift', 'Mask.swift', 'MaxSizing.swift',
   'MeasureOutput.swift', 'MinMax.swift', 'MinSizing.swift', 'NativeHelpers.swift',
   'NineSlice.swift', 'NodeUtils.swift', 'NSCMason.swift', 'Scroll.swift',
   'Shadow.swift', 'SvgParser.swift', 'SvgText.swift', 'SwiftHelpers.swift', 'TrackSizingFunction.swift',
+  'platform/Platform.swift',
 ]);
 
 function declarationText(source, name) {
@@ -37,10 +38,13 @@ export function projectIosSource(name) {
       'invalidateDescendantTextViews(inheritedBy:_:_:)', 'invalidateDescendantDefaultAttributes(_:)',
       'invalidateDefaultAttributes()', 'getDefaultAttributes()', '_buildDefaultAttributes()',
       'getDecorationColor()', 'spaceAdvance(_:)', 'document', 'assignedInnerHTML', 'htmlAttributes',
+      'retainedView', 'isUnderTextContainer', 'syncRetainedView()',
       '_cachedDefaultAttributes', '_defaultAttrsStyleVersion', 'notInheritedTextKeys',
       'init(dataNode:)', 'init(masonLineBreak:)', 'init(masonImage:)', 'init(masonButton:)',
       'init(textNode:_:)', 'init(listItem:)', 'init(listItem:measureFunc:)',
     ]) source.remove(signature);
+    source.replace('view', '  internal weak var view: UIView? = nil');
+    source.statement('for child in children where child.retainedView != nil', '', 'for_each_stmt');
     const extension = source.nodes.filter((node) => node.kind === 'extension_decl' && node.name === 'MasonNode');
     if (extension.length !== 1) throw new Error('MasonNode child/measure extension changed.');
     const retained = ['getChildAt(_:)', 'setChildren(value:)', 'removeAllChildren()', 'removeMeasureFunction()', 'setMeasureFunction(_:)', 'setDefaultMeasureFunction()', 'measureFunction(_:_:_:)'];
@@ -68,12 +72,17 @@ export function projectIosSource(name) {
   }
   if (name === 'MasonUIView.swift') {
     for (const signature of [
-      'hasListMarkers', 'isSummary', 'isAccessibilityElement', 'accessibilityLabel', 'accessibilityTraits',
-      'accessibilityExpandedStatus', 'accessibilityActivate()', 'drawListItemMarkers(in:)',
+      'hasListMarkers', 'drawListItemMarkers(in:)',
       'listStyleType(list:item:preflight:)', 'isInside(list:item:)', 'insideMarker(for:)',
       'resolveListStyleTypeFor(_:)', 'drawMarkerText(_:font:color:right:baseline:in:)', 'drawMarkerFor(listItem:in:position:)',
     ]) source.remove(signature);
     source.statement('if hasListMarkers {');
+    const first = source.lines.findIndex((line) => line.trim() === '// MARK: Accessibility');
+    const last = source.lines.findIndex((line, index) => index > first && line.trim().startsWith('private func drawListItemMarkers('));
+    if (first < 0 || last <= first || !source.lines.slice(first, last).some((line) => line.includes('var isSummary:'))) {
+      throw new Error('MasonUIView summary accessibility boundary changed.');
+    }
+    source.edit({ first, last: last - 1 });
   }
   if (name === 'MasonStyle.swift') {
     source.statement('if node.detailsRole == MasonDetails.summary');
@@ -117,6 +126,15 @@ export function projectIosSource(name) {
     source.statement('if let text = v as? MasonText, text.inlineClickTarget');
     source.statement('if let text = view as? MasonText, text.inlineClickTarget');
   }
+  if (name === 'MasonPointerEvents.swift') {
+    source.statement('if view === hitView, let text = view as? MasonText');
+    const first = source.lines.indexOf('extension MasonText {');
+    const last = source.lines.lastIndexOf('#endif');
+    const widgets = source.lines.slice(first, last).filter((line) => line.startsWith('extension '));
+    const expected = ['MasonText', 'Button', 'Img', 'MasonInput', 'MasonLi', 'MasonList'].map((name) => `extension ${name} {`);
+    if (first < 0 || last <= first || widgets.join() !== expected.join()) throw new Error('Pointer-event widget extensions changed.');
+    source.edit({ first, last: last - 1 });
+  }
   if (name === 'ClipPath.swift') {
     const extensions = source.nodes.filter((node) => node.kind === 'extension_decl' && ['MasonText', 'Button', 'Img', 'MasonInput', 'MasonLi', 'MasonList'].includes(node.name));
     if (extensions.length !== 6) throw new Error('ClipPath widget extensions changed.');
@@ -124,12 +142,17 @@ export function projectIosSource(name) {
   }
   let text = source.result();
   const replacements = {
+    'MasonNode.swift': [
+      ['      syncRetainedView()', ''],
+      ['  // `view` above is weak and only the view hierarchy keeps it alive. A text container draws its\n  // children or attaches them at layout, so while under one the node holds its own view.', ''],
+      ['    // A child under a text container keeps its own view alive, and the view owns that node:\n    // release the pair with this parent.', ''],
+    ],
     'NSCMason.swift': [['      HTMLParser.refreshViewportStyles()', '']],
     'MasonElement.swift': [
       ['if let view = node.view, !(view is MasonBr.FakeView) {', 'if let view = node.view {'],
       [' || MasonDetails.isHidden(node)', ''],
       [' && !(view.superview is MasonText)', ''],
-      ['      let parentText = MasonViewKind.textContainer(node.view)\n', ''],
+      ['    let parentText = MasonViewKind.textContainer(node.view)\n', ''],
       ['    var isTextView = false\n    var realLayout = layout\n    var hasWidthConstraint: Bool = false\n    var hasHeightConstraint: Bool = false', '    let realLayout = layout'],
       ['    if let text = view.superview as? MasonText, text.ownsInlineBox(view) {\n      text.placeInlineBox(node, view, newFrame)\n    } else if view.transform.isIdentity', '    if view.transform.isIdentity'],
       ['    if obj is TextContainer { b |= textBit }', ''],
@@ -147,7 +170,7 @@ export function projectIosSource(name) {
     'MasonStyle.swift': [[' || MasonDetails.isHidden(node)', '']],
     'Background.swift': [
       ['if let text = view as? MasonText {\n      path.addPath(text.engine.glyphOutlinePath(), transform: transform)', 'if let text = view as? MasonBackgroundGlyphProvider {\n      path.addPath(text.masonBackgroundGlyphPath(), transform: transform)'],
-      ['if sub is MasonText { sub.layer.displayIfNeeded() }', 'if sub is MasonBackgroundGlyphProvider { sub.layer.displayIfNeeded() }'],
+      ['if sub is MasonText { sub.backingLayer.displayIfNeeded() }', 'if sub is MasonBackgroundGlyphProvider { sub.backingLayer.displayIfNeeded() }'],
     ],
     'NineSlice.swift': [['      (view as? MasonText)?.textLayer.setNeedsDisplay()', '']],
   };

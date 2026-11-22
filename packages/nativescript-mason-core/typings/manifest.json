@@ -1,6 +1,6 @@
 {
-  "androidHostSha256": "630d84ef25056c6da2e092b6822110e00e3849be119d7e4310b762dac2ceb48e",
-  "iosHostSha256": "1b839d4079d21b0b35f4323ed96c8dd48016edab1d90269702d9518c70a1bafa",
+  "androidHostSha256": "c49e1546e5d36e2f86ba3c8386667cd7324f91f062836d61a6ec4db29cbee9f0",
+  "iosHostSha256": "c9eab85c58182d8be7f0f4e9b531c9513b2eeea42464df0dff756cc720983c20",
   "androidGenerator": {
     "sdk": "9.1.1",
     "jarSha256": "93d6ed1a4a09f2a33c09f41a323f1a36e14cbf18842211565083db71ad84ab44",
@@ -11,14 +11,14 @@
   "iosGenerator": {
     "sdk": "9.1.0",
     "sha256": "7682e1c285a8f4c619beceb16bcf906fa3fb7e6436b0fb53cea690d8188fb4c0",
-    "appleSdkVersion": "27.0",
+    "appleSdkVersion": "27.2",
     "architecture": "arm64",
     "simulator": true
   },
   "files": [
     {
       "name": "android.d.ts",
-      "sha256": "5279e20153e4f343f407a7d6fd8d8787b3fb0d543700b42e1a4ff75e963167f1"
+      "sha256": "8ef557102572b28e96d2350c4cb9cfb38fb3af9a91673d78322aefa1e7215a51"
     },
     {
       "name": "android-declarations.d.ts",
@@ -26,7 +26,7 @@
     },
     {
       "name": "objc!MasonCore.d.ts",
-      "sha256": "5d08b340155b0fe53b2c07fa7c04825876aa2286a4bcf3984028c29505478cca"
+      "sha256": "0e0b66eb805bfe2f0e874ba656ad44f6202349dc73ad90ed1a042d1fda438f43"
     },
     {
       "name": "objc!FontManager.d.ts",

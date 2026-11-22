@@ -29,13 +29,15 @@ try {
   const native = resolve(artifact, 'jni/arm64-v8a/libmasonnative.so');
   const original = resolve(workspaceRoot, 'dist/native/mason-core/android-jni/arm64-v8a/libmasonnative.so');
   assert.equal(hash(original), manifest.jni.librarySha256);
-  // AGP strips release JNI binaries. Prove that its output differs from the
-  // recorded input only by the NDK's normal strip operation.
-  const stripped = resolve(temporary, 'libmasonnative.so');
-  copyFileSync(original, stripped);
+  // AGP can retain the exact input or strip it with the NDK.
   const tools = androidTools();
-  run(resolve(tools.bin, 'llvm-strip'), ['--strip-unneeded', stripped], { stdio: 'pipe' });
-  assert.equal(hash(native), hash(stripped));
+  const nativeHash = hash(native);
+  if (nativeHash !== manifest.jni.librarySha256) {
+    const stripped = resolve(temporary, 'libmasonnative.so');
+    copyFileSync(original, stripped);
+    run(resolve(tools.bin, 'llvm-strip'), ['--strip-unneeded', stripped], { stdio: 'pipe' });
+    assert.equal(nativeHash, hash(stripped));
+  }
   assert.match(run(tools.nm, ['-D', '--defined-only', native], { stdio: 'pipe' }), /\bJNI_OnLoad$/m);
 
   // Copy the exact resolved compile artifacts before compiling outside the repo.

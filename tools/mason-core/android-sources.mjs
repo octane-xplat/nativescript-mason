@@ -18,12 +18,12 @@ export const androidHostFiles = Object.freeze([
   'LoadingState.kt', 'Mask.kt', 'Mason.kt', 'MasonPositioning.kt', 'MaxSizing.kt',
   'MeasureFunc.kt', 'MeasureOutput.kt', 'MinMax.kt', 'MinSizing.kt', 'NativeHelpers.java',
   'NativeObject.kt', 'NineSlice.kt', 'Node.kt', 'NodeHelper.kt', 'NodeType.kt', 'NodeUtils.kt',
-  'ObjectManager.kt', 'Point.kt', 'Rect.kt', 'Scroll.kt', 'Shadow.kt', 'SharedBoxShadowCache.kt',
+  'ObjectManager.kt', 'Point.kt', 'PointerDispatch.kt', 'Rect.kt', 'Scroll.kt', 'Shadow.kt', 'SharedBoxShadowCache.kt',
   'Size.kt', 'Style.kt', 'StyleHelpers.kt', 'Styles.kt', 'SvgParser.kt', 'SvgText.kt', 'TextDefaultAttributes.kt',
   'Transform.kt', 'TwoDScrollView.kt', 'Utils.kt', 'View.kt', 'ViewLayoutFactory.kt',
   'ViewUtils.kt', 'WebScroll.kt', 'CSSFilters.kt',
   ...nativeFiles('android').filter((name) => name.startsWith('enums/')),
-  'events/Event.kt', 'events/EventOptions.kt',
+  'events/Event.kt', 'events/EventOptions.kt', 'events/PointerEvent.kt',
 ]);
 
 function replaceCount(text, before, after, count) {
@@ -141,6 +141,9 @@ export function projectAndroidSources() {
         ['          val isText = view is TextContainer', '          val isText = false'],
         ['view !is Li && !view.isLayoutRequested', '!view.isLayoutRequested'],
         ['          val textHost = view.parent as? TextView', ''],
+      ],
+      'HitTesting.kt': [
+        ['var node: Node? = (if (view === hit && view is TextView) view.inlineNodeAt(point[0], point[1]) else null) ?: element.node', 'var node: Node? = element.node'],
       ],
       'View.kt': [['    ListMarkers.draw(this, style, c)', '']],
       'Scroll.kt': [

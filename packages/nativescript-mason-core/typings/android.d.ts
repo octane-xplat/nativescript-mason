@@ -2149,6 +2149,9 @@ declare module org {
 						configure(param0: any): org.nativescript.mason.masonkit.Element;
 						getView(): globalAndroid.view.View;
 						elementFromPoint(param0: number, param1: number): globalAndroid.view.View | null;
+						setPointerCapture(param0: number): boolean;
+						releasePointerCapture(param0: number): void;
+						hasPointerCapture(param0: number): boolean;
 						layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
 						compute(): void;
 						compute(param0: number, param1: number): void;
@@ -2208,6 +2211,9 @@ declare module org {
 					public configure(param0: any): org.nativescript.mason.masonkit.Element;
 					public getView(): globalAndroid.view.View;
 					public elementFromPoint(param0: number, param1: number): globalAndroid.view.View | null;
+					public setPointerCapture(param0: number): boolean;
+					public releasePointerCapture(param0: number): void;
+					public hasPointerCapture(param0: number): boolean;
 					public layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
 					public compute(): void;
 					public compute(param0: number, param1: number): void;
@@ -2272,6 +2278,9 @@ declare module org {
 						public static isNodeDirty($this: org.nativescript.mason.masonkit.Element): boolean;
 						public static configure($this: org.nativescript.mason.masonkit.Element, block: any): org.nativescript.mason.masonkit.Element;
 						public static elementFromPoint($this: org.nativescript.mason.masonkit.Element, x: number, y: number): globalAndroid.view.View | null;
+						public static setPointerCapture($this: org.nativescript.mason.masonkit.Element, pointerId: number): boolean;
+						public static releasePointerCapture($this: org.nativescript.mason.masonkit.Element, pointerId: number): void;
+						public static hasPointerCapture($this: org.nativescript.mason.masonkit.Element, pointerId: number): boolean;
 						public static layoutFlat(initialLayout: org.nativescript.mason.masonkit.Element): org.nativescript.mason.masonkit.MasonLayoutTree;
 						public static compute(mason: org.nativescript.mason.masonkit.Element): void;
 						public static compute(width: org.nativescript.mason.masonkit.Element, height: number, mason: number): void;
@@ -2311,8 +2320,8 @@ declare module org {
 						public static replaceChildAt($this: org.nativescript.mason.masonkit.Element, node: org.nativescript.mason.masonkit.Node, index: number): void;
 						public static removeChildAt($this: org.nativescript.mason.masonkit.Element, index: number): void;
 						public static removeChild($this: org.nativescript.mason.masonkit.Element, node: org.nativescript.mason.masonkit.Node): void;
-						public static dispatch($this: org.nativescript.mason.masonkit.Element, event: org.nativescript.mason.masonkit.events.Event): void;
 						public static removeEventListener($this: org.nativescript.mason.masonkit.Element, type: string, id: java.util.UUID): void;
+						public static dispatch($this: org.nativescript.mason.masonkit.Element, event: org.nativescript.mason.masonkit.events.Event): void;
 					}
 				}
 			}
@@ -3471,14 +3480,14 @@ declare module org {
 					public printArenaStats(): void;
 					public debugStats(): java.util.Map<string,java.lang.Long>;
 					public addEventListener(answer$iv: org.nativescript.mason.masonkit.Node, $i$f$getOrPut: string, value$iv: any): java.util.UUID;
-					public removeEventListener(node: org.nativescript.mason.masonkit.Node, type: string, id: java.util.UUID): void;
+					public removeEventListener(this_: org.nativescript.mason.masonkit.Node, node: string, type: java.util.UUID): void;
 					public dispatch(listeners: org.nativescript.mason.masonkit.events.Event): void;
 					public createNode(it: androidNative.Array<org.nativescript.mason.masonkit.Node> | null, item$iv$iv: boolean): org.nativescript.mason.masonkit.Node;
-					public createNode($this$createNode_u24lambda_u249: org.nativescript.mason.masonkit.MeasureFunc, func: boolean): org.nativescript.mason.masonkit.Node;
+					public createNode($this$createNode_u24lambda_u2410: org.nativescript.mason.masonkit.MeasureFunc, func: boolean): org.nativescript.mason.masonkit.Node;
 					public createView(context: globalAndroid.content.Context): org.nativescript.mason.masonkit.View;
 					public createScrollView(context: globalAndroid.content.Context): org.nativescript.mason.masonkit.Scroll;
 					public configureStyleForView(this_: globalAndroid.view.View, view: any): void;
-					public nodeForView($this$nodeForView_u24lambda_u2410: globalAndroid.view.View): org.nativescript.mason.masonkit.Node;
+					public nodeForView($this$nodeForView_u24lambda_u2411: globalAndroid.view.View): org.nativescript.mason.masonkit.Node;
 					public syncStyleParts(high: globalAndroid.view.View, node: number, this_: number, view: number, lowLow: number): void;
 					public styleForView(this_: globalAndroid.view.View): org.nativescript.mason.masonkit.Style;
 					public setPercentWidth(view: globalAndroid.view.View, fraction: number): void;
@@ -4297,6 +4306,7 @@ declare module org {
 				export class Node extends org.nativescript.mason.masonkit.NativeObject {
 					public static class: java.lang.Class<org.nativescript.mason.masonkit.Node>;
 					public touchAction: number;
+					public pointerEvents: number;
 					public constructor(mason: org.nativescript.mason.masonkit.Mason, nativePtr: number, nodeType: org.nativescript.mason.masonkit.NodeType);
 					public getComputeCache(): any;
 					public setComputeCache(value: any): void;
@@ -4373,13 +4383,14 @@ declare module org {
 					public removeChildAt(this_: number): org.nativescript.mason.masonkit.Node | null;
 					public removeChild(this_: org.nativescript.mason.masonkit.Node): org.nativescript.mason.masonkit.Node | null;
 					public appendChild(this_: globalAndroid.view.View): void;
-					public dirty(): void;
+					public dirty(force: boolean): void;
 					public isDirty(): boolean;
 					public getChildCount(): number;
 					public setMeasureFunction(this_: org.nativescript.mason.masonkit.MeasureFunc): void;
 					public removeMeasureFunction(): void;
 					public removeChildren(): void;
 					public appendChild(child: org.nativescript.mason.masonkit.Node): void;
+					public dirty(): void;
 					public static measure(id: number, knownDimensionsSpec: number, availableSpaceSpec: number): number;
 					public static setComputedSizeTestCallback(cb: any | null): void;
 					public static setComputedSize(node: number, width: number, height: number): void;
@@ -4845,6 +4856,55 @@ declare module org {
 	export module nativescript {
 		export module mason {
 			export module masonkit {
+				export module PointerDispatch {
+					export class Pointer {
+						public static class: java.lang.Class<org.nativescript.mason.masonkit.PointerDispatch.Pointer>;
+						public constructor(id: number, type: string, primary: boolean);
+						public getId(): number;
+						public getType(): string;
+						public getPrimary(): boolean;
+						public getTarget(): org.nativescript.mason.masonkit.Node | null;
+						public setTarget(param0: org.nativescript.mason.masonkit.Node | null): void;
+						public getCapture(): org.nativescript.mason.masonkit.Node | null;
+						public setCapture(param0: org.nativescript.mason.masonkit.Node | null): void;
+						public getPendingCapture(): org.nativescript.mason.masonkit.Node | null;
+						public setPendingCapture(param0: org.nativescript.mason.masonkit.Node | null): void;
+						public getHasPendingCapture(): boolean;
+						public setHasPendingCapture(param0: boolean): void;
+						public getClientX(): number;
+						public setClientX(param0: number): void;
+						public getClientY(): number;
+						public setClientY(param0: number): void;
+						public getButtons(): number;
+						public setButtons(param0: number): void;
+						public getCancelled(): boolean;
+						public setCancelled(param0: boolean): void;
+					}
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export class PointerEvents {
+					public static class: java.lang.Class<org.nativescript.mason.masonkit.PointerEvents>;
+					public static INSTANCE: org.nativescript.mason.masonkit.PointerEvents;
+					public static AUTO: number = 0;
+					public static NONE: number = 1;
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
 				export module PositionAxis {
 					export class Companion {
 						public static class: java.lang.Class<org.nativescript.mason.masonkit.PositionAxis.Companion>;
@@ -5080,11 +5140,13 @@ declare module org {
 					public setVisibleOverflowScrolls(param0: boolean): void;
 					public constructor($this$_init__u24lambda_u240: globalAndroid.content.Context, this_: org.nativescript.mason.masonkit.Mason);
 					public registerSticky(view: globalAndroid.view.View): void;
+					public onDragStarted(): void;
 					public onScrollMotionEnded(): void;
 					public onChange(low: number, high: number): void;
 					public onSizeChanged(it: number, element$iv: number, $i$f$forEach: number, $this$forEach$iv: number): void;
 					public draw(this_: globalAndroid.graphics.Canvas): void;
-					public dispatchTouchEvent(ev: globalAndroid.view.MotionEvent): boolean;
+					public dispatchTouchEvent(it: globalAndroid.view.MotionEvent): boolean;
+					public dispatchHoverEvent(it: globalAndroid.view.MotionEvent): boolean;
 					public onDescendantInvalidated(child: globalAndroid.view.View, target: globalAndroid.view.View): void;
 					public dispatchDraw(canvas: globalAndroid.graphics.Canvas): void;
 					public addView(this_: globalAndroid.view.View): void;
@@ -5097,64 +5159,70 @@ declare module org {
 					public onAttachedToWindow(): void;
 					public onLayout(this_: boolean, changed: number, l: number, t: number, r: number): void;
 					public generateDefaultLayoutParams(): globalAndroid.widget.FrameLayout.LayoutParams;
+					public hasPointerCapture(pointerId: number): boolean;
 					public layout(): org.nativescript.mason.masonkit.Layout;
+					public releasePointerCapture(pointerId: number): void;
 					public getWritableStyleBuffer(): java.nio.ByteBuffer;
-					public addChildAt(element: org.nativescript.mason.masonkit.Element, index: number): void;
-					public addChildAt(node: org.nativescript.mason.masonkit.Node, index: number): void;
 					public addEventListener(type: string, listener: any): java.util.UUID;
-					public append(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
-					public append(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
-					public append(nodes: java.util.List<any>): void;
-					public append(element: org.nativescript.mason.masonkit.Element): void;
-					public append(node: org.nativescript.mason.masonkit.Node): void;
-					public appendView(view: globalAndroid.view.View): void;
-					public appendView(views: androidNative.Array<globalAndroid.view.View>): void;
-					public attachAndApply(): void;
-					public compute(): void;
-					public compute(widthArg: number, heightArg: number): void;
-					public computeAndLayout(): org.nativescript.mason.masonkit.MasonLayoutTree;
-					public computeAndLayout(width: number, height: number): org.nativescript.mason.masonkit.MasonLayoutTree;
-					public computeMaxContent(): void;
-					public computeMinContent(): void;
-					public computeNestedRootLater(widthArg: number, heightArg: number): void;
-					public computeOrDeferNested(widthArg: number, heightArg: number): boolean;
-					public computeWithMaxContent(): void;
-					public computeWithMinContent(): void;
-					public computeWithSize(width: number, height: number): void;
-					public computeWithViewSize(): void;
-					public computeWithViewSize(layout: boolean): void;
-					public configure(block: any): org.nativescript.mason.masonkit.Element;
-					public dispatch(event: org.nativescript.mason.masonkit.events.Event): void;
-					public elementFromPoint(x: number, y: number): globalAndroid.view.View | null;
 					public ensureNativeClickDispatch(): void;
-					public invalidateForeignHost(): void;
-					public invalidateLayout(): void;
-					public invalidateLayout(invalidateRoot: boolean): void;
-					public isNodeDirty(): boolean;
-					public layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
-					public markNodeDirty(): void;
+					public syncStyleParts(lowLow: number, lowHigh: number, highLow: number, highHigh: number): void;
+					public syncStyle(low: number, high: number): void;
 					public onNodeAttached(): void;
 					public onNodeDetached(): void;
-					public prepend(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
-					public prepend(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
+					public markNodeDirty(): void;
+					public isNodeDirty(): boolean;
+					public configure(block: any): org.nativescript.mason.masonkit.Element;
+					public elementFromPoint(x: number, y: number): globalAndroid.view.View | null;
+					public setPointerCapture(pointerId: number): boolean;
+					public layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
+					public compute(): void;
+					public compute(widthArg: number, heightArg: number): void;
+					public computeMaxContent(): void;
+					public computeMinContent(): void;
+					public computeWithViewSize(): void;
+					public computeWithViewSize(layout: boolean): void;
+					public computeNestedRootLater(widthArg: number, heightArg: number): void;
+					public computeOrDeferNested(widthArg: number, heightArg: number): boolean;
+					public invalidateForeignHost(): void;
+					public computeAndLayout(): org.nativescript.mason.masonkit.MasonLayoutTree;
+					public computeAndLayout(width: number, height: number): org.nativescript.mason.masonkit.MasonLayoutTree;
+					public computeWithSize(width: number, height: number): void;
+					public computeWithMaxContent(): void;
+					public computeWithMinContent(): void;
+					public attachAndApply(): void;
+					public append(element: org.nativescript.mason.masonkit.Element): void;
+					public append(node: org.nativescript.mason.masonkit.Node): void;
+					public append(nodes: java.util.List<any>): void;
+					public append(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
+					public append(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
 					public prepend(element: org.nativescript.mason.masonkit.Element): void;
 					public prepend(node: org.nativescript.mason.masonkit.Node): void;
+					public prepend(elements: androidNative.Array<org.nativescript.mason.masonkit.Element>): void;
+					public prepend(nodes: androidNative.Array<org.nativescript.mason.masonkit.Node>): void;
+					public invalidateLayout(): void;
+					public invalidateLayout(invalidateRoot: boolean): void;
+					public recomputeRoot(): void;
+					public appendView(view: globalAndroid.view.View): void;
+					public appendView(views: androidNative.Array<globalAndroid.view.View>): void;
 					public prependView(view: globalAndroid.view.View): void;
 					public prependView(views: androidNative.Array<globalAndroid.view.View>): void;
-					public recomputeRoot(): void;
-					public removeChild(node: org.nativescript.mason.masonkit.Node): void;
-					public removeChildAt(index: number): void;
-					public removeEventListener(type: string, id: java.util.UUID): void;
+					public addChildAt(element: org.nativescript.mason.masonkit.Element, index: number): void;
+					public addChildAt(node: org.nativescript.mason.masonkit.Node, index: number): void;
 					public replaceChildAt(element: org.nativescript.mason.masonkit.Element, index: number): void;
 					public replaceChildAt(node: org.nativescript.mason.masonkit.Node, index: number): void;
-					public syncStyle(low: number, high: number): void;
-					public syncStyleParts(lowLow: number, lowHigh: number, highLow: number, highHigh: number): void;
+					public removeChildAt(index: number): void;
+					public removeChild(node: org.nativescript.mason.masonkit.Node): void;
+					public removeEventListener(type: string, id: java.util.UUID): void;
+					public dispatch(event: org.nativescript.mason.masonkit.events.Event): void;
 					public constructor(context: globalAndroid.content.Context, attrs: globalAndroid.util.AttributeSet | null, defStyleAttr: number);
 					public addEventListener(param0: string, param1: any): java.util.UUID;
 					public syncStyleParts(param0: number, param1: number, param2: number, param3: number): void;
 					public syncStyle(param0: number, param1: number): void;
 					public configure(param0: any): org.nativescript.mason.masonkit.Element;
 					public elementFromPoint(param0: number, param1: number): globalAndroid.view.View | null;
+					public setPointerCapture(param0: number): boolean;
+					public releasePointerCapture(param0: number): void;
+					public hasPointerCapture(param0: number): boolean;
 					public compute(param0: number, param1: number): void;
 					public computeNestedRootLater(param0: number, param1: number): void;
 					public computeOrDeferNested(param0: number, param1: number): boolean;
@@ -5579,6 +5647,7 @@ declare module org {
 						public getALL_TEXT(): org.nativescript.mason.masonkit.StateKeys;
 						public getTEXT_LAYOUT(): org.nativescript.mason.masonkit.StateKeys;
 						public getLAYOUT_MASK(): org.nativescript.mason.masonkit.StateKeys;
+						public getTREE_HINTS(): org.nativescript.mason.masonkit.StateKeys;
 						public hasFlag(low: number, high: number, flag: org.nativescript.mason.masonkit.StateKeys): boolean;
 						public hasFlag(low: number, high: number, otherLow: number, otherHigh: number): boolean;
 					}
@@ -7960,6 +8029,7 @@ declare module org {
 						public static class: java.lang.Class<org.nativescript.mason.masonkit.ThemelessContext.Companion>;
 						public textPaint($this$textPaint_u24lambda_u240: globalAndroid.content.Context): globalAndroid.text.TextPaint;
 						public wrap(it: globalAndroid.content.Context): globalAndroid.content.Context;
+						public themed(context: globalAndroid.content.Context): globalAndroid.content.Context;
 					}
 				}
 			}
@@ -8191,6 +8261,7 @@ declare module org {
 					public requestChildFocus(child: globalAndroid.view.View | null, focused: globalAndroid.view.View): void;
 					public requestChildRectangleOnScreen(child: globalAndroid.view.View, rectangle: globalAndroid.graphics.Rect, immediate: boolean): boolean;
 					public dispatchKeyEvent(this_: globalAndroid.view.KeyEvent): boolean;
+					public onDragStarted(): void;
 					public onInterceptTouchEvent($this$onInterceptTouchEvent_u24lambda_u242: globalAndroid.view.MotionEvent): boolean;
 					public onRequestFocusInDescendants(nextFocus: number, this_: globalAndroid.graphics.Rect | null): boolean;
 					public measureChild(childWidthMeasureSpec: globalAndroid.view.View, childHeightMeasureSpec: number, this_: number): void;
@@ -8300,6 +8371,7 @@ declare module org {
 					public onViewRemoved(child: globalAndroid.view.View): void;
 					public getChildDrawingOrder(this_: number, childCount: number): number;
 					public dispatchTouchEvent(i: globalAndroid.view.MotionEvent): boolean;
+					public dispatchHoverEvent(it: globalAndroid.view.MotionEvent): boolean;
 					public onSizeChanged(i: number, param1: number, layers: number, this_: number): void;
 					public draw(this_: globalAndroid.graphics.Canvas): void;
 					public onDescendantInvalidated(child: globalAndroid.view.View, target: globalAndroid.view.View): void;
@@ -8487,7 +8559,9 @@ declare module org {
 					public generateDefaultLayoutParams(): globalAndroid.view.ViewGroup.LayoutParams;
 					public generateLayoutParams(p: globalAndroid.view.ViewGroup.LayoutParams | null): globalAndroid.view.ViewGroup.LayoutParams;
 					public checkLayoutParams(p: globalAndroid.view.ViewGroup.LayoutParams | null): boolean;
+					public hasPointerCapture(pointerId: number): boolean;
 					public layout(): org.nativescript.mason.masonkit.Layout;
+					public releasePointerCapture(pointerId: number): void;
 					public getWritableStyleBuffer(): java.nio.ByteBuffer;
 					public addEventListener(type: string, listener: any): java.util.UUID;
 					public ensureNativeClickDispatch(): void;
@@ -8499,6 +8573,7 @@ declare module org {
 					public isNodeDirty(): boolean;
 					public configure(block: any): org.nativescript.mason.masonkit.Element;
 					public elementFromPoint(x: number, y: number): globalAndroid.view.View | null;
+					public setPointerCapture(pointerId: number): boolean;
 					public layoutFlat(): org.nativescript.mason.masonkit.MasonLayoutTree;
 					public compute(): void;
 					public compute(widthArg: number, heightArg: number): void;
@@ -8550,6 +8625,9 @@ declare module org {
 					public syncStyle(param0: number, param1: number): void;
 					public configure(param0: any): org.nativescript.mason.masonkit.Element;
 					public elementFromPoint(param0: number, param1: number): globalAndroid.view.View | null;
+					public setPointerCapture(param0: number): boolean;
+					public releasePointerCapture(param0: number): void;
+					public hasPointerCapture(param0: number): boolean;
 					public compute(param0: number, param1: number): void;
 					public computeNestedRootLater(param0: number, param1: number): void;
 					public computeOrDeferNested(param0: number, param1: number): boolean;
@@ -10119,6 +10197,66 @@ declare module org {
 						public setComposing(param0: boolean): void;
 						public getTarget(): any;
 						public setTarget(param0: any): void;
+					}
+				}
+			}
+		}
+	}
+}
+
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export module events {
+					export class PointerEvent extends org.nativescript.mason.masonkit.events.Event {
+						public static class: java.lang.Class<org.nativescript.mason.masonkit.events.PointerEvent>;
+						public static TYPES: java.util.Set<string>;
+						public constructor(type: string, options: org.nativescript.mason.masonkit.events.EventOptions);
+						public getPointerId(): number;
+						public getPointerType(): string;
+						public isPrimary(): boolean;
+						public getClientX(): number;
+						public getClientY(): number;
+						public getScreenX(): number;
+						public getScreenY(): number;
+						public getOffsetX(): number;
+						public getOffsetY(): number;
+						public getMovementX(): number;
+						public getMovementY(): number;
+						public getPageX(): number;
+						public getPageY(): number;
+						public getX(): number;
+						public getY(): number;
+						public getButton(): number;
+						public getButtons(): number;
+						public getWidth(): number;
+						public getHeight(): number;
+						public getPressure(): number;
+						public getTangentialPressure(): number;
+						public getTiltX(): number;
+						public getTiltY(): number;
+						public getTwist(): number;
+						public getCtrlKey(): boolean;
+						public getShiftKey(): boolean;
+						public getAltKey(): boolean;
+						public getMetaKey(): boolean;
+						public getRelatedTarget(): org.nativescript.mason.masonkit.EventTarget | null;
+					}
+				}
+			}
+		}
+	}
+}
+declare module org {
+	export module nativescript {
+		export module mason {
+			export module masonkit {
+				export module events {
+					export module PointerEvent {
+						export class Companion {
+							public static class: java.lang.Class<org.nativescript.mason.masonkit.events.PointerEvent.Companion>;
+						}
 					}
 				}
 			}

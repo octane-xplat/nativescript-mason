@@ -1,11 +1,12 @@
 import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, basename } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { workspaceRoot } from './sources.mjs';
 import { nativeSource, restoreStagedIosReferences } from './native-sources.mjs';
 import { projectIosDeviceTestHost, iosDeviceTestApp } from './ios-device-test-host.mjs';
 import { iosSourceRoot, iosHostFiles, projectIosSource, backgroundGlyphProtocol } from './ios-sources.mjs';
+import { replaceOnce } from './swift-source.mjs';
 
 const device = process.argv.includes('--device');
 const sdk = device ? 'iphoneos' : 'iphonesimulator';
@@ -39,14 +40,16 @@ for (const name of iosHostFiles) {
   write(`Mason/${name}`, source);
 }
 write('Mason/Mason.h', readFileSync(resolve(iosSourceRoot, 'Mason.h'), 'utf8').replaceAll('MasonVersion', 'MasonCoreVersion'));
-copyFileSync(resolve(artifactRoot, 'include/mason_native.h'), resolve(stage, 'include/mason_native.h'));
+write('Mason/include/mason_native.h', readFileSync(resolve(artifactRoot, 'include/mason_native.h'), 'utf8'));
 write('Mason/module.modulemap', 'framework module MasonCore {\n  umbrella header "Mason.h"\n  export *\n  module * { export * }\n}\n');
 write('pre-build.sh', '#!/bin/sh\nset -eu\n# Core engine archives and headers are provided by the independent engine build.\n');
 
 let pbx = restoreStagedIosReferences(readFileSync(resolve(originalProject, 'project.pbxproj'), 'utf8'));
 // Remove optional sources from the generated project only. File references may
 // remain for provenance; none participates in a build phase.
-const keep = new Set(iosHostFiles);
+const keep = new Set(iosHostFiles.map((filename) => basename(filename)));
+const fontManagerVersion = JSON.parse(readFileSync(resolve(workspaceRoot, 'packages/nativescript-mason-core/package.json'), 'utf8')).dependencies['@nativescript/font-manager'];
+pbx = replaceOnce(pbx, 'minimumVersion = 1.0.23;', `minimumVersion = ${fontManagerVersion};`);
 if (tests) {
   keep.add('CoreLayoutInteropTests.swift');
   if (signedTests) { keep.add('AppDelegate.swift'); write('MasonDemo/AppDelegate.swift', iosDeviceTestApp); }
@@ -90,7 +93,15 @@ for (const name of ['xcshareddata/xcschemes/Mason.xcscheme', 'project.xcworkspac
   const filename = resolve(project, name);
   mkdirSync(dirname(filename), { recursive: true });
   const original = readFileSync(resolve(originalProject, name), 'utf8');
-  writeFileSync(filename, original.replaceAll('Mason.framework', 'MasonCore.framework'));
+  if (name.endsWith('Package.resolved')) {
+    const lock = JSON.parse(original);
+    const fontManager = lock.pins.find(({ identity }) => identity === 'font-manager');
+    if (!fontManager || fontManagerVersion !== '1.0.20') throw new Error('Review the independent Core FontManager pin.');
+    fontManager.state = { revision: '7d8c22f131be27658997e4a3dc0b35d364ee8054', version: fontManagerVersion };
+    writeFileSync(filename, JSON.stringify(lock, null, 2) + '\n');
+  } else {
+    writeFileSync(filename, original.replaceAll('Mason.framework', 'MasonCore.framework'));
+  }
 }
 
 // The original shell phase invokes this script as an executable.
@@ -146,7 +157,7 @@ copyFileSync(resolve(workspaceRoot, 'LICENSE-LISSE'), resolve(output, 'LICENSE-L
 for (const [checkout, name] of [['font-manager', 'FontManager'], ['SDWebImage', 'SDWebImage']]) {
   copyFileSync(resolve(workspaceRoot, 'tmp/mason-core-ios-packages/checkouts', checkout, 'LICENSE'), resolve(output, `${name}.LICENSE`));
 }
-copyFileSync(resolve(originalProject, 'project.xcworkspace/xcshareddata/swiftpm/Package.resolved'), resolve(output, 'Package.resolved'));
+copyFileSync(resolve(project, 'project.xcworkspace/xcshareddata/swiftpm/Package.resolved'), resolve(output, 'Package.resolved'));
 const hash = (filename) => createHash('sha256').update(readFileSync(filename)).digest('hex');
 const sources = iosHostFiles.map((name) => ({
   name, originalSha256: hash(nativeSource('ios', name)), projectedSha256: hash(resolve(stage, 'Mason', name)),

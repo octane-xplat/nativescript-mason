@@ -53,7 +53,7 @@ export function coreCommonSource() {
   const [owner, getStyle, wrap] = required(file.statements, ['nativeOwnerFor', 'getViewStyle', 'wrapNativeEvent'], file);
   edits.push({ node: owner, text: `\nfunction nativeOwnerFor(nativeView: any): ViewBase | NSViewBase | null {\n  return getWeakRefValue<ViewBase | NSViewBase>(nativeView?.__masonOwner);\n}\n` });
   edits.push({ node: getStyle, text: '\n' + getStyle.getText(file).replace('WeakRef<NSViewBase> | WeakRef<TextBase>', 'WeakRef<NSViewBase>') });
-  edits.push({ node: wrap, text: '\nfunction wrapNativeEvent(_type: string): Event { return new Event(); }\n' });
+  edits.push({ node: wrap, text: '\nfunction wrapNativeEvent(type: string): Event {\n  return POINTER_EVENTS.has(type) ? new PointerEvent() : new Event();\n}\n' });
 
   const replace = required(view.members, [
     '_children', 'addChild', 'insertBefore', 'insertChild', 'replaceChild', 'removeChild', 'removeChildren', '_nativeIndexFor',
