@@ -3447,7 +3447,7 @@ public class MasonStyle: NSObject {
   internal var smoothCornersEverSet = false
 
   @objc public func setSmoothCorners(_ values: [Double]?) -> Bool {
-    if values != nil && node.view is MasonMaterialUIView { return false }
+    if values != nil && node.view is MasonNativeChildHosting { return false }
     guard mBorderRender.setSmoothCorners(values) else { return false }
     smoothCornersEverSet = true
     // This configuration lives outside the Rust style buffer. Include it in

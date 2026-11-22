@@ -2697,6 +2697,7 @@ public final class MasonMaterialUIView: UIVisualEffectView, MasonElement, MasonE
     autoComputeIfRoot()
     decoration.frame = CGRect(origin: .zero, size: bounds.size)
     decoration.invalidateDrawFlags()
+#if !os(visionOS)
     // Native corner shaping is independent of CSS overflow clipping. The
     // standard applyBox path applies clipping directly to this effect view.
     if #available(iOS 26.0, *) {
@@ -2713,6 +2714,7 @@ public final class MasonMaterialUIView: UIVisualEffectView, MasonElement, MasonE
         bottomLeftRadius: .fixed(Double(r.bottomLeft.resolved(rect: box).x)),
         bottomRightRadius: .fixed(Double(r.bottomRight.resolved(rect: box).x)))
     }
+#endif
   }
 
   public override var frame: CGRect {

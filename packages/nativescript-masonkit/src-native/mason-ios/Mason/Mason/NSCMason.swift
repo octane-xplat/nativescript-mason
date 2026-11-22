@@ -125,7 +125,12 @@ public class NSCMason: NSObject {
     node.view = view
     // Foreign bitmap views have CSS replaced-element intrinsic sizing.
     // Ordinary labels and containers must retain their content minimum.
-    if view is UIImageView {
+#if canImport(UIKit)
+    let isImageView = view is UIImageView
+#else
+    let isImageView = view is NSImageView
+#endif
+    if isImageView {
       node.style.setUInt8(StyleKeys.ITEM_IS_REPLACED, 1)
     }
     if isLeaf {
