@@ -6,6 +6,10 @@ export function masonEngine(): NativeScript.Mason.Mason {
   return (engine ??= NativeScript.Mason.Mason.Instance());
 }
 
+export function masonDelegate<T extends Function>(type: string, fn: T): T {
+  return (globalThis as any).NSWinRT.dotnet.asDelegate(type, fn);
+}
+
 // Engine methods take element pointers (Int64): projected runtimeclass args cannot be
 // rebuilt from a COM pointer by the bridge, so JS hands over the native address. Bridge
 // proxies carry __native_ptr already; direct-COM proxies expose `handle` (a v8 External)

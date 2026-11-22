@@ -5,19 +5,25 @@
 //  Created by Osei Fortune on 22/01/2026.
 //
 
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 
 
 @objc(MasonList)
 @objcMembers
-public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener, UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSourcePrefetching {
-
+public class MasonList: MasonViewBase,MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener {
+#if canImport(UIKit)
   // Mirrors geometry animations onto the sibling outset-shadow layer.
   public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+#endif
 
   public var delegate: MasonListDelegate?
   
+#if canImport(UIKit)
   @objc(MasonListDelegate)
   public protocol MasonListDelegate {
     func list(_ list: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell
@@ -180,6 +186,7 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
     }
     
   }
+#endif
   
   func onStyleChange(_ low: UInt64, _ high: UInt64) {
     MasonNode.invalidateDescendantTextViews(node, low, high)
@@ -270,8 +277,8 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
   }
 
   // List-level size cache keyed by item index — survives cell recycling
-  private var sizeCache: [Int: CGSize] = [:]
-  private var sizeCacheWidth: CGFloat = 0
+  var sizeCache: [Int: CGSize] = [:]
+  var sizeCacheWidth: CGFloat = 0
 
   public lazy var values: NSMutableData = {
     guard let data = NSMutableData(length: 32) else {
@@ -293,6 +300,7 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
   }
   
   
+#if canImport(UIKit)
   lazy var list: UICollectionView = {
     let layout = UICollectionViewFlowLayout()
     layout.scrollDirection = .vertical
@@ -310,16 +318,25 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
     collection.backgroundColor = .clear
     return collection
   }()
+
+  public func register(cellClass: AnyClass?, forCellWithReuseIdentifier identifier: String ){
+    list.register(cellClass, forCellWithReuseIdentifier: identifier)
+  }
+#else
+  lazy var list: NSCollectionView = makeList()
+  lazy var scrollView: NSScrollView = makeScrollView()
+#endif
   
   public override func layoutSubviews() {
     super.layoutSubviews()
     style.updateShadowLayer(for: bounds)
     autoComputeIfRoot()
+#if canImport(UIKit)
     list.frame = bounds
-  }
-  
-  public func register(cellClass: AnyClass?, forCellWithReuseIdentifier identifier: String ){
-    list.register(cellClass, forCellWithReuseIdentifier: identifier)
+#else
+    scrollView.frame = bounds
+    syncListWidth()
+#endif
   }
   
   
@@ -358,8 +375,12 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
     computeCacheDirty = false
     node.view = self
     style.setStyleChangeListener(listener: self)
-    list.register(MasonListCell.self, forCellWithReuseIdentifier: "static")
+    register(cellClass: MasonListCell.self, forCellWithReuseIdentifier: "static")
+#if canImport(UIKit)
     addSubview(list)
+#else
+    addSubview(scrollView)
+#endif
   }
   
   required init?(coder: NSCoder) {
@@ -377,6 +398,7 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
     sizeCache.removeValue(forKey: index)
   }
 
+#if canImport(UIKit)
   public func collectionView(_ collectionView: UICollectionView, prefetchItemsAt indexPaths: [IndexPath]) {
     // No-op: prefetch data source enables UICollectionView's built-in
     // adaptive prefetching which smooths fling deceleration by batching
@@ -434,4 +456,9 @@ public class MasonList: UIView,MasonEventTarget, MasonElement, MasonElementObjc,
     }
   }
   
+#endif
 }
+
+#if canImport(UIKit)
+extension MasonList: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout, UICollectionViewDataSourcePrefetching {}
+#endif

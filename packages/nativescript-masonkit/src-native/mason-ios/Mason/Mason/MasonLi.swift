@@ -5,13 +5,19 @@
 //  Created by Osei Fortune on 22/01/2026.
 //
 
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 
 @objc(MasonLi)
 @objcMembers
-public class MasonLi: UIView, MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener {
+public class MasonLi: MasonViewBase, MasonEventTarget, MasonElement, MasonElementObjc, StyleChangeListener {
+#if canImport(UIKit)
   // Mirrors geometry animations onto the sibling outset-shadow layer.
   public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+#endif
 
   func onStyleChange(_ low: UInt64, _ high: UInt64) {
     MasonNode.invalidateDescendantTextViews(node, low, high)
@@ -19,9 +25,13 @@ public class MasonLi: UIView, MasonEventTarget, MasonElement, MasonElementObjc, 
 
 
   public func requestLayout() {
+#if canImport(UIKit)
     if let cell = superview?.superview as? MasonList.MasonListCell {
       cell.setNeedsDisplay()
     }
+#else
+    (superview as? MasonList.MasonListCellView)?.setNeedsDisplay()
+#endif
   }
 
 
@@ -112,7 +122,7 @@ public class MasonLi: UIView, MasonEventTarget, MasonElement, MasonElementObjc, 
     cachedBaseline = nil
 
     let markerOffset = CGFloat(markerWidth)
-    layer.sublayerTransform = CATransform3DMakeTranslation(markerOffset, 0, 0)
+    backingLayer.sublayerTransform = CATransform3DMakeTranslation(markerOffset, 0, 0)
   }
 
   /// Reset view state for recycling

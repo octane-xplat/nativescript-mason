@@ -122,15 +122,24 @@ import {
   logicalLonghands,
 } from './properties';
 import { masonLayout } from './display-density';
-import { isMasonView_, isTextChild_, isText_, isPlaceholder_, text_, native_, textNode_, textNodeIndex_, textNodeProxied_, pseudoStyles_, emptyTextNode_, breakRun_, anonymousText_, windowsFontSource_, hostsRuns_, needsAnonymousText_, borderRadiusCorners_, borderSideColors_, eventType_, remapLogicalBoxes_, runMember_, runsInline_, runsSettled_, blockified_, touchAction_ } from './symbols';
+import { isMasonView_, isTextChild_, isText_, isPlaceholder_, text_, native_, textNode_, textNodeIndex_, textNodeProxied_, pseudoStyles_, emptyTextNode_, breakRun_, anonymousText_, windowsFontSource_, hostsRuns_, needsAnonymousText_, borderRadiusCorners_, borderSideColors_, eventType_, remapLogicalBoxes_, runMember_, runsInline_, runsSettled_, blockified_, touchAction_, pointerEvents_ } from './symbols';
 import { Tree } from './tree';
-import { masonEngine, removeNativeChild, nativeArg } from './panel-helpers';
+import { masonDelegate, masonEngine, removeNativeChild, nativeArg } from './panel-helpers';
 import { TextNode } from './text-node';
 import { compile } from './pseudo';
 import { frameworkRegistry } from './framework-registry';
 import { reconcileTextRuns } from './text-runs';
 
 declare const kotlin: any;
+
+function hasPseudoClasses(child: any): boolean {
+  return child?.cssPseudoClasses instanceof Set;
+}
+
+function setPseudoClass(view: any, name: string, on: boolean) {
+  if (on) view.addSinglePseudoClass(name);
+  else view.deleteSinglePseudoClass(name);
+}
 
 function getViewStyle(view: WeakRef<NSViewBase> | WeakRef<TextBase>): MasonStyle {
   const ret: NSViewBase & { _styleHelper: MasonStyle } = (__ANDROID__ ? view.get() : view.deref()) as never;
@@ -158,7 +167,12 @@ function nativeViewFor(owner: any): any {
   return owner?.nativeViewProtected ?? owner?.[native_];
 }
 
+const POINTER_EVENTS = new Set(['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'pointerover', 'pointerout', 'pointerenter', 'pointerleave', 'gotpointercapture', 'lostpointercapture']);
+
 function masonNativeEventName(eventName: string): string | null {
+  // Pointer names in any case, for renderers that pass `onPointerDown` on as `pointerDown`.
+  const lower = eventName.toLowerCase();
+  if (POINTER_EVENTS.has(lower)) return lower;
   switch (eventName) {
     case 'tap':
     case 'click':
@@ -211,7 +225,7 @@ function nativeScrollOffset(view: any, vertical: boolean): number {
   if (__APPLE__) {
     return (vertical ? native.mason_scrollTop : native.mason_scrollLeft) ?? 0;
   }
-  if (__WINDOWS__) {
+  if (__WINDOWS__ || __LINUX__) {
     return (vertical ? masonEngine().ScrollTop(native) : masonEngine().ScrollLeft(native)) ?? 0;
   }
   return 0;
@@ -225,7 +239,7 @@ function nativeScrollMetric(view: any, metric: ScrollMetric): number {
     value = masonLayout.toDeviceIndependentPixels(org.nativescript.mason.masonkit.WebScroll[metric](native));
   } else if (__APPLE__) {
     value = native[`mason_${metric}`];
-  } else if (__WINDOWS__) {
+  } else if (__WINDOWS__ || __LINUX__) {
     value = masonEngine()[metric.charAt(0).toUpperCase() + metric.slice(1)](native);
   }
   // Whole pixels, as on the web.
@@ -246,7 +260,7 @@ function nativeScrollTo(view: any, left: number, top: number, smooth: boolean) {
     org.nativescript.mason.masonkit.WebScroll.scrollTo(native, isNaN(left) ? NaN : masonLayout.toDevicePixels(left), isNaN(top) ? NaN : masonLayout.toDevicePixels(top), smooth);
   } else if (__APPLE__) {
     native.mason_scrollTo(left, top, smooth);
-  } else if (__WINDOWS__) {
+  } else if (__WINDOWS__ || __LINUX__) {
     masonEngine().ScrollTo(native, left, top, smooth);
   }
 }
@@ -390,6 +404,21 @@ function backgroundImageToCssString(value: unknown): string {
 }
 
 // Windows raises no pressed state natively, so :active follows the pointer, as core's Button does.
+function addDesktopEventListener(view: any, type: string, listener: (event: any) => void): number {
+  if (__LINUX__) return masonEngine().AddEventListener(view, type, listener);
+  const pointer = nativeArg(view);
+  return pointer == null ? 0 : masonEngine().AddEventListenerPtr(pointer, type, listener);
+}
+
+function removeDesktopEventListener(view: any, type: string, id: number): void {
+  if (__LINUX__) {
+    masonEngine().RemoveEventListener(view, type, id);
+    return;
+  }
+  const pointer = nativeArg(view);
+  if (pointer != null) masonEngine().RemoveEventListenerPtr(pointer, type, id);
+}
+
 const WINDOWS_ACTIVE_STATES = ['active', 'highlighted'];
 
 function onWindowsActiveTouch(args: TouchGestureEventData) {
@@ -508,6 +537,9 @@ function climbedThisTurn(root: any): boolean {
   return !!climbedRoots?.has(root) && !!root.isLayoutRequested;
 }
 
+// Core caches one default-padding Rect per class but reads its four Java fields for every view.
+const defaultPaddings = new WeakMap<object, { top: number; right: number; bottom: number; left: number }>();
+
 let windowsInnerHTML: ((view: any, html: string) => void) | undefined;
 
 export function setWindowsInnerHTML(build: (view: any, html: string) => void) {
@@ -534,7 +566,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   private static _teardownScheduled = false;
 
   public _tearDownUI(force?: boolean): void {
-    if ((__ANDROID__ || __APPLE__ || __WINDOWS__) && !force && !this.reusable && this._context && this.nativeViewProtected) {
+    if ((__ANDROID__ || __APPLE__ || __WINDOWS__ || __LINUX__) && !force && !this.reusable && this._context && this.nativeViewProtected) {
       // A keyed move tears down and re-adds within one patch. Detach only this
       // element and defer the recursive teardown; _setupUI cancels it on re-attach.
       if (this.parent) {
@@ -552,7 +584,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   public _setupUI(context?: any, atIndex?: number, parentIsLoaded?: boolean): void {
-    if ((__ANDROID__ || __APPLE__ || __WINDOWS__) && this._masonPendingTeardown) {
+    if ((__ANDROID__ || __APPLE__ || __WINDOWS__ || __LINUX__) && this._masonPendingTeardown) {
       this._masonPendingTeardown = false;
       if (this._context === context) {
         // core 9.1 renamed mIsRootView to the private _isRootView
@@ -570,17 +602,56 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   // Core's CustomLayoutView finds the child with a WinRT call per sibling. Mason's containers remove
   // their children natively themselves, so only core's bookkeeping is kept.
   public _removeViewFromNativeVisualTree(child: any): void {
-    releaseForeignLayout(child);
-    if (__WINDOWS__) {
-      child._isAddedToNativeVisualTree = false;
+    if (__WINDOWS__ || __LINUX__) {
+      this._masonForgetNativeChild(child);
       return;
     }
+    releaseForeignLayout(child);
     super._removeViewFromNativeVisualTree(child);
+  }
+
+  _setDefaultPaddings(insets: any): void {
+    if (__ANDROID__ && insets) {
+      let paddings = defaultPaddings.get(insets);
+      if (!paddings) {
+        paddings = { top: insets.top, right: insets.right, bottom: insets.bottom, left: insets.left };
+        defaultPaddings.set(insets, paddings);
+      }
+      insets = paddings;
+    }
+    super._setDefaultPaddings(insets);
+  }
+
+  /** Core's bookkeeping for a child this container has already removed natively. */
+  _masonForgetNativeChild(child: any): void {
+    releaseForeignLayout(child);
+    child._isAddedToNativeVisualTree = false;
   }
 
   /** Mirror a plain child's CSS layout into its Mason leaf; containers call this after the native insert. */
   _masonAdoptForeign(child: any): void {
     adoptForeignLayout(child);
+  }
+
+  // Linux: Mason places nested elements natively, so their bounds come from its layout.
+  public _getCurrentLayoutBounds(): { left: number; top: number; right: number; bottom: number } {
+    const native = __LINUX__ && (this.parent as any)?.[isMasonView_] ? (this as any)[native_] : null;
+    if (native?.Layout) {
+      const l = native.Layout();
+      return { left: l.x, top: l.y, right: l.x + l.width, bottom: l.y + l.height };
+    }
+    return super._getCurrentLayoutBounds();
+  }
+
+  // Linux: one native call computes the tree for core's specs (GTK's measure has no AT_MOST).
+  public onMeasure(widthMeasureSpec: number, heightMeasureSpec: number): void {
+    const native = __LINUX__ ? (this as any)[native_] : null;
+    if (native?.Measure) {
+      const size = native.Measure(widthMeasureSpec, heightMeasureSpec);
+      this.setMeasuredDimension(Math.ceil(size.width), Math.ceil(size.height));
+      return;
+    }
+    super.onMeasure(widthMeasureSpec, heightMeasureSpec);
   }
 
   private _masonFinishTeardown() {
@@ -668,7 +739,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   get innerHTML() {
-    if (__WINDOWS__) return (this as any)._windowsInnerHTML ?? '';
+    if (__WINDOWS__ || __LINUX__) return (this as any)._windowsInnerHTML ?? '';
     //@ts-ignore
     const nativeView = this._view as any;
     if (__ANDROID__) {
@@ -686,7 +757,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   set innerHTML(value: string) {
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       (this as any)._windowsInnerHTML = value ?? '';
       windowsInnerHTML?.(this, value ?? '');
       return;
@@ -737,6 +808,8 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       }
     } else if (__WINDOWS__ && typeof masonEngine().ElementFromPoint === 'function') {
       { const ptr = nativeArg(nativeView); if (ptr != null) nativeHit = masonEngine().ElementFromPointPtr(ptr, x, y); }
+    } else if (__LINUX__ && typeof masonEngine().ElementFromPoint === 'function') {
+      nativeHit = masonEngine().ElementFromPoint(nativeView, x, y);
     }
 
     if (!nativeHit) return null;
@@ -839,7 +912,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       org.nativescript.mason.masonkit.WebScroll.scrollIntoView(native, block, inline, smooth);
     } else if (__APPLE__) {
       native.mason_scrollIntoView(block, inline, smooth);
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       masonEngine().ScrollIntoView(native, block, inline, smooth);
     }
   }
@@ -883,10 +956,10 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
 
         callback['mason:event:id'] = id;
       }
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         if (typeof masonEngine().AddEventListener === 'function') {
           const ref = new WeakRef(this);
-          const listener = (globalThis as any).NSWinRT.dotnet.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
+          const listener = masonDelegate('NativeScript.Mason.EventListener', (event: any) => {
             const owner = ref.deref();
             if (!owner) return;
             const ret: any = wrapNativeEvent(arg);
@@ -894,7 +967,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
             ret._target = owner;
             callback.call(thisArg || owner, ret);
           });
-          { const ptr = nativeArg((this as any)._view); if (ptr != null) callback['mason:event:id'] = masonEngine().AddEventListenerPtr(ptr, arg, listener); }
+          callback['mason:event:id'] = addDesktopEventListener((this as any)._view, arg, listener);
           callback['mason:event:listener'] = listener;
         } else if (arg === 'click' || arg === 'tap') {
           try {
@@ -928,7 +1001,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           } catch (_) {}
         } else if (typeof (this as any)._view.AddEventListener === 'function') {
           const ref = new WeakRef(this);
-          const listener = (globalThis as any).NSWinRT.dotnet.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
+          const listener = masonDelegate('NativeScript.Mason.EventListener', (event: any) => {
             const owner = ref.deref();
             if (!owner) return;
             const ret: any = wrapNativeEvent(arg);
@@ -970,9 +1043,9 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           callback['mason:event:id'] = undefined;
         }
       }
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         if (id && callback['mason:event:listener'] && !callback['mason:event:tapped']) {
-          { const ptr = nativeArg((this as any)._view); if (ptr != null) masonEngine().RemoveEventListenerPtr(ptr, arg, id); }
+          removeDesktopEventListener((this as any)._view, arg, id);
           callback['mason:event:id'] = undefined;
           callback['mason:event:listener'] = undefined;
         } else if (id && (arg === 'click' || arg === 'tap')) {
@@ -1007,11 +1080,60 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (node) node.touchAction = flags;
   }
 
+  [pointerEvents_]: number | undefined;
+
+  /** Hands `pointer-events` to the native element: `none` (1) leaves it out of hit testing. */
+  _applyPointerEvents() {
+    const value = this[pointerEvents_];
+    const native = this[native_] as any;
+    if (value === undefined || !native) return;
+    if (__WINDOWS__ || __LINUX__) {
+      masonEngine().SetPointerEvents?.(native, value);
+      return;
+    }
+    const node = native.node ?? (__IOS__ ? (this as any).ios?.node : undefined);
+    if (node) node.pointerEvents = value;
+  }
+
+  /** Pointer events for `pointerId` target this element until it's released or the pointer goes up. */
+  setPointerCapture(pointerId: number): void {
+    const native = this[native_] as any;
+    if (!native) return;
+    let ok = false;
+    if (__ANDROID__) ok = native.setPointerCapture(pointerId);
+    else if (__APPLE__) ok = native.mason_setPointerCapture(pointerId);
+    else if (__WINDOWS__ || __LINUX__) ok = !!masonEngine().SetPointerCapture?.(native, pointerId);
+    if (!ok) {
+      // The DOM throws NotFoundError for a pointer that isn't active.
+      const error = new Error(`No active pointer with the id ${pointerId}`);
+      error.name = 'NotFoundError';
+      throw error;
+    }
+  }
+
+  releasePointerCapture(pointerId: number): void {
+    const native = this[native_] as any;
+    if (!native) return;
+    if (__ANDROID__) native.releasePointerCapture(pointerId);
+    else if (__APPLE__) native.mason_releasePointerCapture(pointerId);
+    else if (__WINDOWS__ || __LINUX__) masonEngine().ReleasePointerCapture?.(native, pointerId);
+  }
+
+  hasPointerCapture(pointerId: number): boolean {
+    const native = this[native_] as any;
+    if (!native) return false;
+    if (__ANDROID__) return native.hasPointerCapture(pointerId);
+    if (__APPLE__) return native.mason_hasPointerCapture(pointerId);
+    if (__WINDOWS__ || __LINUX__) return !!masonEngine().HasPointerCapture?.(native, pointerId);
+    return false;
+  }
+
   _masonPendingScroll: { left: number; top: number; smooth: boolean } | undefined;
 
   initNativeView(): void {
     super.initNativeView();
     this._applyTouchAction();
+    this._applyPointerEvents();
     const scroll = this._masonPendingScroll;
     if (scroll) {
       this._masonPendingScroll = undefined;
@@ -1069,15 +1191,49 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   public addEventListener(arg: string, callback: any, thisArg?: any) {
-    const listened = __APPLE__ && this._masonListensToLayout();
+    const listened = (__APPLE__ || __LINUX__) && this._masonListensToLayout();
     this._addEventListener(arg, callback, thisArg);
-    if (__APPLE__ && !listened && this._masonListensToLayout()) this._masonAddLayoutWork(1);
+    if (!listened && (__APPLE__ || __LINUX__) && this._masonListensToLayout()) {
+      if (__APPLE__) this._masonAddLayoutWork(1);
+      if (__LINUX__) this._masonWatchLayout(true);
+    }
   }
 
   public removeEventListener(arg: string, callback: any, thisArg?: any) {
-    const listened = __APPLE__ && this._masonListensToLayout();
+    const listened = (__APPLE__ || __LINUX__) && this._masonListensToLayout();
     this._removeEventListener(arg, callback, thisArg);
-    if (__APPLE__ && listened && !this._masonListensToLayout()) this._masonAddLayoutWork(-1);
+    if (listened && (__APPLE__ || __LINUX__) && !this._masonListensToLayout()) {
+      if (__APPLE__) this._masonAddLayoutWork(-1);
+      if (__LINUX__) this._masonWatchLayout(false);
+    }
+  }
+
+  private _masonLayoutListener?: () => void;
+
+  /**
+   * Linux: core raises `layoutChanged` from its own layout pass, which never visits nested Mason
+   * elements (GTK allocates them natively). Those raise `mason:layout` when they're allocated at a
+   * new size instead, and the bounds come from Mason's layout.
+   */
+  private _masonWatchLayout(on: boolean) {
+    if (!on) {
+      if (this._masonLayoutListener) this._unregisterNativeEvent('mason:layout', this._masonLayoutListener);
+      this._masonLayoutListener = undefined;
+      return;
+    }
+    const ref = new WeakRef(this);
+    const listener = () => {
+      const owner = ref.deref();
+      if (!owner || owner._masonLayoutListener !== listener) return;
+      const b = owner._getCurrentLayoutBounds();
+      if (owner._setCurrentLayoutBounds(b.left, b.top, b.right, b.bottom).boundsChanged) {
+        owner._raiseLayoutChangedEvent();
+      }
+    };
+    this._masonLayoutListener = listener;
+    this._registerNativeEvent('mason:layout', listener);
+    // The element may already be allocated, and no new allocation would report it.
+    setTimeout(listener, 0);
   }
 
   private _addEventListener(arg: string, callback: any, thisArg?: any) {
@@ -1143,7 +1299,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     const styles = compile(this);
     //@ts-ignore
     this._applyPseudoClassStyles('hover', this._view, styles);
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       if (subscribe) {
         this.on('mouseEnter', onWindowsHoverEnter);
         this.on('mouseLeave', onWindowsHoverLeave);
@@ -1161,7 +1317,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     //@ts-ignore
     this._applyPseudoClassStyles('active', this._view, styles);
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       if (subscribe) {
         this.on('touch', onWindowsActiveTouch);
         this.on('mouseLeave', onWindowsActiveLeave);
@@ -1187,7 +1343,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (!view || typeof masonEngine().AddEventListener !== 'function') return;
     if (on && !this._windowsActiveId) {
       const ref = new WeakRef(this);
-      this._windowsActiveListener = (globalThis as any).NSWinRT.dotnet.asDelegate('NativeScript.Mason.EventListener', (event: any) => {
+      this._windowsActiveListener = masonDelegate('NativeScript.Mason.EventListener', (event: any) => {
         const owner: any = ref.deref();
         if (!owner) return;
         if (event.Data === '1') {
@@ -1196,9 +1352,9 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           clearWindowsActive(owner);
         }
       });
-      { const ptr = nativeArg(view); if (ptr != null) this._windowsActiveId = masonEngine().AddEventListenerPtr(ptr, 'mason:active', this._windowsActiveListener); }
+      this._windowsActiveId = addDesktopEventListener(view, 'mason:active', this._windowsActiveListener);
     } else if (!on && this._windowsActiveId) {
-      { const ptr = nativeArg(view); if (ptr != null) masonEngine().RemoveEventListenerPtr(ptr, 'mason:active', this._windowsActiveId); }
+      removeDesktopEventListener(view, 'mason:active', this._windowsActiveId);
       this._windowsActiveId = 0;
       this._windowsActiveListener = undefined;
     }
@@ -1216,7 +1372,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     const styles = compile(this);
     //@ts-ignore
     this._applyPseudoClassStyles('focus', this._view, styles);
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       if (subscribe) {
         this.on('focus', onWindowsFocus, this);
         this.on('blur', onWindowsBlur, this);
@@ -1325,6 +1481,9 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (__WINDOWS__) {
       if (horizontal) { const ptr = nativeArg(nativeChild); if (ptr != null) masonEngine().SetPercentWidthPtr(ptr, value); }
       else { const ptr = nativeArg(nativeChild); if (ptr != null) masonEngine().SetPercentHeightPtr(ptr, value); }
+    } else if (__LINUX__) {
+      if (horizontal) masonEngine().SetPercentWidth(nativeChild, value);
+      else masonEngine().SetPercentHeight(nativeChild, value);
     } else if (__ANDROID__) {
       const mason = org.nativescript.mason.masonkit.Mason.getShared();
       if (horizontal) mason.setPercentWidth(nativeChild, value);
@@ -1460,6 +1619,56 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   addChild(child: any) {
+    const edges = this._edgeChildren();
+    this._masonAddChild(child);
+    this._syncEdgeChildren(edges, child);
+  }
+
+  insertChild(child: any, atIndex: number) {
+    const edges = this._edgeChildren();
+    this._masonInsertChild(child, atIndex);
+    this._syncEdgeChildren(edges, child);
+  }
+
+  replaceChild(child: any, atIndex: number) {
+    const edges = this._edgeChildren();
+    const replaced = this._children[atIndex];
+    this._masonReplaceChild(child, atIndex);
+    this._syncEdgeChildren(edges, child, replaced);
+  }
+
+  removeChild(child: any) {
+    const edges = this._edgeChildren();
+    this._masonRemoveChild(child);
+    this._syncEdgeChildren(edges, child);
+  }
+
+  removeChildren() {
+    const edges = this._edgeChildren();
+    this._masonRemoveChildren();
+    this._syncEdgeChildren(edges);
+  }
+
+  private _edgeChildren(): [any, any] {
+    const children = this._children as any[];
+    let first = -1;
+    while (++first < children.length && !hasPseudoClasses(children[first]));
+    let last = children.length;
+    while (--last > first && !hasPseudoClasses(children[last]));
+    return [children[first], children[last]];
+  }
+
+  private _syncEdgeChildren([oldFirst, oldLast]: [any, any], ...touched: any[]) {
+    const [first, last] = this._edgeChildren();
+    for (const view of new Set([oldFirst, oldLast, first, last, ...touched])) {
+      if (!hasPseudoClasses(view)) continue;
+      setPseudoClass(view, 'first-child', view === first);
+      setPseudoClass(view, 'last-child', view === last);
+      setPseudoClass(view, 'only-child', view === first && view === last);
+    }
+  }
+
+  private _masonAddChild(child: any) {
     if (!(child instanceof NSView)) this._masonSettleNativeAdds();
     if (child && child[isPlaceholder_] && child._view) {
       if (__ANDROID__) {
@@ -1478,7 +1687,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
 
       this._children.push(child);
 
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         this._windowsAttachPlaceholder(child, -1);
       }
       return;
@@ -1639,13 +1848,13 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   _childIndexToNativeChildIndex(index?: number): number {
-    if (__WINDOWS__ && typeof index === 'number' && index >= 0) {
+    if ((__WINDOWS__ || __LINUX__) && typeof index === 'number' && index >= 0) {
       return this._nativeIndexFor(index);
     }
     return super._childIndexToNativeChildIndex(index);
   }
 
-  insertChild(child: any, atIndex: number) {
+  private _masonInsertChild(child: any, atIndex: number) {
     this._masonSettleNativeAdds();
     this._invalidateAttachCursor();
     if (child && child[isPlaceholder_] && child._view) {
@@ -1665,7 +1874,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
         this._view.mason_addChildAtElement(child._view, nativeIndex);
       }
 
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         this._windowsAttachPlaceholder(child, nativeIndex);
       }
     } else if (child instanceof NSView) {
@@ -1677,7 +1886,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     }
   }
 
-  replaceChild(child: any, atIndex: number) {
+  private _masonReplaceChild(child: any, atIndex: number) {
     this._masonSettleNativeAdds();
     this._invalidateAttachCursor();
     if (child && child[isPlaceholder_] && child._view) {
@@ -1696,7 +1905,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
         this._view.mason_replaceChildAtElement(child._view, atIndex);
       }
 
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         this._windowsAttachPlaceholder(child, atIndex);
       }
     } else if (child instanceof NSView) {
@@ -1728,7 +1937,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     }
   }
 
-  removeChild(child: any) {
+  private _masonRemoveChild(child: any) {
     this._masonSettleNativeAdds();
     this._invalidateAttachCursor();
     // A placeholder (e.g. Br) was never `_addView`-ed, so remove its native node directly.
@@ -1744,7 +1953,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           //@ts-ignore
           this._view.mason_removeChildNode(child._view.node);
         }
-        if (__WINDOWS__) {
+        if (__WINDOWS__ || __LINUX__) {
           this._windowsDetachPlaceholder(child);
           this._windowsMergeAt(index);
         }
@@ -1776,7 +1985,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (index > -1) {
       this._children.splice(index, 1);
       this._removeView(child);
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         this._windowsMergeAt(index);
       }
     }
@@ -1800,7 +2009,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       //@ts-ignore
       else view.mason_removeChildAt?.(index);
     }
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       //@ts-ignore
       if (typeof view.RemoveRun === 'function') view.RemoveRun(node);
       else this._windowsRemoveMember(this._children[index]);
@@ -1832,7 +2041,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     }
   }
 
-  removeChildren() {
+  private _masonRemoveChildren() {
     const children = this._children as any[];
     if (children.length === 0) {
       return;
@@ -1844,13 +2053,13 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       const child = children[i];
       if (!child) continue;
       if (child[isPlaceholder_]) {
-        if (!__WINDOWS__ && child._view) this._nativeRemoveChildNode(child._view.node, i);
+        if (!(__WINDOWS__ || __LINUX__) && child._view) this._nativeRemoveChildNode(child._view.node, i);
         child[isTextChild_] = false;
       } else if (child instanceof NSView) {
         // @ts-ignore
         child._isMasonChild = false;
         this._removeView(child);
-      } else if (!__WINDOWS__ && text_ in child) {
+      } else if (!(__WINDOWS__ || __LINUX__) && text_ in child) {
         const node = child[textNode_];
         this._nativeRemoveChildNode(node, i);
         // Unbind the framework node so it can be adopted again.
@@ -1861,7 +2070,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
         }
       }
     }
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       this._forEachAnonymousText((anonymous) => masonEngine().RemoveChild((this as any)._view, anonymous));
       for (const c of children) {
         if (!c) continue;
@@ -1965,7 +2174,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       if (__APPLE__) {
         (node[textNode_] as MasonTextNode).data = text;
       }
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         (node[textNode_] as NativeScript.Mason.TextNode).Data = text;
       }
       this._installTextNodeProxy(node);
@@ -1979,7 +2188,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (__APPLE__) {
       textNode = MasonTextNode.alloc().initWithMasonDataAttributes(Tree.instance.native as never, text, null);
     }
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       const tn = new NativeScript.Mason.TextNode();
       tn.Data = text;
       textNode = tn;
@@ -2038,7 +2247,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           const data = value == null ? '' : `${value}`;
           if (__ANDROID__) (nativeTextNode as org.nativescript.mason.masonkit.TextNode).setData(data);
           if (__APPLE__) (nativeTextNode as MasonTextNode).data = data;
-          if (__WINDOWS__) (nativeTextNode as NativeScript.Mason.TextNode).Data = data;
+          if (__WINDOWS__ || __LINUX__) (nativeTextNode as NativeScript.Mason.TextNode).Data = data;
           // Re-measure/layout so the new text is reflected on screen.
           (owner as any).requestLayout?.();
         }
@@ -2052,7 +2261,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (__ANDROID__) this._view.addChildAt(textNode, index);
     //@ts-ignore
     if (__APPLE__) this._view.mason_addChildAtNode(textNode, index);
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       const view = (this as any)._view;
       if (!view) return;
       if (this._windowsHostsRuns()) view.SetRun(textNode, index);
@@ -2066,7 +2275,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (__ANDROID__) this._view.replaceChildAt(textNode, index);
     //@ts-ignore
     if (__APPLE__) this._view.mason_replaceChildAtNode(textNode, index);
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       const view = (this as any)._view;
       if (!view) return;
       if (this._windowsHostsRuns()) view.SetRun(textNode, index);
@@ -2112,7 +2321,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (!operation) return;
 
     // Native runs start as text; an in-place update keeps the run's kind.
-    if (__WINDOWS__ && textNode && !!operation.isBreak !== !!textNode.__masonBreak) {
+    if ((__WINDOWS__ || __LINUX__) && textNode && !!operation.isBreak !== !!textNode.__masonBreak) {
       textNode.SetBreak(!!operation.isBreak);
       textNode.__masonBreak = !!operation.isBreak;
     }
@@ -2138,7 +2347,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
           this._windowsReplaceRun(operation.index, entry);
           break;
         }
-        if (!__WINDOWS__ || (this._children[operation.index] as any)?.[textNode_] !== textNode) this._nativeReplaceChild(textNode, operation.index);
+        if (!(__WINDOWS__ || __LINUX__) || (this._children[operation.index] as any)?.[textNode_] !== textNode) this._nativeReplaceChild(textNode, operation.index);
         this._setOrPushChild(operation.index, entry);
         break;
       case 'insert': {
@@ -2161,7 +2370,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   // Only Text lays out runs on Windows, so any other container puts consecutive runs in one
   // anonymous Text, as Android's getOrCreateAnonymousTextContainer does.
   private _windowsNeedsAnonymousText(): boolean {
-    if (!__WINDOWS__) return false;
+    if (!(__WINDOWS__ || __LINUX__)) return false;
     let needs = (this as any)[needsAnonymousText_];
     if (needs === undefined) {
       const view = (this as any)._view;
@@ -2204,7 +2413,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
 
   onLoaded() {
     super.onLoaded();
-    if (__WINDOWS__ && (this as any)[runsSettled_] === 'load') this._windowsSettleRuns();
+    if ((__WINDOWS__ || __LINUX__) && (this as any)[runsSettled_] === 'load') this._windowsSettleRuns();
   }
 
   _windowsSettleRuns() {
@@ -2267,7 +2476,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   _windowsAttach(child: any): boolean {
-    if (!__WINDOWS__ || !this._windowsNeedsAnonymousText()) return false;
+    if (!(__WINDOWS__ || __LINUX__) || !this._windowsNeedsAnonymousText()) return false;
     const slot = this._children.indexOf(child);
     if (slot < 0) return false;
     const settled = (this as any)[runsSettled_] === true;
@@ -2555,7 +2764,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   [fontInternalProperty.setNative](value: any) {
-    if (!__WINDOWS__) return;
+    if (!(__WINDOWS__ || __LINUX__)) return;
     const source = windowsFontSource(value);
     (this as any)[windowsFontSource_] = source;
     this._forEachAnonymousText((anonymous) => anonymous.SetFontFamily(source));
@@ -2745,7 +2954,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     } else if (__APPLE__) {
       // @ts-ignore
       (this.nativeView as any)?.style?.setBorderColor(shorthand);
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       // @ts-ignore
       this._styleHelper?.setBorderColor(shorthand);
     }
@@ -2913,7 +3122,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       if (s) s.setBorderColor(String(value));
       // @ts-ignore
       else (this.nativeView as any).style.setBorderColor(String(value));
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       // @ts-ignore
       const style = this._styleHelper;
       // @ts-ignore
@@ -2964,7 +3173,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     } else if (__APPLE__) {
       // @ts-ignore
       (this.nativeView as any).style.applyListStyleType(String(value));
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       const style = (this as any)._styleHelper;
       const type = String(value).trim().toLowerCase();
       if (style && (type === 'none' || type === 'disc' || type === 'circle' || type === 'square' || type === 'decimal')) style.listStyleType = type;
@@ -2979,7 +3188,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     } else if (__APPLE__) {
       // @ts-ignore
       (this.nativeView as any).style.applyListStylePosition(String(value));
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       const style = (this as any)._styleHelper;
       const position = String(value).trim().toLowerCase();
       if (style && (position === 'inside' || position === 'outside')) style.listStylePosition = position;
@@ -3103,7 +3312,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   // Font props only land in the style buffer, which the TextBlock-backed text doesn't read, so they
   // must be forwarded to the native Text control to take visual effect. No-op off a Text container.
   private _applyTextRunProp(method: string, arg: number) {
-    if (!__WINDOWS__) return;
+    if (!(__WINDOWS__ || __LINUX__)) return;
     try {
       const view = (this as any)._view;
       if (view && typeof view[method] === 'function') view[method](arg);
@@ -3117,7 +3326,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       // Duck-typed via normalizeColorValue (robust to cross-core Color instances).
       // @ts-ignore
       style.color = value;
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         // Push the resolved color to the Text container's TextBlock (the default for all runs).
         // Imperative — not during layout.
         try {
@@ -3817,7 +4026,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
     if (style) {
       // @ts-ignore
       style.boxShadow = value;
-      if (__WINDOWS__) {
+      if (__WINDOWS__ || __LINUX__) {
         const nv: any = (this as any).nativeViewProtected ?? (this as any)._view;
         try {
           const shadows = parseBoxShadows(typeof value === 'string' ? value : '', (token) => cssLengthToDip(token, style.emBasisFor(token)));
@@ -3840,7 +4049,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   // element, so View.rotate etc. did nothing; they're set natively as one matrix instead. CSS
   // keyframes and animate() play them per frame (css-keyframes.ts).
   updateNativeTransform() {
-    if (!__WINDOWS__) {
+    if (!(__WINDOWS__ || __LINUX__)) {
       // @ts-ignore
       return super.updateNativeTransform?.();
     }
@@ -3879,7 +4088,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   animate(options: any) {
-    if (!__WINDOWS__ || !options || !('rotate' in options || 'scale' in options || 'translate' in options)) {
+    if (!(__WINDOWS__ || __LINUX__) || !options || !('rotate' in options || 'scale' in options || 'translate' in options)) {
       return super.animate(options);
     }
     // Core's storyboards would animate a transform that doesn't show on a Mason view.
@@ -3895,7 +4104,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   [originXProperty.setNative](value: number) {
-    if (!__WINDOWS__) {
+    if (!(__WINDOWS__ || __LINUX__)) {
       // @ts-ignore
       return super[originXProperty.setNative]?.(value);
     }
@@ -3903,7 +4112,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
   }
 
   [originYProperty.setNative](value: number) {
-    if (!__WINDOWS__) {
+    if (!(__WINDOWS__ || __LINUX__)) {
       // @ts-ignore
       return super[originYProperty.setNative]?.(value);
     }
@@ -3917,7 +4126,7 @@ export class ViewBase extends CustomLayoutView implements AddChildFromBuilder {
       // @ts-ignore
       style.transform = value;
       // Windows: transform isn't read from the buffer; it becomes the panel's RenderTransform.
-      if (__WINDOWS__) this._applyWindowsTransform(value);
+      if (__WINDOWS__ || __LINUX__) this._applyWindowsTransform(value);
     }
   }
 }
@@ -3964,7 +4173,7 @@ export class TextBase extends ViewBase {
   textContent: string;
 
   [fontInternalProperty.setNative](value: any) {
-    if (!__WINDOWS__) return;
+    if (!(__WINDOWS__ || __LINUX__)) return;
     // @ts-ignore
     const view = (this as any)._view;
     if (!view || typeof view.SetFontFamily !== 'function') return;
@@ -4025,7 +4234,7 @@ export class Event {
       return this[native_]?.bubbles;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.Bubbles ?? false;
     }
 
@@ -4041,7 +4250,7 @@ export class Event {
       return this[native_]?.cancelable;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.Cancelable ?? false;
     }
 
@@ -4057,7 +4266,7 @@ export class Event {
       return this[native_]?.isComposing;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.IsComposing ?? false;
     }
 
@@ -4073,7 +4282,7 @@ export class Event {
       return this[native_]?.timeStamp;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.TimeStamp ?? 0;
     }
 
@@ -4089,7 +4298,7 @@ export class Event {
       return this[native_]?.defaultPrevented;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.DefaultPrevented ?? false;
     }
 
@@ -4105,7 +4314,7 @@ export class Event {
       return this[native_]?.propagationStopped;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.PropagationStopped ?? false;
     }
 
@@ -4121,7 +4330,7 @@ export class Event {
       return this[native_]?.immediatePropagationStopped;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.ImmediatePropagationStopped ?? false;
     }
 
@@ -4144,7 +4353,7 @@ export class Event {
       return this[native_]?.stopImmediatePropagation();
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.StopImmediatePropagation();
     }
   }
@@ -4158,7 +4367,7 @@ export class Event {
       return this[native_]?.stopPropagation();
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.StopPropagation();
     }
   }
@@ -4172,7 +4381,7 @@ export class Event {
       return this[native_]?.preventDefault();
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.PreventDefault();
     }
   }
@@ -4190,7 +4399,7 @@ export class Event {
     if (__ANDROID__) {
       return this[native_]?.getType();
     }
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.Type;
     }
     return this[native_]?.type;
@@ -4212,7 +4421,7 @@ export class Event {
   get target(): any {
     // The element the event started at, which differs from currentTarget once it bubbles.
     const nativeEvent = this[native_];
-    const nativeTarget = __ANDROID__ ? nativeEvent?.getTarget?.() : __APPLE__ ? nativeEvent?.target : __WINDOWS__ ? nativeEvent?.Target : null;
+    const nativeTarget = __ANDROID__ ? nativeEvent?.getTarget?.() : __APPLE__ ? nativeEvent?.target : __WINDOWS__ || __LINUX__ ? nativeEvent?.Target : null;
     const current = this['_target'];
     if (nativeTarget && nativeTarget !== nativeViewFor(current)) {
       const found = nativeOwnerFor(nativeTarget) ?? findOwnerForNativeView(current, nativeTarget);
@@ -4273,7 +4482,7 @@ export class InputEvent extends Event {
       return this[native_]?.data;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       const files = this[native_]?.Files;
       if (files) {
         const ret = [];
@@ -4298,7 +4507,7 @@ export class InputEvent extends Event {
       return this[native_]?.inputType;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       return this[native_]?.InputType ?? '';
     }
 
@@ -4339,7 +4548,140 @@ export class KeyboardEvent extends Event {
   }
 }
 
+// Reads a native PointerEvent field: a Kotlin getter, an Obj-C property, or a WinRT/GTK PascalCase property.
+function pointerField(event: Event, name: string, androidGetter: string, pascal: string): any {
+  const native = event[native_];
+  if (!native) return undefined;
+  if (__ANDROID__) return native[androidGetter]?.();
+  if (__APPLE__) return native[name];
+  if (__WINDOWS__ || __LINUX__) return native[pascal];
+  return undefined;
+}
+
+/** DOM PointerEvent. Coordinates are CSS pixels; client coordinates are relative to the window. */
+export class PointerEvent extends Event {
+  private _num(name: string): number {
+    const pascal = name[0].toUpperCase() + name.slice(1);
+    return pointerField(this, name, 'get' + pascal, pascal) ?? 0;
+  }
+
+  private _flag(name: string): boolean {
+    const pascal = name[0].toUpperCase() + name.slice(1);
+    return !!pointerField(this, name, 'get' + pascal, pascal);
+  }
+
+  get pointerId(): number {
+    return this._num('pointerId');
+  }
+  get pointerType(): string {
+    return pointerField(this, 'pointerType', 'getPointerType', 'PointerType') ?? '';
+  }
+  get isPrimary(): boolean {
+    return !!pointerField(this, 'isPrimary', 'isPrimary', 'IsPrimary');
+  }
+  get clientX(): number {
+    return this._num('clientX');
+  }
+  get clientY(): number {
+    return this._num('clientY');
+  }
+  get screenX(): number {
+    return this._num('screenX');
+  }
+  get screenY(): number {
+    return this._num('screenY');
+  }
+  get pageX(): number {
+    return this.clientX;
+  }
+  get pageY(): number {
+    return this.clientY;
+  }
+  get x(): number {
+    return this.clientX;
+  }
+  get y(): number {
+    return this.clientY;
+  }
+  /** Relative to the target element's top-left corner. */
+  get offsetX(): number {
+    return this._num('offsetX');
+  }
+  get offsetY(): number {
+    return this._num('offsetY');
+  }
+  get movementX(): number {
+    return this._num('movementX');
+  }
+  get movementY(): number {
+    return this._num('movementY');
+  }
+  get button(): number {
+    return this._num('button');
+  }
+  set button(_: number) {}
+  get buttons(): number {
+    return this._num('buttons');
+  }
+  get width(): number {
+    return this._num('width') || 1;
+  }
+  get height(): number {
+    return this._num('height') || 1;
+  }
+  get pressure(): number {
+    return this._num('pressure');
+  }
+  get tangentialPressure(): number {
+    return this._num('tangentialPressure');
+  }
+  get tiltX(): number {
+    return this._num('tiltX');
+  }
+  get tiltY(): number {
+    return this._num('tiltY');
+  }
+  get twist(): number {
+    return this._num('twist');
+  }
+  get ctrlKey(): boolean {
+    return this._flag('ctrlKey');
+  }
+  get shiftKey(): boolean {
+    return this._flag('shiftKey');
+  }
+  get altKey(): boolean {
+    return this._flag('altKey');
+  }
+  get metaKey(): boolean {
+    return this._flag('metaKey');
+  }
+
+  /** pointerover/out/enter/leave: the element the pointer came from or went to. */
+  get relatedTarget(): any {
+    const related = pointerField(this, 'relatedTarget', 'getRelatedTarget', 'RelatedTarget');
+    if (!related) return null;
+    const known = nativeOwnerFor(related);
+    if (known) return known;
+    // It can be anywhere in the tree, not just under the listener.
+    let root = this['_target'];
+    while (root?.parent) root = root.parent;
+    const found: any = findOwnerForNativeView(root, related);
+    found?._rememberNativeOwner?.(related);
+    return found;
+  }
+
+  getCoalescedEvents(): PointerEvent[] {
+    return [this];
+  }
+
+  getPredictedEvents(): PointerEvent[] {
+    return [];
+  }
+}
+
 function wrapNativeEvent(type: string): Event {
+  if (POINTER_EVENTS.has(type)) return new PointerEvent();
   switch (type) {
     case 'beforeinput':
     case 'input':

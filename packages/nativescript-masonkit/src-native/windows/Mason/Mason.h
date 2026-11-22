@@ -53,6 +53,10 @@ namespace winrt::NativeScript::Mason::implementation
         void RemoveEventListenerPtr(int64_t elementPtr, winrt::hstring const& type, int64_t id);
         winrt::Windows::Foundation::IInspectable ElementFromPointPtr(int64_t elementPtr, float x, float y);
         void PrintElementTree(winrt::NativeScript::Mason::IMasonElement const& element);
+        void SetPointerEvents(winrt::Microsoft::UI::Xaml::UIElement const& element, int32_t value);
+        bool SetPointerCapture(winrt::Microsoft::UI::Xaml::UIElement const& element, int32_t pointerId);
+        void ReleasePointerCapture(winrt::Microsoft::UI::Xaml::UIElement const& element, int32_t pointerId);
+        bool HasPointerCapture(winrt::Microsoft::UI::Xaml::UIElement const& element, int32_t pointerId);
         double ScrollLeft(winrt::Microsoft::UI::Xaml::UIElement const& element);
         double ScrollTop(winrt::Microsoft::UI::Xaml::UIElement const& element);
         double ScrollWidth(winrt::Microsoft::UI::Xaml::UIElement const& element);

@@ -19,7 +19,7 @@ import { AlignContent, AlignSelf, AlignItems, JustifyContent, JustifySelf, _pars
 
 // The Windows shell lays out in XAML DIPs, so its style buffer holds DIPs. Core's Windows density
 // is 1 until the window has a XamlRoot, so converting stored early styles unscaled and later ones scaled.
-const layout: typeof coreLayout = __WINDOWS__ ? { ...coreLayout, getDisplayDensity: () => 1, toDevicePixels: (value: number) => value, toDeviceIndependentPixels: (value: number) => value } : { ...coreLayout, ...masonLayout };
+const layout: typeof coreLayout = __WINDOWS__ || __LINUX__ ? { ...coreLayout, getDisplayDensity: () => 1, toDevicePixels: (value: number) => value, toDeviceIndependentPixels: (value: number) => value } : { ...coreLayout, ...masonLayout };
 
 enum StyleKeys {
   // <style-keys:offsets> generated from tools/scripts/style-keys/style-keys.schema, run `npm run gen:style-keys`
@@ -974,7 +974,12 @@ const setFloat32 = (view: DataView, offset: number, value: number) => {
 
 // Core's Windows currentApp() is the package folder; the app's files are in its app\ folder.
 export function windowsAppFile(url: string): string {
-  return url.startsWith('~/') ? knownFolders.currentApp().path + '\\app\\' + url.slice(2).replace(/\//g, '\\') : url;
+  if (!url.startsWith('~/')) return url;
+  const app = knownFolders.currentApp().path;
+  if (__LINUX__) return app + '/' + url.slice(2);
+  // Core's currentApp() is the package's app\ folder; older cores gave the package root.
+  const root = /[\\/]app[\\/]?$/i.test(app) ? app.replace(/[\\/]$/, '') : app + '\\app';
+  return root + '\\' + url.slice(2).replace(/\//g, '\\');
 }
 
 // Split a comma-separated list at top level only (commas inside parentheses, e.g. rgba(0,0,0,.5),
@@ -1199,7 +1204,24 @@ const RADIUS_KEYS = [
 
 const FAST_RADIUS_TOKEN = /^(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)(px|dip|dppx|%)?$/;
 
+const radiusTokens = new Map<string, WindowsRadius[] | null>();
+let radiusTokensScale = NaN;
+
+/** Parsed tokens of one radius text, shared between every element that uses it: callers only read them. */
 function fastRadiusTokens(part: string, scale: number): WindowsRadius[] | null {
+  if (scale !== radiusTokensScale || radiusTokens.size >= 512) {
+    radiusTokens.clear();
+    radiusTokensScale = scale;
+  }
+  let tokens = radiusTokens.get(part);
+  if (tokens === undefined) {
+    tokens = parseRadiusTokens(part, scale);
+    radiusTokens.set(part, tokens);
+  }
+  return tokens;
+}
+
+function parseRadiusTokens(part: string, scale: number): WindowsRadius[] | null {
   const out: WindowsRadius[] = [];
   for (const token of part.split(/\s+/)) {
     if (!token) continue;
@@ -1789,15 +1811,23 @@ function styleChunk(chunk: number): ArrayBuffer | undefined {
   return buffer;
 }
 
-function windowsStyleValues(nativeView: any, foreign: boolean) {
+function windowsStyleValues(nativeView: any, foreign: boolean): ArrayBuffer {
+  const engine = masonEngine();
+  if (__LINUX__) {
+    const buffer = foreign && nativeView ? engine.ForeignStyleValues(nativeView)
+      : nativeView?.Node ? engine.StyleValues(nativeView)
+      : engine.CreateNode(false).Style.Values;
+    return buffer ?? new ArrayBuffer(0);
+  }
   if (foreign && nativeView) {
     const ptr = windowsNativePtr(nativeView);
-    return ptr == null ? null : masonEngine().ReadForeignStyleValuesPtr(ptr);
+    return new Uint8Array(ptr == null ? null : engine.ReadForeignStyleValuesPtr(ptr)).buffer;
   }
-  if (nativeView?.Node) return masonEngine().ReadStyleValues(nativeView);
-  return masonEngine().ReadNodeStyleValues(NativeScript.Mason.Mason.Instance().CreateNode(false));
+  if (nativeView?.Node) return new Uint8Array(engine.ReadStyleValues(nativeView)).buffer;
+  return new Uint8Array(engine.ReadNodeStyleValues(engine.CreateNode(false))).buffer;
 }
 function windowsWriteStyleValues(nativeView: any, foreign: boolean, bytes: Uint8Array) {
+  if (__LINUX__) return; // Linux exposes the live buffer.
   if (foreign && nativeView) {
     const ptr = windowsNativePtr(nativeView);
     if (ptr != null) masonEngine().WriteForeignStyleValuesPtr(ptr, bytes);
@@ -2009,12 +2039,12 @@ export class Style {
         data = style.values;
       }
       this.setBuffer(interop.bufferFromData(data));
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       // Live IBuffer over the engine's arena style memory; the @nativescript/windows runtime
       // projects it as a writable ArrayBuffer, so the same StyleKeys-offset writes used on
       // iOS/Android land straight in the node's style.
       //@ts-ignore
-      this.setBuffer(new Uint8Array(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_])).buffer);
+      this.setBuffer(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_]));
     }
   }
 
@@ -2163,7 +2193,7 @@ export class Style {
       }
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       // Android and iOS parse these natively; Windows parses them here into the style buffer.
       if (!this._pseudo) this._windowsCss.set(name, value);
       this.applyWindowsCssString(name, value);
@@ -2523,7 +2553,7 @@ export class Style {
   }
 
   setBorderColor(value: string) {
-    if (!(__WINDOWS__ || __ANDROID__ || __APPLE__) || !this.style_view) return;
+    if (!(__WINDOWS__ || __LINUX__ || __ANDROID__ || __APPLE__) || !this.style_view) return;
     const c = parseSidesColorShorthand(String(value ?? ''));
     this.writeBorderSide('top', null, null, c.t);
     this.writeBorderSide('right', null, null, c.r);
@@ -2609,13 +2639,17 @@ export class Style {
       const view = this.view?.ios ?? (this.view._view as never as MasonText);
       // @ts-ignore
       view.mason_syncStyleParts(this._d0, this._d1, this._d2, this._d3);
-    } else if (__WINDOWS__) {
+    } else if (__WINDOWS__ || __LINUX__) {
       const all = !this._hasDirty;
       const d0 = all ? -1 : this._d0;
       const d1 = all ? -1 : this._d1;
       const d2 = all ? -1 : this._d2;
       const d3 = all ? -1 : this._d3;
       if (!this.view[isMasonView_]) {
+        if (__LINUX__) {
+          masonEngine().SyncForeignStyle(this.nativeView, d0, d1, d2, d3);
+          return;
+        }
         const ptr = windowsNativePtr(this.nativeView);
         if (ptr != null) {
           masonEngine().WriteForeignStyleValuesPtr(ptr, this.u8View);
@@ -2625,9 +2659,9 @@ export class Style {
       }
       // @ts-ignore
       const view = (this.view as any)?.windows ?? this.view._view;
-      if (this._pseudo) {
+      if (__WINDOWS__ && this._pseudo) {
         masonEngine().WritePseudoStyleValues(this.nativeNode, this._pseudo, this.u8View);
-      } else {
+      } else if (__WINDOWS__) {
         masonEngine().WriteStyleValues(view, this.u8View);
       }
       (view as NativeScript.Mason.IMasonElement).SyncStyle(d0, d1, d2, d3);
@@ -2644,9 +2678,9 @@ export class Style {
 
   /** The anonymous Windows Text holding a container's own runs inherits the container's text styles. */
   copyTextStyleTo(text: NativeScript.Mason.Text, d0 = -1, d1 = -1, d2 = -1, d3 = -1, block = false) {
-    if (!__WINDOWS__ || !this.u8View) return;
+    if (!(__WINDOWS__ || __LINUX__) || !this.u8View) return;
     //@ts-ignore
-    const target = new Uint8Array(masonEngine().ReadStyleValues(text));
+    const target = new Uint8Array(windowsStyleValues(text, false));
     target.set(this.u8View.subarray(StyleKeys.FONT_COLOR, StyleKeys.BACKGROUND_COLOR), StyleKeys.FONT_COLOR);
     target.set(this.u8View.subarray(StyleKeys.DECORATION_LINE, StyleKeys.PSEUDO_SET_MASK_LOW), StyleKeys.DECORATION_LINE);
     target.set(this.u8View.subarray(StyleKeys.HYPHENS, StyleKeys.LINE_CLAMP_STATE + 1), StyleKeys.HYPHENS);
@@ -2654,7 +2688,7 @@ export class Style {
       target[StyleKeys.DISPLAY] = 3;
       target[StyleKeys.DISPLAY_MODE] = DisplayMode.None;
     }
-    masonEngine().WriteStyleValues(text, target);
+    if (__WINDOWS__) masonEngine().WriteStyleValues(text, target);
     (text as unknown as NativeScript.Mason.IMasonElement).SyncStyle(d0, d1, d2, d3);
   }
 
@@ -3108,7 +3142,7 @@ export class Style {
     setInt8(this.style_view, StyleKeys.BACKGROUND_COLOR_STATE, 1);
     setInt8(this.style_view, StyleKeys.BACKGROUND_COLOR_TYPE, 0);
     this.commitState(StateKeys.BACKGROUND_COLOR);
-    if (__WINDOWS__ && !this._windowsImageBackground && normalized >>> 24 > 0) this.windowsReapplyGradient();
+    if ((__WINDOWS__ || __LINUX__) && !this._windowsImageBackground && normalized >>> 24 > 0) this.windowsReapplyGradient();
   }
 
   get textWrap() {
@@ -5125,7 +5159,7 @@ export class Style {
       return this.appleStyle.gridAutoRows;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridAutoRowsCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridAutoRowsCss ?? '') : '';
   }
 
   set gridAutoRows(value: string) {
@@ -5143,7 +5177,7 @@ export class Style {
       this.appleStyle.gridAutoRows = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridAutoRows', value);
     }
   }
@@ -5160,7 +5194,7 @@ export class Style {
       return this.appleStyle.gridAutoColumns;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridAutoColumnsCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridAutoColumnsCss ?? '') : '';
   }
 
   set gridAutoColumns(value: string) {
@@ -5178,7 +5212,7 @@ export class Style {
       this.appleStyle.gridAutoColumns = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridAutoColumns', value);
     }
   }
@@ -5235,7 +5269,7 @@ export class Style {
       this.appleStyle.gridColumn = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridColumn', value);
     }
   }
@@ -5252,7 +5286,7 @@ export class Style {
       return this.appleStyle.gridColumn;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridColumnCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridColumnCss ?? '') : '';
   }
 
   get gridColumnStart(): string {
@@ -5267,7 +5301,7 @@ export class Style {
       return this.appleStyle.gridColumnStart;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridColumnStartCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridColumnStartCss ?? '') : '';
   }
 
   set gridColumnStart(value: string) {
@@ -5284,7 +5318,7 @@ export class Style {
       this.appleStyle.gridColumnStart = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridColumnStart', value);
     }
   }
@@ -5301,7 +5335,7 @@ export class Style {
       return this.appleStyle.gridColumnEnd;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridColumnEndCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridColumnEndCss ?? '') : '';
   }
 
   set gridColumnEnd(value: string) {
@@ -5318,7 +5352,7 @@ export class Style {
       this.appleStyle.gridColumnEnd = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridColumnEnd', value);
     }
   }
@@ -5337,7 +5371,7 @@ export class Style {
       this.appleStyle.gridRow = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridRow', value);
     }
   }
@@ -5354,7 +5388,7 @@ export class Style {
       return this.appleStyle.gridRow;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridRowCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridRowCss ?? '') : '';
   }
 
   get gridRowStart(): string {
@@ -5369,7 +5403,7 @@ export class Style {
       return this.appleStyle.gridRowStart;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridRowStartCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridRowStartCss ?? '') : '';
   }
 
   set gridRowStart(value: string) {
@@ -5386,7 +5420,7 @@ export class Style {
       this.appleStyle.gridRowStart = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridRowStart', value);
     }
   }
@@ -5403,7 +5437,7 @@ export class Style {
       return this.appleStyle.gridRowEnd;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridRowEndCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridRowEndCss ?? '') : '';
   }
 
   set gridRowEnd(value: string) {
@@ -5420,7 +5454,7 @@ export class Style {
       this.appleStyle.gridRowEnd = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridRowEnd', value);
     }
   }
@@ -5439,7 +5473,7 @@ export class Style {
       this.appleStyle.gridArea = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridArea', value);
     }
   }
@@ -5456,7 +5490,7 @@ export class Style {
       return this.appleStyle.gridArea;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridAreaCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridAreaCss ?? '') : '';
   }
 
   set gridTemplateRows(value: string) {
@@ -5474,7 +5508,7 @@ export class Style {
       this.appleStyle.gridTemplateRows = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridTemplateRows', value);
     }
   }
@@ -5491,7 +5525,7 @@ export class Style {
       return this.appleStyle.gridTemplateRows;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridTemplateRowsCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridTemplateRowsCss ?? '') : '';
   }
 
   get gridTemplateColumns() {
@@ -5506,7 +5540,7 @@ export class Style {
       return this.appleStyle.gridTemplateColumns;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridTemplateColumnsCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridTemplateColumnsCss ?? '') : '';
   }
 
   set gridTemplateColumns(value: string) {
@@ -5524,7 +5558,7 @@ export class Style {
       this.appleStyle.gridTemplateColumns = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridTemplateColumns', value);
     }
   }
@@ -5541,7 +5575,7 @@ export class Style {
       return this.appleStyle.gridTemplateAreas;
     }
 
-    return __WINDOWS__ ? ((this.nativeView as any)?.Style?.GridTemplateAreasCss ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? ((this.nativeView as any)?.Style?.GridTemplateAreasCss ?? '') : '';
   }
 
   set gridTemplateAreas(value: string) {
@@ -5558,7 +5592,7 @@ export class Style {
       this.appleStyle.gridTemplateAreas = value;
     }
 
-    if (__WINDOWS__) {
+    if (__WINDOWS__ || __LINUX__) {
       windowsSetGrid(this.nativeView, 'gridTemplateAreas', value);
     }
   }
@@ -5596,7 +5630,7 @@ export class Style {
       }
     }
     this.commitState(StateKeys.OVERFLOW);
-    if (__WINDOWS__) this.windowsReapplyGradient();
+    if (__WINDOWS__ || __LINUX__) this.windowsReapplyGradient();
   }
   get overflowX() {
     switch (getInt8(this.style_view, StyleKeys.OVERFLOW_X)) {
@@ -5615,7 +5649,7 @@ export class Style {
       this.prepareMut();
       setInt8(this.style_view, StyleKeys.OVERFLOW_X, v);
       this.commitState(StateKeys.OVERFLOW_X);
-      if (__WINDOWS__) this.windowsReapplyGradient();
+      if (__WINDOWS__ || __LINUX__) this.windowsReapplyGradient();
     }
   }
 
@@ -5640,7 +5674,7 @@ export class Style {
       this.prepareMut();
       setInt8(this.style_view, StyleKeys.OVERFLOW_Y, v);
       this.commitState(StateKeys.OVERFLOW_Y);
-      if (__WINDOWS__) this.windowsReapplyGradient();
+      if (__WINDOWS__ || __LINUX__) this.windowsReapplyGradient();
     }
   }
 
@@ -5946,7 +5980,7 @@ export class Style {
       return this.appleStyle.background;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('background') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background') ?? '') : '';
   }
 
   set background(value: string) {
@@ -5971,7 +6005,7 @@ export class Style {
       return this.appleStyle.backgroundImage;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('background-image') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-image') ?? '') : '';
   }
 
   set backgroundImage(value: string) {
@@ -5996,7 +6030,7 @@ export class Style {
       return this.appleStyle.backgroundRepeat;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('background-repeat') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-repeat') ?? '') : '';
   }
 
   set backgroundRepeat(value: string) {
@@ -6021,7 +6055,7 @@ export class Style {
       return this.appleStyle.backgroundPosition;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('background-position') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-position') ?? '') : '';
   }
 
   set backgroundPosition(value: string) {
@@ -6046,7 +6080,7 @@ export class Style {
       return this.appleStyle.backgroundSize;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('background-size') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-size') ?? '') : '';
   }
 
   set backgroundSize(value: string) {
@@ -6071,7 +6105,7 @@ export class Style {
       return this.appleStyle.backgroundClip;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('background-clip') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-clip') ?? '') : '';
   }
 
   set backgroundClip(value: string) {
@@ -6094,7 +6128,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.backgroundPositionX;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('background-position-x') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-position-x') ?? '') : '';
   }
 
   set backgroundPositionX(value: string) {
@@ -6117,7 +6151,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.backgroundPositionY;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('background-position-y') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-position-y') ?? '') : '';
   }
 
   set backgroundPositionY(value: string) {
@@ -6140,7 +6174,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.backgroundOrigin;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('background-origin') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-origin') ?? '') : '';
   }
 
   set backgroundOrigin(value: string) {
@@ -6163,7 +6197,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.backgroundAttachment;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('background-attachment') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-attachment') ?? '') : '';
   }
 
   set backgroundAttachment(value: string) {
@@ -6186,7 +6220,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.backgroundBlendMode;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('background-blend-mode') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('background-blend-mode') ?? '') : '';
   }
 
   set backgroundBlendMode(value: string) {
@@ -6224,7 +6258,7 @@ export class Style {
       return css || (this.style_view ? this._radiusCssFromBuffer() : '');
     }
 
-    if (__WINDOWS__ && this.style_view) {
+    if ((__WINDOWS__ || __LINUX__) && this.style_view) {
       // Read back so a single corner longhand keeps the other three instead of resetting them to 0.
       return RADIUS_KEYS.map(([, keys]) => {
         const v = getFloat32(this.style_view, keys.xValue);
@@ -6438,7 +6472,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.fontFamily;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('font-family') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('font-family') ?? '') : '';
   }
 
   // `font-family` is a native Style property (builds a FontFace), not a
@@ -6474,7 +6508,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.textDecorationLine;
     }
-    if (__WINDOWS__ && this.style_view) {
+    if ((__WINDOWS__ || __LINUX__) && this.style_view) {
       return textDecorationLineToCss(getUint8(this.style_view, StyleKeys.DECORATION_LINE));
     }
     return '';
@@ -6500,7 +6534,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.textDecorationStyle;
     }
-    if (__WINDOWS__ && this.style_view) {
+    if ((__WINDOWS__ || __LINUX__) && this.style_view) {
       return textDecorationStyleToCss(getUint8(this.style_view, StyleKeys.DECORATION_STYLE));
     }
     return '';
@@ -6526,7 +6560,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.textDecorationColor;
     }
-    if (__WINDOWS__ && this.style_view) {
+    if ((__WINDOWS__ || __LINUX__) && this.style_view) {
       const argb = getUint32(this.style_view, StyleKeys.DECORATION_COLOR);
       return !getUint8(this.style_view, StyleKeys.DECORATION_COLOR_STATE) || argb === DECORATION_COLOR_UNSET ? 'currentcolor' : new Color(argb).hex;
     }
@@ -6554,7 +6588,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.border;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('border') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('border') ?? '') : '';
   }
 
   set border(value: string) {
@@ -6575,7 +6609,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.paddingCss;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('padding') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('padding') ?? '') : '';
   }
 
   set paddingCss(value: string | number) {
@@ -6598,7 +6632,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.marginCss;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('margin') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('margin') ?? '') : '';
   }
 
   set marginCss(value: string | number) {
@@ -6620,7 +6654,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.insetCss;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('inset') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('inset') ?? '') : '';
   }
 
   set insetCss(value: string | number) {
@@ -6702,7 +6736,7 @@ export class Style {
       return this.appleStyle.filter;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('filter') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('filter') ?? '') : '';
   }
 
   set filter(value: string) {
@@ -6727,7 +6761,7 @@ export class Style {
       return this.appleStyle.boxShadow;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('box-shadow') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('box-shadow') ?? '') : '';
   }
 
   set 'box-shadow'(value: string) {
@@ -6761,7 +6795,7 @@ export class Style {
       return this.appleStyle.transform;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('transform') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('transform') ?? '') : '';
   }
 
   set transform(value: string) {
@@ -6935,7 +6969,7 @@ export class Style {
       return this.appleStyle.textShadow;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('text-shadow') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('text-shadow') ?? '') : '';
   }
 
   set textShadow(value: string) {
@@ -7055,7 +7089,7 @@ export class Style {
       return this.appleStyle.cornerShape;
     }
 
-    return __WINDOWS__ ? (this._windowsCss.get('corner-shape') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('corner-shape') ?? '') : '';
   }
 
   get cornerShapeTopLeft() {
@@ -7066,7 +7100,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.cornerShapeTopLeft;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('corner-shape-top-left') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('corner-shape-top-left') ?? '') : '';
   }
 
   set cornerShapeTopLeft(value: string) {
@@ -7087,7 +7121,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.cornerShapeTopRight;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('corner-shape-top-right') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('corner-shape-top-right') ?? '') : '';
   }
 
   set cornerShapeTopRight(value: string) {
@@ -7108,7 +7142,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.cornerShapeBottomRight;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('corner-shape-bottom-right') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('corner-shape-bottom-right') ?? '') : '';
   }
 
   set cornerShapeBottomRight(value: string) {
@@ -7129,7 +7163,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.cornerShapeBottomLeft;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('corner-shape-bottom-left') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('corner-shape-bottom-left') ?? '') : '';
   }
 
   set cornerShapeBottomLeft(value: string) {
@@ -7288,7 +7322,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.borderImage;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('border-image') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('border-image') ?? '') : '';
   }
 
   set borderImage(value: string) {
@@ -7343,7 +7377,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.fontFeatureSettings;
     }
-    return __WINDOWS__ ? this._windowsCss.get('font-feature-settings') || 'normal' : 'normal';
+    return __WINDOWS__ || __LINUX__ ? this._windowsCss.get('font-feature-settings') || 'normal' : 'normal';
   }
 
   set fontFeatureSettings(value: string) {
@@ -7540,7 +7574,7 @@ export class Style {
     setUint8(this.style_view, StyleKeys.TRANSFORM_ORIGIN_STATE, 1);
     this.commitState(StateKeys.TRANSFORM_ORIGIN);
     // Windows applies the origin with the transform, natively it isn't read from the buffer.
-    if (__WINDOWS__) (this.view as any)?._applyWindowsTransform?.();
+    if (__WINDOWS__ || __LINUX__) (this.view as any)?._applyWindowsTransform?.();
   }
 
   /** transform-origin as fractions of a `width` x `height` box, or null when it isn't set. */
@@ -7570,7 +7604,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.backdropFilter;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('backdrop-filter') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('backdrop-filter') ?? '') : '';
   }
 
   set backdropFilter(value: string) {
@@ -7599,7 +7633,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskImage;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-image') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-image') ?? '') : '';
   }
 
   set maskImage(value: string) {
@@ -7628,7 +7662,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskSize;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-size') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-size') ?? '') : '';
   }
 
   set maskSize(value: string) {
@@ -7657,7 +7691,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskPosition;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-position') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-position') ?? '') : '';
   }
 
   set maskPosition(value: string) {
@@ -7686,7 +7720,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskRepeat;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-repeat') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-repeat') ?? '') : '';
   }
 
   set maskRepeat(value: string) {
@@ -7715,7 +7749,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskOrigin;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-origin') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-origin') ?? '') : '';
   }
 
   set maskOrigin(value: string) {
@@ -7744,7 +7778,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskClip;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-clip') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-clip') ?? '') : '';
   }
 
   set maskClip(value: string) {
@@ -7773,7 +7807,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskMode;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-mode') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-mode') ?? '') : '';
   }
 
   set maskMode(value: string) {
@@ -7802,7 +7836,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskComposite;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-composite') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-composite') ?? '') : '';
   }
 
   set maskComposite(value: string) {
@@ -7831,7 +7865,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.clipPath;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('clip-path') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('clip-path') ?? '') : '';
   }
 
   set clipPath(value: string) {
@@ -7860,7 +7894,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskBorderSource;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-border-source') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-border-source') ?? '') : '';
   }
 
   set maskBorderSource(value: string) {
@@ -7889,7 +7923,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskBorderSlice;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-border-slice') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-border-slice') ?? '') : '';
   }
 
   set maskBorderSlice(value: string) {
@@ -7918,7 +7952,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskBorderWidth;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-border-width') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-border-width') ?? '') : '';
   }
 
   set maskBorderWidth(value: string) {
@@ -7947,7 +7981,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskBorderOutset;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-border-outset') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-border-outset') ?? '') : '';
   }
 
   set maskBorderOutset(value: string) {
@@ -7976,7 +8010,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskBorderRepeat;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-border-repeat') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-border-repeat') ?? '') : '';
   }
 
   set maskBorderRepeat(value: string) {
@@ -8005,7 +8039,7 @@ export class Style {
     if (__APPLE__) {
       return this.appleStyle.maskBorderMode;
     }
-    return __WINDOWS__ ? (this._windowsCss.get('mask-border-mode') ?? '') : '';
+    return __WINDOWS__ || __LINUX__ ? (this._windowsCss.get('mask-border-mode') ?? '') : '';
   }
 
   set maskBorderMode(value: string) {

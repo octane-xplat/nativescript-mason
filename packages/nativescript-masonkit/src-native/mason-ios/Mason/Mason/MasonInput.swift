@@ -5,10 +5,18 @@
 //  Created by Osei Fortune on 03/01/2026.
 //
 
+#if canImport(UIKit)
 import UIKit
+#else
+import AppKit
+#endif
 import CoreText
 
 // MARK: - Helpers
+#if canImport(UIKit)
+typealias MasonInputButton = UIButton
+typealias MasonColorWell = UIColorWell
+
 internal extension UITextField {
   private struct AssociatedKeys { static var maxDigits = "maxDigits" }
   
@@ -28,6 +36,7 @@ internal extension UITextField {
     self.widthAnchor.constraint(equalToConstant: width).isActive = true
   }
 }
+#endif
 
 internal extension String {
   func paddingLeft(toLength: Int, withPad: String) -> String {
@@ -39,6 +48,7 @@ internal extension String {
 }
 
 
+#if canImport(UIKit)
 internal extension UIView {
   var parentViewController: UIViewController? {
     var responder: UIResponder? = self
@@ -49,13 +59,16 @@ internal extension UIView {
     return nil
   }
 }
+#endif
 
 
 @objcMembers
 @objc(MasonInput)
-public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListener{
+public class MasonInput: MasonViewBase,MasonEventTarget, MasonElement, StyleChangeListener{
+#if canImport(UIKit)
   // Mirrors geometry animations onto the sibling outset-shadow layer.
   public override class var layerClass: AnyClass { MasonShadowTrackingLayer.self }
+#endif
 
   func onStyleChange(_ low: UInt64, _ high: UInt64) {
     let state = StateKeys(low: low, high: high)
@@ -65,7 +78,7 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
     let font = state.contains(.fontWeight) || state.contains(.fontStyle) || state.contains(.fontFamily)
     switch self.type {
     case .Text, .Email, .Password, .Tel, .Url, .Number, .Search, .Time, .DatetimeLocal, .Month, .Week:
-      if color || caretColorChanged || size || font || state.contains(.textAlign) {
+      if color || caretColorChanged || size || font || state.contains(.textAlign) || state.contains(.textShadow) {
         syncTextStyle()
       }
     case .Button, .Reset:
@@ -115,7 +128,9 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
       field.font = font
     }
     
+#if canImport(UIKit)
     field.autocorrectionType = .no
+#endif
     return field
   }()
   
@@ -132,21 +147,29 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
   }()
   
   
-  internal lazy var buttonInput: UIButton  = {
-    let btn = UIButton()
+  internal lazy var buttonInput: MasonInputButton  = {
+    let btn = MasonInputButton()
+#if canImport(UIKit)
     let recognizer = MasonGestureRecognizer(targetView: btn)
     recognizer.owner = self
     btn.addGestureRecognizer(recognizer)
+#else
+    btn.owner = self
+#endif
     return btn
   }()
   
   
-  internal lazy var submitInput: UIButton  = {
-    let btn = UIButton()
+  internal lazy var submitInput: MasonInputButton  = {
+    let btn = MasonInputButton()
+#if canImport(UIKit)
     let recognizer = MasonGestureRecognizer(targetView: btn)
     recognizer.owner = self
     recognizer.isSubmit = true
     btn.addGestureRecognizer(recognizer)
+#else
+    btn.owner = self
+#endif
     return btn
   }()
   
@@ -168,6 +191,7 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
   internal lazy var rangeInput: MasonRangeInput  = {
     let range = MasonRangeInput()
     range.owner = self
+#if canImport(UIKit)
     range.contentVerticalAlignment = .center
     range.maximumValueImage = nil
     range.minimumValueImage = nil
@@ -179,12 +203,13 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
     
     range.setThumbImage(rangeThumbImage(innerColor: .systemGray.darker()), for: .normal)
     range.setThumbImage(rangeThumbImage(innerColor: .systemGreen.darker()), for: .highlighted)
+#endif
     
     return range
   }()
   
-  internal lazy var colorInput: UIColorWell = {
-    let well = UIColorWell()
+  internal lazy var colorInput: MasonColorWell = {
+    let well = MasonColorWell()
     well.selectedColor = .black
     return well
   }()
@@ -224,12 +249,17 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
     for subview in subviews {
       (subview as? UIControl)?.isEnabled = !disabled
     }
+#if canImport(UIKit)
     if disabled {
       endEditing(true)
       accessibilityTraits.insert(.notEnabled)
     } else {
       accessibilityTraits.remove(.notEnabled)
     }
+#else
+    if disabled { endEditing(true) }
+    setAccessibilityEnabled(!disabled)
+#endif
   }
   
   
@@ -663,6 +693,14 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
       passwordInput.textAlignment = alignment
       var placeholderAttrs: [NSAttributedString.Key: Any] = [.foregroundColor: placeholderColor]
       if let font = font { placeholderAttrs[.font] = font }
+#if canImport(UIKit)
+      // A UITextField takes a single shadow per character: the first, top-most CSS layer.
+      let shadow = style.textShadows.first?.nsShadow
+      var textAttrs = passwordInput.defaultTextAttributes
+      textAttrs[.shadow] = shadow
+      passwordInput.defaultTextAttributes = textAttrs
+      placeholderAttrs[.shadow] = shadow
+#endif
       passwordInput.attributedPlaceholder = NSAttributedString(string: placeholder, attributes: placeholderAttrs)
     case .Text, .Email, .Url, .Tel, .Number, .Search, .Time, .DatetimeLocal, .Month, .Week:
       if let font = font { textInput.font = font }
@@ -670,6 +708,9 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
       textInput.tintColor = caret
       textInput.textAlignment = alignment
       textInput.placeholderLabel.textColor = placeholderColor
+#if canImport(UIKit)
+      textInput.textShadows = style.textShadows
+#endif
     default:
       break
     }
@@ -773,6 +814,7 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
     switch type {
     case .Text, .Email, .Password, .Tel, .Url, .Number, .Search, .Time, .DatetimeLocal, .Month, .Week:
       textInput.tintColor = UIColor.colorFromARGB(style.resolvedCaretColor)
+#if canImport(UIKit)
       textInput.returnKeyType = .default
       switch(type){
       case .Search:
@@ -803,6 +845,7 @@ public class MasonInput: UIView,MasonEventTarget, MasonElement, StyleChangeListe
         textInput.keyboardType = .default
         break
       }
+#endif
       if type == .Password {
         addSubview(passwordInput)
       } else {

@@ -8,6 +8,8 @@ pub mod util;
 pub mod smooth_corners;
 
 #[derive(Debug)]
+// Keep the wrapper transparent in Rust and opaque in generated C headers.
+#[cfg_attr(all(), repr(transparent))]
 pub struct CMason(Mason);
 
 impl CMason {
@@ -180,4 +182,13 @@ pub extern "C" fn mason_default_style_ptr(mason: *mut CMason) -> *mut u8 {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+// Keep the wrapper transparent in Rust and opaque in generated C headers.
+#[cfg_attr(all(), repr(transparent))]
 pub struct CMasonNode(NodeRef);
+
+impl CMasonNode {
+    /// Wraps a node created through mason-core (the Linux bindings).
+    pub fn from_ref(node: NodeRef) -> Self {
+        CMasonNode(node)
+    }
+}

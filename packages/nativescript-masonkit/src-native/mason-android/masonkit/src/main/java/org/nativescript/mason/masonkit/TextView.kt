@@ -84,6 +84,9 @@ internal class ThemelessContext private constructor(base: Context, template: and
       wrappers[context] = WeakReference(wrapper)
       return wrapper
     }
+
+    // Widgets that draw from the theme (scrollbars, text selection, pickers) may be handed a Mason view's context.
+    fun themed(context: Context): Context = if (context is ThemelessContext) context.baseContext else context
   }
 }
 
@@ -213,7 +216,7 @@ open class TextView @JvmOverloads constructor(
 
   // A touch outside the clip-path passes through to what's beneath (see ClipPath.kt).
   override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean =
-    !clipPathRejectsTouch(this, style, ev) && super.dispatchTouchEvent(ev)
+    dispatchMasonTouch(ev) { super.dispatchTouchEvent(it) }
 
   override fun onDraw(canvas: Canvas) {
     // Text changed since the last measure (no layout pass in between) is applied here.
@@ -315,7 +318,8 @@ open class TextView @JvmOverloads constructor(
   /** The last line's baseline from the top of a [width] by [height] content box, where it is drawn. */
   private fun baselineFromTop(width: Float, height: Float): Float {
     if (engine.isVerticalWritingMode) return Float.NaN
-    val contentWidth = width.toInt()
+    // Same rounding as the measure, so a width a float error under it reuses that layout.
+    val contentWidth = ceilConstraint(width)
     if (floatAwareStaticLayout == null &&
       (cachedStaticLayout == null || (contentWidth > 0 && !cachedStaticLayoutFits(contentWidth)))
     ) {
@@ -490,6 +494,13 @@ open class TextView @JvmOverloads constructor(
       if (ly >= lineTop && ly < lineBottom) return PointF(lx, ly)
     }
     return null
+  }
+
+  /** The inline element this view draws at (x, y), in view coordinates. */
+  internal fun inlineNodeAt(x: Float, y: Float): Node? {
+    val layout = drawnLayout ?: return null
+    val point = toLayoutPoint(x, y) ?: return null
+    return engine.inlineNodeAt(layout, point.x, point.y)
   }
 
   // An inline element being pressed: an inline box or a flattened element such as <a>.
@@ -677,8 +688,8 @@ open class TextView @JvmOverloads constructor(
     override fun findFocus(focus: Int): AccessibilityNodeInfo? = compat.findFocus(focus)?.unwrap()
   }
 
-  override fun dispatchHoverEvent(event: MotionEvent): Boolean {
-    return inlineAccessibility?.dispatchHoverEvent(event) == true || super.dispatchHoverEvent(event)
+  override fun dispatchHoverEvent(event: MotionEvent): Boolean = dispatchMasonHover(event) {
+    inlineAccessibility?.dispatchHoverEvent(it) == true || super.dispatchHoverEvent(it)
   }
 
   var textContent: String
@@ -823,8 +834,8 @@ open class TextView @JvmOverloads constructor(
   override fun getAccessibilityClassName(): CharSequence = "android.widget.TextView"
 
   override fun onInitializeAccessibilityNodeInfo(info: AccessibilityNodeInfo) {
-    super.onInitializeAccessibilityNodeInfo(info)
-    info.text = readableText()
+    withoutDelegateWhileNoService { super.onInitializeAccessibilityNodeInfo(info) }
+    info.text = readableText().let { if (A11y.serviceOn(context)) it else it.toString() }
   }
 
   override fun onPopulateAccessibilityEvent(event: AccessibilityEvent) {
@@ -839,8 +850,9 @@ open class TextView @JvmOverloads constructor(
     if (readableText().toString().contains(searched.toString(), ignoreCase = true)) outViews.add(this)
   }
 
+  // ViewStructure.setText copies a Spanned (TextUtils.trimNoCopySpans) for every appeared text.
   override fun onProvideContentCaptureStructure(structure: ViewStructure, flags: Int) {
-    provideTextStructure(structure, readableText())
+    provideTextStructure(structure, readableText().toString())
   }
 
   override fun onProvideStructure(structure: ViewStructure) {

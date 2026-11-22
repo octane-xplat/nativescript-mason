@@ -67,4 +67,16 @@ describe('foreign child layout on Windows', () => {
     adopted.push(second.view);
     expect(leaf).toMatchObject({ minWidth: 'auto', minHeight: 'auto' });
   });
+
+  it('still reads px as a CSS pixel, for the panel to copy', () => {
+    const leaf = leafTransport();
+    const { view, style } = foreign();
+    style.height = '31px';
+    adoptForeignLayout(view);
+    adopted.push(view);
+    style.width = '22px';
+    expect(style.width).toBe(22);
+    expect(style.height).toBe(31);
+    expect(leaf).not.toHaveProperty('width');
+  });
 });
