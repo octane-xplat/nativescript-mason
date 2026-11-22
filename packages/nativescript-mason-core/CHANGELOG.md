@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-beta.13 — 2026-11-22
+
+- Sync the shared layout engine and native hosts through upstream commit `331b587b`.
+- Add pointer-event dispatch and pointer capture to the independent iOS and Android hosts.
+- Refresh both mobile native artifacts and their generated bridge declarations.
+
 ## 1.0.0-beta.12 — 2026-11-17
 
 - Fix `setSmoothCorners` on Android when NativeScript exposes the native style through `getStyle()`.
