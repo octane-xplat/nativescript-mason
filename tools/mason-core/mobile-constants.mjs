@@ -22,7 +22,8 @@ export function resolveMobileConstants(source, filename) {
   try {
     check.dispose();
     if (foundLocalBinding) throw new Error(`A local Windows binding needs review: ${filename}`);
-    return source;
+    // Core has no Linux host. Shared MasonKit source can still refer to it.
+    return source.replace(/\b__LINUX__\b/g, 'false');
   } finally {
     check.transformed?.[0] && void 0;
   }

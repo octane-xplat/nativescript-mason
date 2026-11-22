@@ -15,10 +15,12 @@ assert.equal(manifest.repository.url, 'https://github.com/octane-xplat/nativescr
 assert.equal(manifest.repository.directory, 'packages/nativescript-masonkit');
 
 for (const path of [
-  'index.android.js', 'index.ios.js', 'index.windows.js', 'index.d.ts', 'nativescript.webpack.js', 'postcss-guard.js',
+  'index.android.js', 'index.ios.js', 'index.linux.js', 'index.windows.js', 'index.d.ts', 'nativescript.webpack.js', 'postcss-guard.js',
   'platforms/android/masonkit-release.aar',
   'platforms/ios/Mason.xcframework/ios-arm64/Mason.framework/Mason',
   'platforms/ios/Mason.xcframework/ios-arm64_x86_64-simulator/Mason.framework/Mason',
+  'platforms/linux/include/mason_linux.h',
+  ...['x64', 'arm64'].map((arch) => `platforms/linux/lib/${arch}/libmasonkit.so`),
   ...['x64', 'arm64'].flatMap((arch) => ['dll', 'winmd'].map((ext) => `platforms/windows/${arch}/NativeScript.Mason.${ext}`)),
 ]) {
   assert(files.has(`package/${path}`), `Missing package file: ${path}`);

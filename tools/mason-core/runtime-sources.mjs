@@ -41,7 +41,7 @@ export function coreCommonSource() {
   const [view] = required(file.statements, ['ViewBase'], file);
   const edits = [];
   const removeTop = required(file.statements, [
-    'textContentProperty', 'windowsRunCounts', 'windowsNativeOf', 'windowsBreakRun',
+    'textContentProperty', 'windowsRunCounts', 'hasPseudoClasses', 'setPseudoClass', 'windowsNativeOf', 'windowsBreakRun',
     'windowsMemberKind', 'windowsInnerHTML', 'setWindowsInnerHTML', 'windowsFontSource',
     'TextBase', 'ButtonBase', 'srcProperty', 'ImageBase', 'InputEvent', 'CompositionEvent', 'KeyboardEvent',
   ], file);
@@ -64,6 +64,10 @@ export function coreCommonSource() {
   const textMembers = view.members.filter((node) => node.getStart(file) >= first.getStart(file) && node.getEnd() <= last.getEnd());
   if (textMembers.length !== 34) throw new Error(`ViewBase text boundary changed (${textMembers.length} members); review the projection.`);
   edits.push(...textMembers.map((node) => ({ node })));
+  const fullMutations = required(view.members, [
+    '_edgeChildren', '_syncEdgeChildren', '_masonAddChild', '_masonInsertChild', '_masonReplaceChild', '_masonRemoveChild', '_masonRemoveChildren',
+  ], file);
+  edits.push(...fullMutations.map((node) => ({ node })));
   for (const name of ['innerHTML', '_windowsNativeIndexOf', '_nativeRemoveChildNode', '_windowsAttachPlaceholder', '_windowsDetachPlaceholder']) {
     const found = view.members.filter((node) => nameOf(node, file) === name);
     if (found.length !== (name === 'innerHTML' ? 2 : 1)) throw new Error(`ViewBase boundary changed: ${name}`);
@@ -92,8 +96,9 @@ export function coreCommonSource() {
   if (output.split(before).length !== 2) throw new Error('Review core environment shorthand forwarding.');
   output = "import { isCssEnvironmentShorthand } from './css-environment';\n" +
     output.replace(before, 'return isCssLength(value) && !isCssEnvironmentShorthand(value) ? value.css : value;');
-  if (/\b(?:TextNode|TextBase|ButtonBase|ImageBase|frameworkRegistry|reconcileTextRuns|MasonTextNode|innerHTML)\b/.test(output)) {
-    throw new Error('The core ViewBase projection still references optional text/HTML implementation.');
+  const optionalReferences = output.match(/.*\b(?:TextNode|TextBase|ButtonBase|ImageBase|frameworkRegistry|reconcileTextRuns|MasonTextNode|innerHTML)\b.*/g);
+  if (optionalReferences) {
+    throw new Error(`The core ViewBase projection still references optional text/HTML implementation:\n${optionalReferences.join('\n')}`);
   }
   return output;
 }
@@ -158,7 +163,7 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
   const condition = guard && ts.isIfStatement(guard) ? guard.expression : undefined;
   if (!condition || !ts.isBinaryExpression(condition) || condition.operatorToken.kind !== ts.SyntaxKind.BarBarToken ||
     !ts.isPrefixUnaryExpression(condition.left) || condition.left.operator !== ts.SyntaxKind.ExclamationToken ||
-    !ts.isIdentifier(condition.left.operand) || condition.left.operand.text !== '__WINDOWS__' ||
+    !/^\(__WINDOWS__\s*\|\|\s*__LINUX__\)$/.test(condition.left.operand.getText(file)) ||
     !ts.isReturnStatement(guard.thenStatement)) {
     throw new Error('Review the rich-text style boundary: copyTextStyleTo is no longer Windows-only.');
   }
@@ -174,7 +179,7 @@ export function coreStyleSource(source = readFileSync(resolve(coreSourceRoot, 's
   // The Windows bridge copies bytes rather than exposing arena memory. The
   // local mirror is uniquely owned, regardless of the native buffer's share
   // count. Re-fetching before each setter would discard earlier writes.
-  const windowsBuffer = 'this.setBuffer(new Uint8Array(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_])).buffer);';
+  const windowsBuffer = 'this.setBuffer(windowsStyleValues(this.nativeView, !!this.view_ && !this.view_[isMasonView_]));';
   if (output.split(windowsBuffer).length !== 2) throw new Error('Review Windows copied style-buffer ownership.');
   output = output.replace(windowsBuffer, windowsBuffer + '\n      this._sv.setUint32(StyleKeys.REF_COUNT, 1, true);');
   // alpha.144 coerces both typed and ordinary JS arrays as strings when a

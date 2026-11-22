@@ -234,7 +234,7 @@
 		F18483E229357AC900EC35F4 /* NSCMason.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSCMason.swift; sourceTree = "<group>"; };
 		F18483E62935935600EC35F4 /* MasonLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MasonLayout.swift; path = "../../../../nativescript-mason-core/src-native/ios/MasonLayout.swift"; sourceTree = SOURCE_ROOT; };
 		F18483E82935A19500EC35F4 /* MeasureOutput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MeasureOutput.swift; path = "../../../../nativescript-mason-core/src-native/ios/MeasureOutput.swift"; sourceTree = SOURCE_ROOT; };
-		F18483EA2937047C00EC35F4 /* mason_native.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mason_native.h; path = include/mason_native.h; sourceTree = "<group>"; };
+		F18483EA2937047C00EC35F4 /* mason_native.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = mason_native.h; path = Mason/include/mason_native.h; sourceTree = "<group>"; };
 		F18C9B852E5170B8006E5561 /* Scroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scroll.swift; sourceTree = "<group>"; };
 		F18C9B872E5199C5006E5561 /* MasonPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MasonPoint.swift; path = "../../../../nativescript-mason-core/src-native/ios/MasonPoint.swift"; sourceTree = SOURCE_ROOT; };
 		F18E99122DCB73F80062B4F7 /* Img.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Img.swift; sourceTree = "<group>"; };
@@ -1048,7 +1048,7 @@
 				EXCLUDED_ARCHS = "";
 				EXPORTED_SYMBOLS_FILE = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/include\"/**";
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/Mason/include\"/**";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
@@ -1143,7 +1143,7 @@
 				EXCLUDED_ARCHS = "";
 				EXPORTED_SYMBOLS_FILE = "";
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/include\"/**";
+				HEADER_SEARCH_PATHS = "\"$(SRCROOT)/Mason/include\"/**";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.6;

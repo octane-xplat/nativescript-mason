@@ -352,7 +352,9 @@ public class NSCMason: NSObject {
     return MasonDocument(mason: self)
   }
   
+#if canImport(UIKit)
   public func createMaterialView() -> MasonMaterialUIView { MasonMaterialUIView(mason: self) }
+#endif
 
   public func createView()-> MasonUIView {
     let view = MasonUIView(mason: self)

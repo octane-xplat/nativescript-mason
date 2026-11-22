@@ -2,6 +2,8 @@
 // resolves __WINDOWS__ to false and does not ship or support a Windows host.
 // CSS signatures match beta.126's Windows bridge; this file is not published.
 declare const __WINDOWS__: boolean;
+declare const __LINUX__: boolean;
+declare function mason_gtk_register_fonts(directory: string): void;
 declare namespace NativeScript.Mason {
   class Mason {
     constructor();

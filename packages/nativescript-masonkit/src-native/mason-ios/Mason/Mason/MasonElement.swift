@@ -527,7 +527,7 @@ extension MasonElement {
 
   /// True when the pending setNeedsLayout is guaranteed to reach autoComputeIfRoot.
   private var autoComputeWillRun: Bool {
-    guard uiView.window != nil, uiView is MasonUIView || uiView is MasonMaterialUIView else { return false }
+    guard uiView.window != nil, uiView is MasonUIView || uiView is MasonNativeChildHosting else { return false }
     if let view = uiView as? MasonUIView, view.isScrollingNow { return false }
     guard let superview = uiView.superview, !hasMasonLayoutParent else { return false }
     let size = superview.bounds.size

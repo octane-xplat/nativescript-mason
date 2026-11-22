@@ -211,6 +211,10 @@ declare namespace NativeScript.Mason {
     AddEventListener(element: any, type: string, listener: any): number;
     ElementFromPoint(element: any, x: number, y: number): any;
     RemoveEventListener(element: any, type: string, id: number): void;
+    SetPointerEvents?(element: any, value: number): void;
+    SetPointerCapture?(element: any, pointerId: number): boolean;
+    ReleasePointerCapture?(element: any, pointerId: number): void;
+    HasPointerCapture?(element: any, pointerId: number): boolean;
     // Scroll offsets and sizes in DIPs; NaN keeps an axis in ScrollTo.
     ScrollLeft(element: any): number;
     ScrollTop(element: any): number;

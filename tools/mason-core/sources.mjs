@@ -14,9 +14,9 @@ export const relocatedModules = Object.freeze(['box-shadow', 'css-colors', 'css-
 export const relocatedFiles = Object.freeze([
   ...relocatedModules.map((name) => `${name}.ts`),
   'css-keyframes.ts', 'css-shorthands.ts', 'diagnostics.ts', 'display-density.ts',
-  'fonts.ts', 'foreign-layout.ts', 'gradient-stops.ts', 'logical-boxes.ts', 'mask.ts', 'mask.windows.ts',
+  'fonts.ts', 'foreign-layout.ts', 'gradient-stops.ts', 'logical-boxes.ts', 'mask-spec.ts', 'mask.ts', 'mask.windows.ts',
   'paint-presentation.ts', 'panel-helpers.ts', 'panel-helpers.windows.ts', 'properties.ts', 'pseudo.ts',
-  'style.ts', 'svg-path.d.ts', 'svg-path.windows.ts', 'symbols.ts', 'units.ts',
+  'style.ts', 'svg-path-commands.ts', 'svg-path.d.ts', 'svg-path.windows.ts', 'symbols.ts', 'units.ts',
   'utils/index.android.ts', 'utils/index.d.ts', 'utils/index.ios.ts',
   'view/index.android.ts', 'view/index.d.ts', 'view/index.ios.ts',
   'scroll/index.android.ts', 'scroll/index.d.ts', 'scroll/index.ios.ts',

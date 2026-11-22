@@ -727,30 +727,45 @@ public class MasonUIView: MasonViewBase, MasonEventTarget, MasonElement, MasonEl
         // Set the input gate before disabling recognizers: UIKit may deliver
         // .cancelled synchronously, and ordinary cancellation starts momentum.
         _panActive = false
+#if canImport(UIKit)
         if _scrollGestureDelegate != nil {
           _scrollPanEnabledBeforeSuspension = _scrollPanGesture.isEnabled
           _scrollPanGesture.isEnabled = false
         }
+#if !os(visionOS)
         if let pan = _keyboardDismissDriver?.panGestureRecognizer {
           _dismissalPanEnabledBeforeSuspension = pan.isEnabled
           pan.isEnabled = false
         }
+#endif
+#else
+        _wheelIdleWork?.cancel()
+        _wheelIdleWork = nil
+        _wheelForwarding = nil
+#endif
         _stopScrollDeceleration()
         // An explicit smooth seek is not user motion and keeps running.
         _isScrolling = _scrollAnimationLink != nil
-      } else {
-        if let enabled = _scrollPanEnabledBeforeSuspension {
-          _scrollPanGesture.isEnabled = enabled
-          _scrollPanEnabledBeforeSuspension = nil
-        }
-        if let enabled = _dismissalPanEnabledBeforeSuspension {
-          _keyboardDismissDriver?.panGestureRecognizer.isEnabled = enabled
-          _dismissalPanEnabledBeforeSuspension = nil
-        }
+        return
       }
+#if canImport(UIKit)
+      if let enabled = _scrollPanEnabledBeforeSuspension {
+        _scrollPanGesture.isEnabled = enabled
+        _scrollPanEnabledBeforeSuspension = nil
+      }
+#if !os(visionOS)
+      if let enabled = _dismissalPanEnabledBeforeSuspension {
+        _keyboardDismissDriver?.panGestureRecognizer.isEnabled = enabled
+        _dismissalPanEnabledBeforeSuspension = nil
+      }
+#endif
+#endif
     }
   }
+#if canImport(UIKit)
   private var _scrollPanEnabledBeforeSuspension: Bool?
+#endif
+#if canImport(UIKit) && !os(visionOS)
   private var _dismissalPanEnabledBeforeSuspension: Bool?
 
   // `UIScrollView.KeyboardDismissMode` for this bounds.origin scroll host.
@@ -761,11 +776,12 @@ public class MasonUIView: MasonViewBase, MasonEventTarget, MasonElement, MasonEl
   @objc public var keyboardDismissMode: UIScrollView.KeyboardDismissMode = .none {
     didSet { _updateKeyboardDismissDriver() }
   }
+  var _keyboardDismissDriver: UIScrollView?
+#endif
   // `UIScrollView.alwaysBounce*`: lets the scroll pan begin on an axis whose
   // content cannot move, so the gesture still engages and rubber-bands it.
   @objc public var alwaysBounceHorizontal = false
   @objc public var alwaysBounceVertical = false
-  var _keyboardDismissDriver: UIScrollView?
   private var _scrollPanStartOffset: CGPoint = .zero
   private var _scrollPanTranslation: CGPoint = .zero
   private var _scrollDecelerationLink: CADisplayLink?
@@ -1880,10 +1896,13 @@ extension MasonUIView {
     return true
   }
 
+#if canImport(UIKit)
   func _scrollPanAllowed(_ pan: UIPanGestureRecognizer) -> Bool {
     let velocity = pan.velocity(in: self)
     return _scrollPanAllowed(horizontal: abs(velocity.x) > abs(velocity.y), at: pan.location(in: self))
   }
+
+#endif
 
   private func _clampScrollOffset(_ offset: CGPoint) -> CGPoint {
     CGPoint(
@@ -1940,13 +1959,16 @@ extension MasonUIView {
     _stopScrollDeceleration()
     _scrollPanStartOffset = contentOffset
     _scrollPanTranslation = .zero
+#if !os(visionOS)
     // `.interactive` is handled by the driver scroll view's own pan, which
     // gives UIKit a real UIScrollView drag to track; `.onDrag` snap-dismisses.
     if keyboardDismissMode == .onDrag {
       window?.endEditing(true)
     }
+#endif
   }
 
+#if !os(visionOS)
   // Lazily owns the hidden UIScrollView whose pan drives `.interactive`
   // dismissal. UIKit's finger tracking is private to UIScrollView, but it runs
   // on the scroll view's pan recognizer wherever that recognizer is attached —
@@ -1988,6 +2010,8 @@ extension MasonUIView {
     if pan.view !== self { addGestureRecognizer(pan) }
   }
 
+#endif
+
   // Pan ended/cancelled; momentum or spring-back continues from `velocity`.
   func _scrollPanEnded(_ velocity: CGPoint) {
     _panActive = false
@@ -2022,6 +2046,10 @@ extension MasonUIView {
   }
 #else
   public override func scrollWheel(with event: NSEvent) {
+    guard userScrollEnabled else {
+      nextResponder?.scrollWheel(with: event)
+      return
+    }
     // Momentum is simulated from the release velocity, as on iOS.
     if !event.momentumPhase.isEmpty {
       if _wheelForwarding == true { nextResponder?.scrollWheel(with: event) }
@@ -2558,6 +2586,7 @@ private final class _MasonScrollPanDelegate: NSObject, UIGestureRecognizerDelega
 }
 #endif
 
+#if canImport(UIKit) && !os(visionOS)
 // The dismissal driver must stay a real UIScrollView — its built-in pan
 // recognizer requires the scroll view itself as delegate — so the host scroll
 // gate moves into this subclass: UIKit asks the delegate (the driver) before
@@ -2574,6 +2603,8 @@ private final class _MasonDismissalDriver: UIScrollView {
     return super.gestureRecognizerShouldBegin(gestureRecognizer)
   }
 }
+
+#endif
 
 // Skips the backing store (and draw(_:)) while the owning view paints nothing.
 final class MasonViewLayer: CALayer {
@@ -2620,6 +2651,7 @@ internal protocol MasonNativeChildHosting: AnyObject {
   var layoutChildOffset: Int { get }
 }
 
+#if canImport(UIKit)
 /// The UIKit effect itself is the native layout root. The decoration shares its
 /// node and style; it never measures, adopts children, or creates another node.
 @objcMembers
@@ -2703,3 +2735,4 @@ public final class MasonMaterialUIView: UIVisualEffectView, MasonElement, MasonE
   public func removeView(_ view: UIView) { _ = node.removeChild(mason.nodeForView(view)) }
   public func removeView(at index: Int) { _ = node.removeChildAt(index: index) }
 }
+#endif
