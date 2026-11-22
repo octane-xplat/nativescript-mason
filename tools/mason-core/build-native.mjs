@@ -44,9 +44,19 @@ function cargo(args, options) {
   return run('rustup', ['run', toolchain, 'cargo', ...args], { ...options, env: { ...process.env, RUSTC: compiler } });
 }
 
+export function runCargoBuild(args, env = process.env) {
+  try {
+    return run('mbx', [`+${toolchain}`, ...args], { env });
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+    return run('rustup', ['run', toolchain, 'cargo', ...args], { env });
+  }
+}
+
 function buildArchive(target, destination) {
-  cargo(['rustc', '-p', 'mason-c', '--lib', '--release', '--locked', '--target', target,
-    '--target-dir', cargoTargetRoot, '--crate-type', 'staticlib']);
+  const compiler = run('rustup', ['which', '--toolchain', toolchain, 'rustc'], { stdio: 'pipe' }).trim();
+  runCargoBuild(['rustc', '-p', 'mason-c', '--lib', '--release', '--locked', '--target', target,
+    '--target-dir', cargoTargetRoot, '--crate-type', 'staticlib'], { ...process.env, RUSTC: compiler });
   mkdirSync(dirname(destination), { recursive: true });
   const produced = target.endsWith('-msvc') ? 'mason_c.lib' : 'libmason_c.a';
   copyFileSync(resolve(cargoTargetRoot, target, `release/${produced}`), destination);

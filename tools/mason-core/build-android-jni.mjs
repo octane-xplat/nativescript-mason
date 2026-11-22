@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { workspaceRoot } from './sources.mjs';
-import { androidTools, nativeRoot, run } from './build-native.mjs';
+import { androidTools, nativeRoot, run, runCargoBuild } from './build-native.mjs';
 
 const tools = androidTools();
 const toolchain = process.env.MASON_RUST_TOOLCHAIN ?? 'stable';
@@ -17,8 +17,8 @@ const env = {
   AR_aarch64_linux_android: resolve(tools.bin, 'llvm-ar'),
   RUSTFLAGS: '-C link-arg=-Wl,--hash-style=sysv -C link-arg=-Wl,-z,max-page-size=16384',
 };
-run('rustup', ['run', toolchain, 'cargo', 'build', '-p', 'mason-android', '--lib', '--release', '--locked',
-  '--target', target, '--target-dir', targetRoot], { env });
+runCargoBuild(['build', '-p', 'mason-android', '--lib', '--release', '--locked',
+  '--target', target, '--target-dir', targetRoot], env);
 const output = resolve(nativeRoot, 'android-jni');
 mkdirSync(resolve(output, 'arm64-v8a'), { recursive: true });
 const library = resolve(output, 'arm64-v8a/libmasonnative.so');
