@@ -424,7 +424,9 @@ void mason_node_set_context(struct CMason *mason,
 void mason_node_remove_context(struct CMason *mason, struct CMasonNode *node);
 #endif
 
+#if defined(__APPLE__)
 void mason_node_set_apple_node(struct CMason *mason, struct CMasonNode *node, void *apple_node);
+#endif
 
 void mason_style_update_non_buffer_data(struct CMason *mason,
                                         struct CMasonNode *node,
@@ -603,5 +605,22 @@ struct CMasonMinMax mason_util_create_track_sizing_function_with_type_value(int3
                                                                             float track_value);
 
 void mason_util_destroy_string(char *string);
+
+/**
+ * Four corners in TL, TR, BR, BL order, five doubles each:
+ * radius, curve (continuous=0,squircle=1,superellipse=2,clothoid=3,arc=4),
+ * smoothing, exponent, preserveSmoothing (0/1). All units are caller-defined.
+ * Returns required output doubles, or 0 for invalid input. A null/short output
+ * is a sizing query and is never partially written. Each command occupies eight
+ * doubles: M=0,x,y; L=1,x,y; C=2,x1,y1,x2,y2,x,y; A=3,cx,cy,r,start,sweep,x,y;
+ * Z=4. Unused slots are zero. Angles are clockwise degrees in y-down coordinates.
+ * Input and writable output must be valid nonoverlapping memory for their lengths.
+ */
+uintptr_t mason_smooth_corners_path(double width,
+                                    double height,
+                                    const double *corners,
+                                    uintptr_t corners_len,
+                                    double *output,
+                                    uintptr_t output_len);
 
 #endif  /* MASON_C_H */
