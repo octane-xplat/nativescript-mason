@@ -134,6 +134,7 @@
     <ClInclude Include="DWriteText.h" />
     <ClInclude Include="RootScale.h" />
     <ClInclude Include="TextAtlas.h" />
+    <ClInclude Include="TextIntrinsic.h" />
     <ClInclude Include="SpacingTrim.h" />
     <ClInclude Include="VerticalText.h" />
     <ClInclude Include="TextAutomationPeer.h" />
